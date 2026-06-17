@@ -3,12 +3,13 @@
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Loader2, ArrowRight, MapPin, MessagesSquare, BadgeCheck } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, MapPin, MessagesSquare, BadgeCheck, CircleAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { loginAction } from '../lib/auth/actions';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { loginAction, resendConfirmationEmailAction } from '../lib/auth/actions';
+import { translateAuthErrorMessage } from '../lib/auth/errorMessages';
 import { useUserProfile } from '../contexts/AuthContext';
 import { sanitizeRedirectPath } from '../lib/auth/redirectPath';
 import {
@@ -22,10 +23,18 @@ export function LoginPage() {
   const searchParams = useSearchParams();
   const { refreshSession } = useUserProfile();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(searchParams?.get('error') ?? null);
+  const [error, setError] = useState<string | null>(() => {
+    const param = searchParams?.get('error');
+    return param ? translateAuthErrorMessage(param) : null;
+  });
   const [message, setMessage] = useState<string | null>(searchParams?.get('message') ?? null);
+  const [email, setEmail] = useState('');
+  const [resendPending, setResendPending] = useState(false);
 
   const redirectTo = sanitizeRedirectPath(searchParams?.get('redirectTo'), '/');
+  const showResendConfirmation =
+    Boolean(error) &&
+    error.includes('nie został potwierdzony');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,7 +47,7 @@ export function LoginPage() {
       const result = await loginAction(formData);
 
       if ('error' in result) {
-        setError(result.error);
+        setError(translateAuthErrorMessage(result.error));
       } else {
         await refreshSession();
         router.refresh();
@@ -48,6 +57,26 @@ export function LoginPage() {
         }, 100);
       }
     });
+  };
+
+  const handleResendConfirmation = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError('Podaj adres email, aby wysłać ponownie link potwierdzający.');
+      return;
+    }
+
+    setResendPending(true);
+    const result = await resendConfirmationEmailAction(trimmed);
+    setResendPending(false);
+
+    if ('error' in result) {
+      setError(translateAuthErrorMessage(result.error));
+      return;
+    }
+
+    setError(null);
+    setMessage('Wysłaliśmy ponownie link potwierdzający. Sprawdź skrzynkę odbiorczą (również spam).');
   };
 
   return (
@@ -85,12 +114,6 @@ export function LoginPage() {
         </>
       }
     >
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {message && (
         <Alert className="mb-4 border-emerald-500/30 bg-emerald-500/5">
           <AlertDescription>{message}</AlertDescription>
@@ -98,6 +121,39 @@ export function LoginPage() {
       )}
 
       <AuthFormPanel>
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mb-5 border-destructive bg-destructive/15 shadow-sm"
+            data-testid="login-error"
+          >
+            <CircleAlert className="h-5 w-5" />
+            <AlertTitle className="text-destructive">Błąd logowania</AlertTitle>
+            <AlertDescription className="space-y-3 text-sm font-medium text-destructive">
+              <p>{error}</p>
+              {showResendConfirmation ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/40 bg-background text-destructive hover:bg-destructive/10"
+                  disabled={isPending || resendPending}
+                  onClick={() => void handleResendConfirmation()}
+                >
+                  {resendPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Wysyłanie…
+                    </>
+                  ) : (
+                    'Wyślij ponownie link potwierdzający'
+                  )}
+                </Button>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="email">Adres email</Label>
@@ -107,6 +163,8 @@ export function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="twoj@email.pl"
                 className={`pl-10 ${authFieldClassName}`}
                 required

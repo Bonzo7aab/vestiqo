@@ -89,11 +89,26 @@ export async function updateSession(request: NextRequest) {
       .from('user_profiles')
       .select('user_type, platform_role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
-    const isAdmin = profile?.platform_role === 'platform_admin'
-    const isContractor = profile?.user_type === 'contractor'
-    const isManager = profile?.user_type === 'manager'
+    // Ghost session: auth cookie present but profile gone (e.g. after account deletion).
+    if (!profile) {
+      await supabase.auth.signOut({ scope: 'local' })
+
+      if (isProtectedPath) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/logowanie'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+
+      supabaseResponse.headers.set('x-pathname', pathname)
+      return supabaseResponse
+    }
+
+    const isAdmin = profile.platform_role === 'platform_admin'
+    const isContractor = profile.user_type === 'contractor'
+    const isManager = profile.user_type === 'manager'
 
     const homePathFor = (() => {
       if (isAdmin) return '/administracja'

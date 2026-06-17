@@ -7,6 +7,16 @@ import { redirect } from 'next/navigation'
 import { getRegistrationSettingsForRegister } from '../database/platform-settings'
 import { registrationClosedMessage } from '../registration-settings-shared'
 import { sanitizeRedirectPath } from './redirectPath'
+import { translateAuthErrorMessage, translateRegistrationErrorMessage, REGISTRATION_ERRORS } from './errorMessages'
+import {
+  isValidPolishPhone,
+  normalizePolishPhone,
+  POLISH_PHONE_INVALID_MESSAGE,
+} from '../phone/polish-phone'
+import { isValidNip, normalizeNip } from '../gus/nip'
+import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
+import { getPublicAppOrigin } from './app-origin'
+import { deleteUserAccountData } from './delete-user-account-data'
 
 export interface LoginData {
   email: string
@@ -61,7 +71,7 @@ async function loginActionImpl(
   })
 
   if (error) {
-    return { error: error.message }
+    return { error: translateAuthErrorMessage(error.message) }
   }
 
   const userId = signInData.user?.id
@@ -111,6 +121,8 @@ export type RegisterActionResult =
   | { success: true; redirectTo: string }
   | { error: string }
 
+export type DeleteAccountActionResult = { success: true } | { error: string }
+
 /**
  * Server Action for user registration
  * Creates auth user, user_profiles, companies, and user_companies.
@@ -138,10 +150,8 @@ async function registerActionImpl(
   const vatStatusRaw = (formData.get('vatStatus') as string)?.trim() || null
   const vatStatus =
     vatStatusRaw === 'active_vat' || vatStatusRaw === 'vat_exempt' ? vatStatusRaw : null
-  const organizationType = formData.get('organizationType') as 'spółdzielnia' | 'wspólnota' | null
-  const street = (formData.get('street') as string)?.trim()
-  const city = (formData.get('city') as string)?.trim() || undefined
-  const district = (formData.get('district') as string)?.trim() || undefined
+  const organizationType =
+    (formData.get('organizationType') as 'spółdzielnia' | 'wspólnota' | null) ?? 'wspólnota'
   if (!acceptTerms || acceptTerms === '0') {
     redirect(`/rejestracja?error=${encodeURIComponent('Musisz zaakceptować regulamin i politykę prywatności')}`)
   }
@@ -151,18 +161,18 @@ async function registerActionImpl(
   }
 
   if (!nip || !companyName) {
-    redirect(`/rejestracja?error=${encodeURIComponent('NIP i Nazwa są wymagane')}`)
+    redirect(`/rejestracja?error=${encodeURIComponent('Podaj prawidłowy NIP i poczekaj na pobranie nazwy firmy')}`)
   }
 
   if (!phone) {
     redirect(`/rejestracja?error=${encodeURIComponent('Telefon jest wymagany')}`)
   }
 
-  if (userType === 'manager') {
-    if (!organizationType || !street || !district) {
-      redirect(`/rejestracja?error=${encodeURIComponent('Uzupełnij typ organizacji, adres (ulica, dzielnica)')}`)
-    }
+  if (!isValidPolishPhone(phone)) {
+    redirect(`/rejestracja?error=${encodeURIComponent(POLISH_PHONE_INVALID_MESSAGE)}`)
   }
+
+  const normalizedPhone = normalizePolishPhone(phone)
 
   if (password.length < 6) {
     redirect(`/rejestracja?error=${encodeURIComponent('Hasło musi mieć co najmniej 6 znaków')}`)
@@ -180,31 +190,57 @@ async function registerActionImpl(
     redirect(`/rejestracja?error=${encodeURIComponent(registrationClosedMessage('manager'))}`)
   }
 
+  const normalizedNip = normalizeNip(nip)
+  if (!isValidNip(normalizedNip)) {
+    return { error: 'Podaj prawidłowy numer NIP' }
+  }
+
+  const { createAdminClient } = await import('../supabase/admin')
+  const admin = createAdminClient()
+
+  if (await isNipAlreadyRegistered(admin, normalizedNip)) {
+    return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+  }
+
+  if (await isEmailAlreadyRegistered(admin, email)) {
+    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
+  }
+
+  const origin = getPublicAppOrigin();
+  const confirmationMessage = encodeURIComponent('Adres email został potwierdzony.');
+  const confirmationNext =
+    userType === 'contractor'
+      ? `/rejestracja/wybor-weryfikacji?message=${confirmationMessage}`
+      : `/konto?message=${confirmationMessage}`;
+  const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(confirmationNext)}`;
+
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo,
       data: {
         first_name: firstName,
         last_name: lastName,
         user_type: userType,
-        phone,
+        phone: normalizedPhone,
       },
     },
   })
 
   if (authError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(authError.message)}`)
+    return { error: translateRegistrationErrorMessage(authError.message) }
   }
 
   if (!authData.user) {
-    redirect(`/rejestracja?error=${encodeURIComponent('Nie udało się utworzyć konta')}`)
+    return { error: 'Nie udało się utworzyć konta' }
+  }
+
+  if (authData.user.identities?.length === 0) {
+    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
   }
 
   const userId = authData.user.id
-
-  const { createAdminClient } = await import('../supabase/admin')
-  const admin = createAdminClient()
 
   const { error: profileError } = await admin
     .from('user_profiles')
@@ -213,14 +249,16 @@ async function registerActionImpl(
       user_type: userType,
       first_name: firstName,
       last_name: lastName,
-      phone: phone || null,
+      phone: normalizedPhone || null,
+      nip: normalizedNip,
       is_verified: userType === 'manager',
       profile_completed: false,
       onboarding_completed: false,
     })
 
   if (profileError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(profileError.message)}`)
+    await admin.auth.admin.deleteUser(userId)
+    return { error: translateRegistrationErrorMessage(profileError.message) }
   }
 
   const companyType: 'spółdzielnia' | 'wspólnota' | 'contractor' =
@@ -231,16 +269,14 @@ async function registerActionImpl(
   const companyPayload = {
     name: companyName,
     type: companyType,
-    nip: nip || null,
+    nip: normalizedNip || null,
     regon,
-    address: userType === 'manager' && street && city && district
-      ? `${street}, ${city}, ${district}`
-      : gusAddress,
-    city: userType === 'manager' ? (city || 'Warszawa') : gusCity,
+    address: gusAddress,
+    city: gusCity || (userType === 'manager' ? 'Warszawa' : null),
     postal_code: postalCode,
     country: 'PL',
     email: email,
-    phone: phone || null,
+    phone: normalizedPhone || null,
     is_verified: userType === 'manager',
     verification_level: userType === 'manager' ? ('verified' as const) : ('none' as const),
   }
@@ -253,7 +289,15 @@ async function registerActionImpl(
     .single()
 
   if (companyError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(companyError.message)}`)
+    await admin.auth.admin.deleteUser(userId)
+    const companyErrorMessage = companyError.message.toLowerCase()
+    if (
+      companyErrorMessage.includes('duplicate') ||
+      companyErrorMessage.includes('unique')
+    ) {
+      return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+    }
+    return { error: translateRegistrationErrorMessage(companyError.message) }
   }
 
   if (!companyRow?.id) {
@@ -276,54 +320,13 @@ async function registerActionImpl(
     redirect(`/rejestracja?error=${encodeURIComponent(ucError.message)}`)
   }
 
-  if (userType === 'contractor') {
-    const { normalizeIbanInput, isValidPolishIban } = await import('../contractor/iban')
-    const normalizedBankAccount = bankAccountIban ? normalizeIbanInput(bankAccountIban) : null
-    const validBankAccount =
-      normalizedBankAccount !== null && isValidPolishIban(normalizedBankAccount)
-
-    if (validBankAccount || vatStatus) {
-      const settingsRow: Record<string, unknown> = {
-        user_id: userId,
-        notification_channels: { email: true, app: true, phoneCall: false, sms: false },
-        radar_settings: { enabled: true, minAmountNet: 1000, areas: ['Warszawa'] },
-      }
-
-      if (validBankAccount && normalizedBankAccount) {
-        settingsRow.bank_account_iban = normalizedBankAccount
-      }
-
-      if (vatStatus) {
-        settingsRow.vat_status = vatStatus
-      }
-
-      if (validBankAccount && normalizedBankAccount) {
-        try {
-          const { checkBankAccountOnVatWhitelist } = await import('../mf-vat-whitelist/check-bank-account')
-          const vatResult = await checkBankAccountOnVatWhitelist(nip, normalizedBankAccount)
-          const verifiedAt = new Date().toISOString()
-          Object.assign(settingsRow, {
-            vat_whitelist_verified_at: verifiedAt,
-            vat_whitelist_account_assigned: vatResult.assigned,
-            vat_whitelist_request_id: vatResult.requestId,
-            vat_whitelist_checked_for_date: vatResult.checkedForDate,
-            updated_at: verifiedAt,
-          })
-        } catch (vatError) {
-          console.error('VAT whitelist check during registration failed:', vatError)
-        }
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: contractorSettingsError } = await (admin as any)
-        .from('contractor_account_settings')
-        .insert(settingsRow)
-
-      if (contractorSettingsError) {
-        console.error('contractor_account_settings insert at registration failed:', contractorSettingsError)
-      }
-    }
-  }
+  const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')
+  await persistRegistrationFinanceSettings(admin, {
+    userId,
+    normalizedNip,
+    bankAccountIban,
+    vatStatus,
+  })
 
   revalidatePath('/', 'layout')
 
@@ -385,16 +388,8 @@ async function updateUserActionImpl(userData: UpdateUserData) {
   return { success: true }
 }
 
-function getPublicAppOrigin(): string {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'http://localhost:3000'
-  return base.replace(/\/$/, '')
-}
-
 /**
- * Sends Supabase password recovery email (PKCE). Link lands on `/auth/callback` then `/auth/aktualizacja-hasla`.
+ * Sends Supabase password recovery email. Link lands on `/auth/confirm` then `/auth/aktualizacja-hasla`.
  */
 async function requestPasswordResetEmailActionImpl(
   email: string
@@ -408,7 +403,7 @@ async function requestPasswordResetEmailActionImpl(
   const origin = getPublicAppOrigin()
   const next = encodeURIComponent('/auth/aktualizacja-hasla')
   const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-    redirectTo: `${origin}/auth/callback?next=${next}`,
+    redirectTo: `${origin}/auth/confirm?next=${next}`,
   })
 
   if (error) {
@@ -419,6 +414,34 @@ async function requestPasswordResetEmailActionImpl(
 }
 
 /**
+ * Resends signup confirmation email with PKCE callback URL.
+ */
+async function resendConfirmationEmailActionImpl(
+  email: string,
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient();
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return { error: 'Podaj prawidłowy adres email' };
+  }
+
+  const origin = getPublicAppOrigin();
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: trimmed,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+    },
+  });
+
+  if (error) {
+    return { error: translateRegistrationErrorMessage(error.message) };
+  }
+
+  return { success: true };
+}
+
+/**
  * Server Action for password reset (legacy name; same as request flow used on forgot-password).
  */
 export async function resetPasswordAction(email: string) {
@@ -426,11 +449,10 @@ export async function resetPasswordAction(email: string) {
 }
 
 /**
- * Server Action for deleting user account
- * This permanently deletes the user from auth.users, which cascades to delete
- * user_profiles and all related data via database CASCADE constraints
+ * Server Action for deleting user account.
+ * Removes linked company/NIP data, auth user, and profile.
  */
-async function deleteAccountActionImpl() {
+async function deleteAccountActionImpl(): Promise<DeleteAccountActionResult> {
   try {
     const supabase = await createClient()
     
@@ -443,19 +465,20 @@ async function deleteAccountActionImpl() {
 
     const userId = user.id
 
-    // Use admin client to delete the user
-    // Import dynamically to avoid issues if service role key is not set
     const { createAdminClient } = await import('../supabase/admin')
     const adminClient = createAdminClient()
-    
-    // Delete the auth user - this will cascade delete user_profiles and related data
+
+    const dataCleanup = await deleteUserAccountData(adminClient, userId)
+    if (dataCleanup.ok === false) {
+      return { error: dataCleanup.error }
+    }
+
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
     
     if (deleteError) {
       console.error('Error deleting user account:', deleteError)
       console.error('Delete error details:', JSON.stringify(deleteError, null, 2))
       
-      // Provide more specific error messages
       if (deleteError.message?.includes('not found') || deleteError.message?.includes('does not exist')) {
         return { error: 'Użytkownik nie został znaleziony.' }
       }
@@ -470,14 +493,23 @@ async function deleteAccountActionImpl() {
       return { error: `Błąd bazy danych podczas usuwania użytkownika: ${deleteError.message || 'Nieznany błąd'}` }
     }
 
+    // Safety net: profile row should already be gone after deleteUserAccountData.
+    const { error: profileDeleteError } = await adminClient
+      .from('user_profiles')
+      .delete()
+      .eq('id', userId)
+
+    if (profileDeleteError) {
+      console.error('Error deleting user profile after auth deletion:', profileDeleteError)
+    }
+
     // Revalidate all paths to clear any cached user data
     revalidatePath('/', 'layout')
     
-    // Sign out and redirect to homepage
-    // Note: User is already deleted, but we clear any remaining session
+    // Clear local session cookies (user is already deleted server-side)
     await supabase.auth.signOut({ scope: 'local' })
     
-    redirect('/')
+    return { success: true }
   } catch (error: unknown) {
     console.error('Error in deleteAccountAction:', error)
     
@@ -512,5 +544,9 @@ export const updateUserAction = instrumentServerAction('updateUserAction', updat
 export const requestPasswordResetEmailAction = instrumentServerAction(
   'requestPasswordResetEmailAction',
   requestPasswordResetEmailActionImpl
+)
+export const resendConfirmationEmailAction = instrumentServerAction(
+  'resendConfirmationEmailAction',
+  resendConfirmationEmailActionImpl,
 )
 export const deleteAccountAction = instrumentServerAction('deleteAccountAction', deleteAccountActionImpl)

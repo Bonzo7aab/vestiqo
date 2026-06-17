@@ -20,6 +20,8 @@ import type { CompanyLookupResult } from '../lib/gus/types';
 
 interface CompanyManagementFormProps {
   user: AuthUser;
+  /** When true, only show building management (company data lives in ProfileForm). */
+  buildingsOnly?: boolean;
 }
 
 const MANAGER_COMPANY_TYPES = [
@@ -37,7 +39,7 @@ const CONTRACTOR_COMPANY_TYPES = [
   { value: 'service_provider', label: 'Usługodawca' },
 ];
 
-export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
+export function CompanyManagementForm({ user, buildingsOnly = false }: CompanyManagementFormProps) {
   const isManager = user.userType === 'manager';
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -397,8 +399,34 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
       <div className="border rounded-lg p-4 bg-card">
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <p className="ml-2 text-sm text-muted-foreground">Ładowanie danych firmy...</p>
+          <p className="ml-2 text-sm text-muted-foreground">
+            {buildingsOnly ? 'Ładowanie nieruchomości...' : 'Ładowanie danych firmy...'}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  if (buildingsOnly) {
+    return (
+      <div className="space-y-4" id="nieruchomosci">
+        {hasCompany && companyId ? (
+          <BuildingManagement companyId={companyId} />
+        ) : (
+          <div className="border rounded-lg p-4 bg-card">
+            <div className="flex items-center gap-2 mb-2">
+              <Building className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
+            </div>
+            <div className="text-center py-6">
+              <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">
+                Dane firmy z rejestracji są widoczne powyżej. Nieruchomości możesz dodać po
+                utworzeniu konta.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

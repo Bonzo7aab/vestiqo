@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from './ui/button'
 import { Separator } from './ui/separator'
@@ -17,8 +18,13 @@ import {
 } from './ui/alert-dialog'
 import { Alert, AlertDescription } from './ui/alert'
 import { deleteAccountAction } from '../lib/auth/actions'
+import { useUserProfile } from '../contexts/AuthContext'
+
+const ACCOUNT_DELETED_MESSAGE = 'Konto zostało trwale usunięte.';
 
 export function DeleteAccountSection() {
+  const router = useRouter()
+  const { logout } = useUserProfile()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
@@ -31,14 +37,23 @@ export function DeleteAccountSection() {
     try {
       const result = await deleteAccountAction()
 
-      if (result?.error) {
+      if ('error' in result) {
         setError(result.error)
         setIsLoading(false)
         setOpen(true)
         return
       }
 
+      await logout()
       setOpen(false)
+      setIsLoading(false)
+
+      const params = new URLSearchParams({
+        refresh_browser_auth: '1',
+        message: ACCOUNT_DELETED_MESSAGE,
+      })
+      router.replace(`/logowanie?${params.toString()}`)
+      router.refresh()
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : String(err)) || 'Wystąpił błąd podczas usuwania konta')
       setIsLoading(false)

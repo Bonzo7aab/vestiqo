@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClientOrNull } from '../../lib/supabase/admin';
 import { createClient } from '../../lib/supabase/server';
 import { requirePlatformAdmin } from '../../lib/admin/require-platform-admin';
+import { deleteUserAccountData } from '../../lib/auth/delete-user-account-data';
 import { createNotificationWithPush } from '../../lib/database/notifications-server';
 import { sendVerificationRejectionEmail } from '../../lib/email/verification-rejection';
 import { createPresignedGetUrl } from '../../lib/storage/r2/operations';
@@ -854,6 +855,70 @@ async function updateRegistrationSettingsActionImpl(
   return result;
 }
 
+async function adminDeleteUserAccountActionImpl(
+  subjectUserId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmedId = subjectUserId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: 'Brak identyfikatora użytkownika.' };
+  }
+
+  const { userId: actorId } = await requirePlatformAdmin('/administracja/weryfikacja');
+
+  if (trimmedId === actorId) {
+    return { ok: false, error: 'Nie możesz usunąć własnego konta z panelu administracyjnego.' };
+  }
+
+  const elevated = createAdminClientOrNull();
+  if (!elevated) {
+    return {
+      ok: false,
+      error:
+        'Usuwanie kont nie jest skonfigurowane. Dodaj SUPABASE_SECRET_KEY lub SUPABASE_SERVICE_ROLE_KEY.',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = elevated as any;
+  const { data: profile, error: profileErr } = await sb
+    .from('user_profiles')
+    .select('id, platform_role')
+    .eq('id', trimmedId)
+    .maybeSingle();
+
+  if (profileErr) {
+    return { ok: false, error: profileErr.message };
+  }
+
+  if (!profile) {
+    return { ok: false, error: 'Nie znaleziono profilu użytkownika.' };
+  }
+
+  if (profile.platform_role === 'platform_admin') {
+    return { ok: false, error: 'Nie można usunąć konta administratora platformy.' };
+  }
+
+  const dataCleanup = await deleteUserAccountData(elevated, trimmedId);
+  if (dataCleanup.ok === false) {
+    return { ok: false, error: dataCleanup.error };
+  }
+
+  const { error: deleteError } = await elevated.auth.admin.deleteUser(trimmedId);
+  if (deleteError) {
+    return { ok: false, error: deleteError.message };
+  }
+
+  await sb.from('user_profiles').delete().eq('id', trimmedId);
+
+  await logAdminAction(sb, actorId, 'delete_user_account', 'user_profiles', trimmedId, null);
+
+  revalidatePath('/administracja/weryfikacja');
+  revalidatePath(`/administracja/weryfikacja/${trimmedId}`);
+  revalidatePath('/', 'layout');
+
+  return { ok: true };
+}
+
 export const approveVerificationSubjectAction = instrumentServerAction(
   'approveVerificationSubjectAction',
   approveVerificationSubjectActionImpl
@@ -920,4 +985,8 @@ export const clearVerificationDocumentReviewAction = instrumentServerAction(
 export const updateRegistrationSettingsAction = instrumentServerAction(
   'updateRegistrationSettingsAction',
   updateRegistrationSettingsActionImpl
+);
+export const adminDeleteUserAccountAction = instrumentServerAction(
+  'adminDeleteUserAccountAction',
+  adminDeleteUserAccountActionImpl,
 );

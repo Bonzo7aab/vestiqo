@@ -60,6 +60,31 @@ function copyCookies(from: NextResponse, to: NextResponse): void {
 }
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const code = request.nextUrl.searchParams.get('code')
+  const tokenHash = request.nextUrl.searchParams.get('token_hash')
+  const type = request.nextUrl.searchParams.get('type')
+
+  if (
+    tokenHash &&
+    type &&
+    pathname !== '/auth/confirm'
+  ) {
+    const confirmUrl = request.nextUrl.clone()
+    confirmUrl.pathname = '/auth/confirm'
+    return NextResponse.redirect(confirmUrl)
+  }
+
+  if (
+    code &&
+    pathname !== '/auth/callback' &&
+    pathname !== '/auth/confirm'
+  ) {
+    const callbackUrl = request.nextUrl.clone()
+    callbackUrl.pathname = '/auth/callback'
+    return NextResponse.redirect(callbackUrl)
+  }
+
   const sessionResponse = await updateSession(request)
   if (sessionResponse.headers.has('location')) {
     return sessionResponse

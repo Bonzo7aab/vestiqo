@@ -47,6 +47,10 @@ double_confirm_changes = true
 # Disable email confirmations for local testing
 enable_confirmations = false
 
+[auth.email.template.confirmation]
+subject = "Potwierdź rejestrację w Vestiqo"
+content_path = "./supabase/templates/confirmation.html"
+
 [auth.external.apple]
 enabled = false
 

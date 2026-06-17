@@ -16,12 +16,29 @@ import type {
   PendingVerificationRow,
   RejectedVerificationRow,
 } from '../../lib/database/admin-verification';
+import {
+  resolveAdminUserStatus,
+  resolveQueueVerificationState,
+} from '../../lib/admin/resolve-admin-user-status';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
+import { AdminDeleteUserAccountButton } from './AdminDeleteUserAccountButton';
+
+interface PendingRow extends PendingVerificationRow {
+  emailConfirmed: boolean;
+}
+
+interface RejectedRow extends RejectedVerificationRow {
+  emailConfirmed: boolean;
+}
+
+interface ApprovedRow extends ApprovedVerificationRow {
+  emailConfirmed: boolean;
+}
 
 interface VerificationQueueTabsProps {
-  pending: PendingVerificationRow[];
-  rejected: RejectedVerificationRow[];
-  approved: ApprovedVerificationRow[];
+  pending: PendingRow[];
+  rejected: RejectedRow[];
+  approved: ApprovedRow[];
 }
 
 type RoleFilter = 'contractor' | 'manager';
@@ -61,7 +78,7 @@ function DetailsLink({ userId }: { userId: string }) {
   );
 }
 
-function PendingTable({ rows }: { rows: PendingVerificationRow[] }) {
+function PendingTable({ rows }: { rows: PendingRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table>
@@ -74,20 +91,32 @@ function PendingTable({ rows }: { rows: PendingVerificationRow[] }) {
             <TableHead>Rozpoczęta</TableHead>
             <TableHead>Zaktualizowana</TableHead>
             <TableHead />
+            <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 && (
-            <EmptyRow message="Brak kont oczekujących na weryfikację." colSpan={7} />
+            <EmptyRow message="Brak kont oczekujących na weryfikację." colSpan={8} />
           )}
-          {rows.map((r) => (
+          {rows.map((r) => {
+            const verificationState = resolveQueueVerificationState(
+              false,
+              r.verificationSubmittedAt,
+            );
+            const displayStatus = resolveAdminUserStatus({
+              emailConfirmed: r.emailConfirmed,
+              verificationState,
+            });
+            const userLabel = `${r.firstName} ${r.lastName}`.trim();
+
+            return (
             <TableRow key={r.userId}>
               <TableCell className="font-medium">
                 {r.firstName} {r.lastName}
               </TableCell>
               <TableCell>{r.companyName ?? '—'}</TableCell>
               <TableCell>
-                <VerificationStatusBadge state="pending" />
+                <VerificationStatusBadge state={displayStatus} />
               </TableCell>
               <TableCell>{formatDocumentsCell(r.documentsSubmitted, r.documentsExpected)}</TableCell>
               <TableCell>{formatDate(r.createdAt)}</TableCell>
@@ -95,15 +124,19 @@ function PendingTable({ rows }: { rows: PendingVerificationRow[] }) {
               <TableCell>
                 <DetailsLink userId={r.userId} />
               </TableCell>
+              <TableCell>
+                <AdminDeleteUserAccountButton userId={r.userId} userLabel={userLabel} />
+              </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
 }
 
-function RejectedTable({ rows }: { rows: RejectedVerificationRow[] }) {
+function RejectedTable({ rows }: { rows: RejectedRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table>
@@ -118,18 +151,26 @@ function RejectedTable({ rows }: { rows: RejectedVerificationRow[] }) {
             <TableHead>Odrzucono</TableHead>
             <TableHead>Powód</TableHead>
             <TableHead />
+            <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 && <EmptyRow message="Brak odrzuconych weryfikacji." colSpan={9} />}
-          {rows.map((r) => (
+          {rows.length === 0 && <EmptyRow message="Brak odrzuconych weryfikacji." colSpan={10} />}
+          {rows.map((r) => {
+            const displayStatus = resolveAdminUserStatus({
+              emailConfirmed: r.emailConfirmed,
+              verificationState: 'rejected',
+            });
+            const userLabel = `${r.firstName} ${r.lastName}`.trim();
+
+            return (
             <TableRow key={r.userId}>
               <TableCell className="font-medium">
                 {r.firstName} {r.lastName}
               </TableCell>
               <TableCell>{r.companyName ?? '—'}</TableCell>
               <TableCell>
-                <VerificationStatusBadge state="rejected" />
+                <VerificationStatusBadge state={displayStatus} />
               </TableCell>
               <TableCell>{formatDocumentsCell(r.documentsSubmitted, r.documentsExpected)}</TableCell>
               <TableCell>{formatDate(r.createdAt)}</TableCell>
@@ -141,15 +182,19 @@ function RejectedTable({ rows }: { rows: RejectedVerificationRow[] }) {
               <TableCell>
                 <DetailsLink userId={r.userId} />
               </TableCell>
+              <TableCell>
+                <AdminDeleteUserAccountButton userId={r.userId} userLabel={userLabel} />
+              </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
 }
 
-function ApprovedTable({ rows }: { rows: ApprovedVerificationRow[] }) {
+function ApprovedTable({ rows }: { rows: ApprovedRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table>
@@ -163,18 +208,26 @@ function ApprovedTable({ rows }: { rows: ApprovedVerificationRow[] }) {
             <TableHead>Zaktualizowana</TableHead>
             <TableHead>Zaakceptowano</TableHead>
             <TableHead />
+            <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 && <EmptyRow message="Brak zweryfikowanych kont." colSpan={8} />}
-          {rows.map((r) => (
+          {rows.length === 0 && <EmptyRow message="Brak zweryfikowanych kont." colSpan={9} />}
+          {rows.map((r) => {
+            const displayStatus = resolveAdminUserStatus({
+              emailConfirmed: r.emailConfirmed,
+              verificationState: 'approved',
+            });
+            const userLabel = `${r.firstName} ${r.lastName}`.trim();
+
+            return (
             <TableRow key={r.userId}>
               <TableCell className="font-medium">
                 {r.firstName} {r.lastName}
               </TableCell>
               <TableCell>{r.companyName ?? '—'}</TableCell>
               <TableCell>
-                <VerificationStatusBadge state="approved" />
+                <VerificationStatusBadge state={displayStatus} />
               </TableCell>
               <TableCell>{formatDocumentsCell(r.documentsSubmitted, r.documentsExpected)}</TableCell>
               <TableCell>{formatDate(r.createdAt)}</TableCell>
@@ -183,8 +236,12 @@ function ApprovedTable({ rows }: { rows: ApprovedVerificationRow[] }) {
               <TableCell>
                 <DetailsLink userId={r.userId} />
               </TableCell>
+              <TableCell>
+                <AdminDeleteUserAccountButton userId={r.userId} userLabel={userLabel} />
+              </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -196,9 +253,9 @@ function StatusTabs({
   rejected,
   approved,
 }: {
-  pending: PendingVerificationRow[];
-  rejected: RejectedVerificationRow[];
-  approved: ApprovedVerificationRow[];
+  pending: PendingRow[];
+  rejected: RejectedRow[];
+  approved: ApprovedRow[];
 }) {
   return (
     <Tabs defaultValue="pending" className="mt-4">

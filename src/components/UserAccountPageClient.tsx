@@ -230,8 +230,10 @@ export function UserAccountPageClient({
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
-            <ProfileForm user={user} />
-            {user.userType === 'manager' && <CompanyManagementForm user={user} />}
+            <ProfileForm user={user} includeBusinessData />
+            {user.userType === 'manager' && (
+              <CompanyManagementForm user={user} buildingsOnly />
+            )}
           </TabsContent>
 
           <TabsContent value={KONTO_TABS.twojeDane} className="space-y-6">

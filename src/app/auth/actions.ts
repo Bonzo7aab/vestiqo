@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
+import { getPublicAppOrigin } from '../../lib/auth/app-origin'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -103,15 +104,11 @@ export async function resetPassword(formData: FormData) {
     redirect('/error')
   }
 
-  const origin =
-    (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(
-      /\/$/,
-      ''
-    )
+  const origin = getPublicAppOrigin()
   const next = encodeURIComponent('/auth/aktualizacja-hasla')
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=${next}`,
+    redirectTo: `${origin}/auth/confirm?next=${next}`,
   })
 
   if (error) {

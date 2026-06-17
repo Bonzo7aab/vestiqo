@@ -1,19 +1,19 @@
-import { Badge } from '../ui/badge';
-import type { VerificationState } from '../../lib/verification/types';
+import type { AdminUserStatus } from '../../lib/verification/types';
 import {
-  verificationStatusBadgeClass,
-  verificationStatusLabel,
+  adminUserStatusBadgeClass,
+  adminUserStatusLabel,
 } from '../../lib/verification/status';
+import { Badge } from '../ui/badge';
 
 interface VerificationStatusBadgeProps {
-  state: VerificationState;
+  state: AdminUserStatus;
   className?: string;
 }
 
 export function VerificationStatusBadge({ state, className }: VerificationStatusBadgeProps) {
   return (
-    <Badge className={`${verificationStatusBadgeClass(state)} ${className ?? ''}`}>
-      {verificationStatusLabel(state)}
+    <Badge className={`${adminUserStatusBadgeClass(state)} ${className ?? ''}`}>
+      {adminUserStatusLabel(state)}
     </Badge>
   );
 }
