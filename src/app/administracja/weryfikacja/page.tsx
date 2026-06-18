@@ -45,9 +45,9 @@ export default async function AdminVerificationQueuePage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Weryfikacja użytkowników</h2>
       <p className="text-sm text-muted-foreground">
-        Wszyscy zarządcy i wykonawcy oczekujący na decyzję są widoczni w zakładce „W toku”, także bez
-        przesłanych dokumentów. Konta bez potwierdzonego adresu email mają status „Wymaga
-        potwierdzenia email”.
+        Konta bez potwierdzonego adresu email są widoczne w zakładce „Weryfikacja email”. Pozostałe
+        oczekujące na decyzję administracyjną — w zakładce „W toku”, także bez przesłanych
+        dokumentów.
       </p>
       <VerificationQueueTabs pending={pending} rejected={rejected} approved={approved} />
     </div>

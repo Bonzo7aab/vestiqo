@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const redirectPath = await resolvePostAuthCallbackRedirect(supabase, next);
+  const redirectPath = await resolvePostAuthCallbackRedirect(supabase, next, type);
   response.headers.set('Location', new URL(redirectPath, url.origin).toString());
 
   return response;

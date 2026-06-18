@@ -38,7 +38,21 @@ export async function establishSessionFromAuthCallback(
 export async function resolvePostAuthCallbackRedirect(
   supabase: SupabaseClient<Database>,
   next: string | null,
+  type: EmailOtpType | null = null,
 ): Promise<string> {
+  if (type === 'recovery') {
+    const requested = sanitizeRedirectPath(next, '');
+    if (requested) {
+      return requested;
+    }
+    return '/auth/aktualizacja-hasla';
+  }
+
+  if (type === 'signup' || type === 'email') {
+    const message = encodeURIComponent('Adres email został potwierdzony.');
+    return `/?message=${message}`;
+  }
+
   const requested = sanitizeRedirectPath(next, '');
   if (requested) {
     return requested;
@@ -52,21 +66,6 @@ export async function resolvePostAuthCallbackRedirect(
     return `/logowanie?message=${encodeURIComponent('Adres email został potwierdzony. Zaloguj się, aby kontynuować.')}`;
   }
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('user_type, platform_role')
-    .eq('id', user.id)
-    .single();
-
-  const isAdmin = profile?.platform_role === 'platform_admin';
-  const isContractor = profile?.user_type === 'contractor';
-
-  const homePath = isAdmin
-    ? '/administracja'
-    : isContractor
-      ? '/panel-wykonawcy'
-      : '/panel-zarzadcy';
-
   const message = encodeURIComponent('Adres email został potwierdzony.');
-  return `${homePath}?message=${message}`;
+  return `/?message=${message}`;
 }

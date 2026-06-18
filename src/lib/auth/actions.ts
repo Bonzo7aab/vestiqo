@@ -208,10 +208,7 @@ async function registerActionImpl(
 
   const origin = getPublicAppOrigin();
   const confirmationMessage = encodeURIComponent('Adres email został potwierdzony.');
-  const confirmationNext =
-    userType === 'contractor'
-      ? `/rejestracja/wybor-weryfikacji?message=${confirmationMessage}`
-      : `/konto?message=${confirmationMessage}`;
+  const confirmationNext = `/?message=${confirmationMessage}`;
   const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(confirmationNext)}`;
 
   const { data: authData, error: authError } = await supabase.auth.signUp({
