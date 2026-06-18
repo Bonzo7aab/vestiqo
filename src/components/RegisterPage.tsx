@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ChevronRight,
   CircleAlert,
   ClipboardList,
   FileCheck,
@@ -737,12 +736,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {selectedUserType === 'contractor' ? 'Tworzenie konta...' : 'Rejestracja...'}
-              </>
-            ) : selectedUserType === 'contractor' ? (
-              <>
-                Dalej
-                <ChevronRight className="ml-2 h-4 w-4" />
+                Rejestracja...
               </>
             ) : (
               'Zarejestruj się'

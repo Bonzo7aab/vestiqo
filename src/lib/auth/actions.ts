@@ -321,12 +321,20 @@ async function registerActionImpl(
   }
 
   const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')
-  await persistRegistrationFinanceSettings(admin, {
+  const financeResult = await persistRegistrationFinanceSettings(admin, {
     userId,
     normalizedNip,
     bankAccountIban,
     vatStatus,
   })
+
+  if (!financeResult.persisted && financeResult.error) {
+    console.error('[registerAction] finance settings persist failed', {
+      userId,
+      nip: normalizedNip,
+      error: financeResult.error,
+    })
+  }
 
   revalidatePath('/', 'layout')
 
@@ -375,9 +383,50 @@ async function updateUserActionImpl(userData: UpdateUserData) {
     return { error: 'Not authenticated' }
   }
 
+  const patch: UpdateUserData = {}
+
+  if (userData.first_name !== undefined) {
+    const firstName = userData.first_name.trim()
+    if (!firstName) {
+      return { error: 'Imię jest wymagane' }
+    }
+    patch.first_name = firstName
+  }
+
+  if (userData.last_name !== undefined) {
+    const lastName = userData.last_name.trim()
+    if (!lastName) {
+      return { error: 'Nazwisko jest wymagane' }
+    }
+    patch.last_name = lastName
+  }
+
+  if (userData.phone !== undefined) {
+    const phone = userData.phone.trim()
+    if (!phone) {
+      return { error: 'Telefon jest wymagany' }
+    }
+    if (!isValidPolishPhone(phone)) {
+      return { error: POLISH_PHONE_INVALID_MESSAGE }
+    }
+    patch.phone = normalizePolishPhone(phone)
+  }
+
+  if (userData.profile_completed !== undefined) {
+    patch.profile_completed = userData.profile_completed
+  }
+
+  if (userData.onboarding_completed !== undefined) {
+    patch.onboarding_completed = userData.onboarding_completed
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { success: true }
+  }
+
   const { error } = await supabase
     .from('user_profiles')
-    .update(userData)
+    .update(patch)
     .eq('id', user.id)
 
   if (error) {
