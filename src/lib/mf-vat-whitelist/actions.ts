@@ -39,9 +39,7 @@ export async function getUserFinanceSettingsAction(): Promise<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('contractor_account_settings')
-    .select(
-      'bank_account_iban, vat_status, vat_whitelist_account_assigned, vat_whitelist_checked_for_date',
-    )
+    .select('bank_account_iban, vat_status')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -52,18 +50,33 @@ export async function getUserFinanceSettingsAction(): Promise<
   const bankRaw = typeof data?.bank_account_iban === 'string' ? data.bank_account_iban : null;
   const bankAccountIban = bankRaw ? normalizeIbanInput(bankRaw) || null : null;
 
+  let vatWhitelistAccountAssigned: boolean | null = null;
+  let vatWhitelistCheckedForDate: string | null = null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: whitelistData, error: whitelistError } = await (supabase as any)
+    .from('contractor_account_settings')
+    .select('vat_whitelist_account_assigned, vat_whitelist_checked_for_date')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!whitelistError && whitelistData) {
+    vatWhitelistAccountAssigned =
+      typeof whitelistData.vat_whitelist_account_assigned === 'boolean'
+        ? whitelistData.vat_whitelist_account_assigned
+        : null;
+    vatWhitelistCheckedForDate =
+      typeof whitelistData.vat_whitelist_checked_for_date === 'string'
+        ? whitelistData.vat_whitelist_checked_for_date
+        : null;
+  }
+
   return {
     data: {
       bankAccountIban,
       vatStatus: parseStoredVatStatus(data?.vat_status),
-      vatWhitelistAccountAssigned:
-        typeof data?.vat_whitelist_account_assigned === 'boolean'
-          ? data.vat_whitelist_account_assigned
-          : null,
-      vatWhitelistCheckedForDate:
-        typeof data?.vat_whitelist_checked_for_date === 'string'
-          ? data.vat_whitelist_checked_for_date
-          : null,
+      vatWhitelistAccountAssigned,
+      vatWhitelistCheckedForDate,
     },
   };
 }

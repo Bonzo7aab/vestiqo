@@ -96,16 +96,8 @@ export async function syncUserFinanceFromNip(
         input.normalizedNip,
         normalizedBankAccount,
       );
-      const verifiedAt = new Date().toISOString();
       vatWhitelistAccountAssigned = vatResult.assigned;
       vatWhitelistCheckedForDate = vatResult.checkedForDate;
-      Object.assign(settingsRow, {
-        vat_whitelist_verified_at: verifiedAt,
-        vat_whitelist_account_assigned: vatResult.assigned,
-        vat_whitelist_request_id: vatResult.requestId,
-        vat_whitelist_checked_for_date: vatResult.checkedForDate,
-        updated_at: verifiedAt,
-      });
     } catch (vatError) {
       console.error('VAT whitelist check during finance sync failed:', vatError);
     }
@@ -142,11 +134,34 @@ export async function syncUserFinanceFromNip(
     };
   }
 
+  if (
+    validBankAccount &&
+    normalizedBankAccount &&
+    vatWhitelistAccountAssigned !== null &&
+    vatWhitelistCheckedForDate !== null
+  ) {
+    const verifiedAt = new Date().toISOString();
+    const { error: whitelistError } = await sb
+      .from('contractor_account_settings')
+      .update({
+        vat_whitelist_verified_at: verifiedAt,
+        vat_whitelist_account_assigned: vatWhitelistAccountAssigned,
+        vat_whitelist_checked_for_date: vatWhitelistCheckedForDate,
+        updated_at: verifiedAt,
+      })
+      .eq('user_id', input.userId);
+
+    if (whitelistError) {
+      console.warn(
+        'contractor_account_settings VAT whitelist metadata not saved (columns may be missing):',
+        whitelistError.message,
+      );
+    }
+  }
+
   const { data: saved, error: readError } = await sb
     .from('contractor_account_settings')
-    .select(
-      'bank_account_iban, vat_status, vat_whitelist_account_assigned, vat_whitelist_checked_for_date',
-    )
+    .select('bank_account_iban, vat_status')
     .eq('user_id', input.userId)
     .maybeSingle();
 
@@ -170,14 +185,8 @@ export async function syncUserFinanceFromNip(
   return {
     bankAccountIban: savedBank,
     vatStatus: parseVatStatus(saved?.vat_status) ?? vatStatus,
-    vatWhitelistAccountAssigned:
-      typeof saved?.vat_whitelist_account_assigned === 'boolean'
-        ? saved.vat_whitelist_account_assigned
-        : vatWhitelistAccountAssigned,
-    vatWhitelistCheckedForDate:
-      typeof saved?.vat_whitelist_checked_for_date === 'string'
-        ? saved.vat_whitelist_checked_for_date
-        : vatWhitelistCheckedForDate,
+    vatWhitelistAccountAssigned,
+    vatWhitelistCheckedForDate,
     persisted: true,
   };
 }
