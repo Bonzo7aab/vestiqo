@@ -113,7 +113,8 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  // Contest/offer document uploads pass File blobs through Server Actions (10MB per file in storage helpers).
+  // Server Action bodySizeLimit is not wired into renderOpts in Next 16.0.7; large
+  // file uploads use /api/weryfikacja/upload instead. Keep this for when Next fixes it.
   serverActions: {
     bodySizeLimit: '50mb',
   },
@@ -123,6 +124,8 @@ const nextConfig = {
     } : false,
   },
   experimental: {
+    // Headroom for multipart verification document uploads via Route Handlers (10 MB per file).
+    proxyClientMaxBodySize: 12 * 1024 * 1024,
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-accordion',

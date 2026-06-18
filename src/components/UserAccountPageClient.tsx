@@ -19,6 +19,13 @@ import { UserAccountHeader } from './UserAccountHeader';
 import { Tabs, TabsContent } from './ui/tabs';
 import { cn } from './ui/utils';
 import { VerificationAttentionIcon } from './VerificationAttentionIcon';
+import {
+  KONTO_TABS,
+  getDefaultKontoTab,
+  isDefaultKontoTab,
+  resolveKontoTabFromUrl,
+  type KontoTab,
+} from '../lib/konto-tabs';
 
 interface UserAccountPageClientProps {
   verificationStatus: VerificationStatus;
@@ -37,36 +44,10 @@ export function UserAccountPageClient({
   const [isMounted, setIsMounted] = React.useState(false);
   
   // Priority 1 & 5: Controlled tabs with URL persistence
-  const [activeTab, setActiveTab] = React.useState('profile');
-
-  const ACCOUNT_TABS = [
-    'profile',
-    'company',
-    'security',
-    'contractor-data',
-    'documents',
-    'contractor-notifications',
-  ] as const;
+  const [activeTab, setActiveTab] = React.useState<KontoTab>(KONTO_TABS.profil);
 
   const resolveTabFromUrl = React.useCallback(
-    (tabFromUrl: string | null): string | null => {
-      if (!tabFromUrl) return null;
-      const normalizedTab =
-        tabFromUrl === 'notifications' ? 'contractor-notifications' : tabFromUrl;
-      if (!ACCOUNT_TABS.includes(normalizedTab as (typeof ACCOUNT_TABS)[number])) {
-        return null;
-      }
-      if (normalizedTab === 'company') {
-        return 'profile';
-      }
-      if (user?.userType === 'manager' && normalizedTab === 'documents') {
-        return 'profile';
-      }
-      if (user?.userType === 'contractor' && normalizedTab === 'profile') {
-        return 'contractor-data';
-      }
-      return normalizedTab;
-    },
+    (tabFromUrl: string | null): KontoTab | null => resolveKontoTabFromUrl(tabFromUrl, user?.userType),
     [user?.userType],
   );
 
@@ -76,17 +57,13 @@ export function UserAccountPageClient({
   }, []);
 
   const applyTabToUrl = React.useCallback(
-    (tab: string) => {
+    (tab: KontoTab) => {
       const params = new URLSearchParams(searchParams.toString());
-      const isDefaultTab =
-        (user?.userType === 'contractor' && tab === 'contractor-data') ||
-        (user?.userType === 'manager' && tab === 'profile');
 
-      if (isDefaultTab) {
+      if (isDefaultKontoTab(tab, user?.userType)) {
         params.delete('tab');
       } else {
-        const urlTab = tab === 'contractor-notifications' ? 'notifications' : tab;
-        params.set('tab', urlTab);
+        params.set('tab', tab);
       }
 
       const hash = typeof window !== 'undefined' ? window.location.hash : '';
@@ -100,9 +77,10 @@ export function UserAccountPageClient({
 
   const handleTabChange = React.useCallback(
     (tab: string) => {
-      setActiveTab(tab);
+      const resolved = resolveKontoTabFromUrl(tab, user?.userType) ?? getDefaultKontoTab(user?.userType);
+      setActiveTab(resolved);
       if (user) {
-        applyTabToUrl(tab);
+        applyTabToUrl(resolved);
       }
     },
     [applyTabToUrl, user],
@@ -118,7 +96,7 @@ export function UserAccountPageClient({
       return;
     }
     if (!tabParam) {
-      setActiveTab(user.userType === 'contractor' ? 'contractor-data' : 'profile');
+      setActiveTab(getDefaultKontoTab(user.userType));
     }
   }, [isMounted, user, searchParams, resolveTabFromUrl]);
 
@@ -178,10 +156,10 @@ export function UserAccountPageClient({
             {user.userType === 'contractor' ? (
               <>
                 <button
-                  onClick={() => handleTabChange('contractor-data')}
+                  onClick={() => handleTabChange(KONTO_TABS.twojeDane)}
                   className={cn(
                     'px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0',
-                    activeTab === 'contractor-data'
+                    activeTab === KONTO_TABS.twojeDane
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                   )}
@@ -189,11 +167,11 @@ export function UserAccountPageClient({
                   Twoje dane
                 </button>
                 <button
-                  onClick={() => handleTabChange('documents')}
+                  onClick={() => handleTabChange(KONTO_TABS.dokumenty)}
                   className={cn(
                     'relative px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0',
                     showDocumentsTabAttention && 'pr-7 sm:pr-4',
-                    activeTab === 'documents'
+                    activeTab === KONTO_TABS.dokumenty
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                   )}
@@ -211,10 +189,10 @@ export function UserAccountPageClient({
               </>
             ) : (
               <button
-                onClick={() => handleTabChange('profile')}
+                onClick={() => handleTabChange(KONTO_TABS.profil)}
                 className={cn(
                   "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                  activeTab === 'profile'
+                  activeTab === KONTO_TABS.profil
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                 )}
@@ -223,10 +201,10 @@ export function UserAccountPageClient({
               </button>
             )}
             <button
-              onClick={() => handleTabChange('security')}
+              onClick={() => handleTabChange(KONTO_TABS.bezpieczenstwo)}
               className={cn(
                 "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                activeTab === 'security'
+                activeTab === KONTO_TABS.bezpieczenstwo
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
               )}
@@ -234,10 +212,10 @@ export function UserAccountPageClient({
               Bezpieczeństwo
             </button>
             <button
-              onClick={() => handleTabChange('contractor-notifications')}
+              onClick={() => handleTabChange(KONTO_TABS.powiadomienia)}
               className={cn(
                 "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                activeTab === 'contractor-notifications'
+                activeTab === KONTO_TABS.powiadomienia
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
               )}
@@ -251,16 +229,18 @@ export function UserAccountPageClient({
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsContent value="profile" className="space-y-6">
-            <ProfileForm user={user} />
-            {user.userType === 'manager' && <CompanyManagementForm user={user} />}
+          <TabsContent value={KONTO_TABS.profil} className="space-y-6">
+            <ProfileForm user={user} includeBusinessData />
+            {user.userType === 'manager' && (
+              <CompanyManagementForm user={user} buildingsOnly />
+            )}
           </TabsContent>
 
-          <TabsContent value="contractor-data" className="space-y-6">
+          <TabsContent value={KONTO_TABS.twojeDane} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-6">
+          <TabsContent value={KONTO_TABS.dokumenty} className="space-y-6">
             <ContractorDocumentsTab
               userId={user.id}
               initialStatus={verificationStatus}
@@ -269,12 +249,12 @@ export function UserAccountPageClient({
             />
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-6">
+          <TabsContent value={KONTO_TABS.bezpieczenstwo} className="space-y-6">
             <PasswordForm accountEmail={user.email} />
             <DeleteAccountSection />
           </TabsContent>
 
-          <TabsContent value="contractor-notifications" className="space-y-6">
+          <TabsContent value={KONTO_TABS.powiadomienia} className="space-y-6">
             <ContractorNotificationsPanel userId={user.id} />
           </TabsContent>
         </Tabs>

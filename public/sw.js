@@ -27,8 +27,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'Domio',
     body: 'Masz nowe powiadomienie',
-    icon: '/logo.svg',
-    badge: '/logo.svg',
+    icon: '/brand/vestiqo-mark.svg',
+    badge: '/brand/vestiqo-mark.svg',
     tag: 'default',
     requireInteraction: false,
     data: {}

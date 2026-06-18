@@ -43,6 +43,10 @@ export interface ContractorAccountSettings {
   professionalQualificationTypes: string[];
   bankAccountIban: string | null;
   vatStatus: ContractorVatStatus | null;
+  vatWhitelistVerifiedAt: string | null;
+  vatWhitelistAccountAssigned: boolean | null;
+  vatWhitelistRequestId: string | null;
+  vatWhitelistCheckedForDate: string | null;
   serviceArea: ContractorServiceAreaSettings;
   zusCertificatePath: string | null;
   zusCertificateIssuedAt: string | null;
@@ -149,6 +153,10 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
       professionalQualificationTypes: [],
       bankAccountIban: null,
       vatStatus: null,
+      vatWhitelistVerifiedAt: null,
+      vatWhitelistAccountAssigned: null,
+      vatWhitelistRequestId: null,
+      vatWhitelistCheckedForDate: null,
       serviceArea: DEFAULT_SERVICE_AREA,
       zusCertificatePath: null,
       zusCertificateIssuedAt: null,
@@ -187,6 +195,14 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
     bankAccountIban:
       typeof row.bank_account_iban === 'string' ? normalizeIbanInput(row.bank_account_iban) || null : null,
     vatStatus: normalizeVatStatus(row.vat_status),
+    vatWhitelistVerifiedAt:
+      typeof row.vat_whitelist_verified_at === 'string' ? row.vat_whitelist_verified_at : null,
+    vatWhitelistAccountAssigned:
+      typeof row.vat_whitelist_account_assigned === 'boolean' ? row.vat_whitelist_account_assigned : null,
+    vatWhitelistRequestId:
+      typeof row.vat_whitelist_request_id === 'string' ? row.vat_whitelist_request_id : null,
+    vatWhitelistCheckedForDate:
+      typeof row.vat_whitelist_checked_for_date === 'string' ? row.vat_whitelist_checked_for_date : null,
     serviceArea: normalizeServiceArea(row.service_area_settings),
     zusCertificatePath: typeof row.zus_certificate_path === 'string' ? row.zus_certificate_path : null,
     zusCertificateIssuedAt:
@@ -327,6 +343,18 @@ export async function upsertContractorAccountSettings(
   }
   if (payload.vatStatus !== undefined) {
     patch.vat_status = payload.vatStatus;
+  }
+  if (payload.vatWhitelistVerifiedAt !== undefined) {
+    patch.vat_whitelist_verified_at = payload.vatWhitelistVerifiedAt;
+  }
+  if (payload.vatWhitelistAccountAssigned !== undefined) {
+    patch.vat_whitelist_account_assigned = payload.vatWhitelistAccountAssigned;
+  }
+  if (payload.vatWhitelistRequestId !== undefined) {
+    patch.vat_whitelist_request_id = payload.vatWhitelistRequestId;
+  }
+  if (payload.vatWhitelistCheckedForDate !== undefined) {
+    patch.vat_whitelist_checked_for_date = payload.vatWhitelistCheckedForDate;
   }
   if (payload.serviceArea !== undefined) {
     patch.service_area_settings = payload.serviceArea;

@@ -23,6 +23,13 @@ import {
   getListEligibleJobs,
 } from '../lib/filters/filter-logic';
 import { getBookmarkedJobs } from '../utils/bookmarkStorage';
+import {
+  buildFilterCategoryTree,
+  categoryFilterKeysMatch,
+  normalizeCategoryFilterKey,
+  normalizeSubcategoryFilterKey,
+  subcategoryFilterKeysMatch,
+} from '../lib/config/categoryConfig';
 import { DEADLINE_FILTER_OPTIONS } from '../lib/filters/deadline-labels';
 import { ActiveFilterChips } from './ActiveFilterChips';
 import { cn } from './ui/utils';
@@ -68,7 +75,7 @@ const CustomCheckbox: React.FC<{
       htmlFor={id}
       className={`w-4 h-4 border rounded cursor-pointer flex items-center justify-center ${
         checked
-          ? 'bg-blue-800 border-blue-800'
+          ? 'bg-primary border-primary'
           : 'bg-white border-gray-300 hover:border-gray-400'
       }`}
     >
@@ -164,12 +171,20 @@ export default function JobFilters({
     load();
   }, [supabase]);
 
+  const filterCategoryTree = useMemo(
+    () => buildFilterCategoryTree(categoriesFromDb),
+    [categoriesFromDb],
+  );
+
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     categoryPool.forEach((job) => {
       const name =
         typeof job.category === 'string' ? job.category : job.category?.name || '';
-      if (name) counts[name] = (counts[name] || 0) + 1;
+      const slug = typeof job.category === 'object' ? job.category?.slug : undefined;
+      if (!name) return;
+      const key = normalizeCategoryFilterKey(name, slug);
+      counts[key] = (counts[key] || 0) + 1;
     });
     return counts;
   }, [categoryPool]);
@@ -177,9 +192,10 @@ export default function JobFilters({
   const subcategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     subcategoryPool.forEach((job) => {
-      if (job.subcategory) {
-        counts[job.subcategory] = (counts[job.subcategory] || 0) + 1;
-      }
+      if (!job.subcategory) return;
+      const slug = typeof job.category === 'object' ? job.category?.slug : undefined;
+      const key = normalizeSubcategoryFilterKey(job.subcategory, slug);
+      counts[key] = (counts[key] || 0) + 1;
     });
     return counts;
   }, [subcategoryPool]);
@@ -263,7 +279,7 @@ export default function JobFilters({
                   <span className="font-normal text-blue-900">Aktualna lokalizacja</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-800 font-semibold">{primaryLocation}</span>
+                  <span className="text-primary font-semibold">{primaryLocation}</span>
                   {onLocationChange && (
                     <Button
                       variant="ghost"
@@ -295,11 +311,13 @@ export default function JobFilters({
             <SectionTrigger title="Kategorie" open={expandedFilterSections.includes('categories')} />
             <CollapsibleContent className="mt-3 pl-2">
               <div className="space-y-3">
-                {categoriesFromDb.length > 0 ? (
-                  categoriesFromDb.map((category) => {
-                    const isSelected = local.categories.includes(category.name);
+                {filterCategoryTree.length > 0 ? (
+                  filterCategoryTree.map((category) => {
+                    const isSelected = local.categories.some((key) =>
+                      categoryFilterKeysMatch(key, category.filterKey, category.slug),
+                    );
                     const isExpanded = expandedCategoryIds.has(category.id);
-                    const count = categoryCounts[category.name] || 0;
+                    const count = categoryCounts[category.filterKey] || 0;
 
                     return (
                       <div key={category.id} className="space-y-1">
@@ -310,14 +328,40 @@ export default function JobFilters({
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 patch({
-                                  categories: [...local.categories, category.name],
+                                  categories: [
+                                    ...local.categories.filter(
+                                      (key) =>
+                                        !categoryFilterKeysMatch(
+                                          key,
+                                          category.filterKey,
+                                          category.slug,
+                                        ),
+                                    ),
+                                    category.filterKey,
+                                  ],
                                 });
                               } else {
-                                const subNames = category.subcategories.map((s) => s.name);
+                                const subKeys = category.subcategories.map(
+                                  (sub) => sub.filterKey,
+                                );
                                 patch({
-                                  categories: local.categories.filter((c) => c !== category.name),
+                                  categories: local.categories.filter(
+                                    (key) =>
+                                      !categoryFilterKeysMatch(
+                                        key,
+                                        category.filterKey,
+                                        category.slug,
+                                      ),
+                                  ),
                                   subcategories: local.subcategories.filter(
-                                    (s) => !subNames.includes(s)
+                                    (key) =>
+                                      !subKeys.some((subKey) =>
+                                        subcategoryFilterKeysMatch(
+                                          key,
+                                          subKey,
+                                          category.slug,
+                                        ),
+                                      ),
                                   ),
                                 });
                               }
@@ -327,7 +371,7 @@ export default function JobFilters({
                             htmlFor={`category-${category.id}`}
                             className={cn('flex-1', filterOptionLabelClass(count, isSelected))}
                           >
-                            {category.name}{' '}
+                            {category.label}{' '}
                             <span className={filterCountClass(count, isSelected)}>({count})</span>
                           </Label>
                           {category.subcategories.length > 0 && (
@@ -348,8 +392,14 @@ export default function JobFilters({
                         {isExpanded && category.subcategories.length > 0 && (
                           <div className="ml-6 space-y-1 pl-1 border-l-2 border-gray-200">
                             {category.subcategories.map((sub) => {
-                              const subCount = subcategoryCounts[sub.name] || 0;
-                              const subSelected = local.subcategories.includes(sub.name);
+                              const subCount = subcategoryCounts[sub.filterKey] || 0;
+                              const subSelected = local.subcategories.some((key) =>
+                                subcategoryFilterKeysMatch(
+                                  key,
+                                  sub.filterKey,
+                                  category.slug,
+                                ),
+                              );
                               return (
                                 <div
                                   key={sub.id}
@@ -361,8 +411,25 @@ export default function JobFilters({
                                     onCheckedChange={(checked) => {
                                       patch({
                                         subcategories: checked
-                                          ? [...local.subcategories, sub.name]
-                                          : local.subcategories.filter((s) => s !== sub.name),
+                                          ? [
+                                              ...local.subcategories.filter(
+                                                (key) =>
+                                                  !subcategoryFilterKeysMatch(
+                                                    key,
+                                                    sub.filterKey,
+                                                    category.slug,
+                                                  ),
+                                              ),
+                                              sub.filterKey,
+                                            ]
+                                          : local.subcategories.filter(
+                                              (key) =>
+                                                !subcategoryFilterKeysMatch(
+                                                  key,
+                                                  sub.filterKey,
+                                                  category.slug,
+                                                ),
+                                            ),
                                       });
                                     }}
                                   />
@@ -370,7 +437,7 @@ export default function JobFilters({
                                     htmlFor={`sub-${sub.id}`}
                                     className={filterOptionLabelClass(subCount, subSelected, 'xs')}
                                   >
-                                    {sub.name}{' '}
+                                    {sub.label}{' '}
                                     <span className={filterCountClass(subCount, subSelected)}>
                                       ({subCount})
                                     </span>

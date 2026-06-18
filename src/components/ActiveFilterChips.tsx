@@ -7,6 +7,10 @@ import { Label } from './ui/label';
 import type { FilterState } from '../lib/filters/filter-state';
 import { defaultFilters, WARSAW_CITY } from '../lib/filters/filter-state';
 import { getDeadlineFilterLabel } from '../lib/filters/deadline-labels';
+import {
+  getCategoryDisplayName,
+  getSubcategoryDisplayName,
+} from '../lib/config/categoryConfig';
 
 interface ActiveFilterChipsProps {
   filters: FilterState;
@@ -21,7 +25,7 @@ export function ActiveFilterChips({
 
   filters.categories.forEach((category) => {
     chips.push({
-      label: category,
+      label: getCategoryDisplayName({ name: category }),
       value: `cat-${category}`,
       onRemove: () =>
         onFilterChange((prev) => ({
@@ -33,7 +37,7 @@ export function ActiveFilterChips({
 
   filters.subcategories.forEach((sub) => {
     chips.push({
-      label: sub,
+      label: getSubcategoryDisplayName({ name: sub }) ?? sub,
       value: `sub-${sub}`,
       onRemove: () =>
         onFilterChange((prev) => ({

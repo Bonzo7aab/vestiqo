@@ -17,6 +17,7 @@ import {
   Shield,
   Lock
 } from 'lucide-react';
+import { KONTO_DOKUMENTY_PATH } from './konto-tabs';
 
 export interface SitemapEntry {
   category: string;
@@ -156,7 +157,7 @@ export const sitemapEntries: SitemapEntry[] = [
   {
     category: "Pomoc",
     label: "Dokończ weryfikację",
-    path: "/konto?tab=documents",
+    path: KONTO_DOKUMENTY_PATH,
     icon: Shield,
     description: "Prześlij dokumenty w zakładce Dokumenty na koncie",
     keywords: ["weryfikacja", "verification", "verify", "potwierdź", "dokończ", "dokumenty"],

@@ -7,6 +7,23 @@ import { redirect } from 'next/navigation'
 import { getRegistrationSettingsForRegister } from '../database/platform-settings'
 import { registrationClosedMessage } from '../registration-settings-shared'
 import { sanitizeRedirectPath } from './redirectPath'
+import { translateAuthErrorMessage, translateRegistrationErrorMessage, REGISTRATION_ERRORS } from './errorMessages'
+import {
+  isValidPolishPhone,
+  normalizePolishPhone,
+  POLISH_PHONE_INVALID_MESSAGE,
+} from '../phone/polish-phone'
+import { isValidNip, normalizeNip } from '../gus/nip'
+import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
+import { getPublicAppOrigin } from './app-origin'
+import { deleteUserAccountData } from './delete-user-account-data'
+import { generateSecurePassword } from './generate-password'
+import { findAuthUserByEmail } from './find-user-by-email'
+import { createAdminClient } from '../supabase/admin'
+import {
+  isPasswordResetEmailConfigured,
+  sendPasswordResetEmail,
+} from '../email/send-password-reset-email'
 
 export interface LoginData {
   email: string
@@ -61,7 +78,7 @@ async function loginActionImpl(
   })
 
   if (error) {
-    return { error: error.message }
+    return { error: translateAuthErrorMessage(error.message) }
   }
 
   const userId = signInData.user?.id
@@ -111,6 +128,8 @@ export type RegisterActionResult =
   | { success: true; redirectTo: string }
   | { error: string }
 
+export type DeleteAccountActionResult = { success: true } | { error: string }
+
 /**
  * Server Action for user registration
  * Creates auth user, user_profiles, companies, and user_companies.
@@ -130,10 +149,16 @@ async function registerActionImpl(
   const acceptTerms = formData.get('acceptTerms') as string
   const nip = (formData.get('nip') as string)?.trim()
   const companyName = (formData.get('companyName') as string)?.trim()
-  const organizationType = formData.get('organizationType') as 'spółdzielnia' | 'wspólnota' | null
-  const street = (formData.get('street') as string)?.trim()
-  const city = (formData.get('city') as string)?.trim() || undefined
-  const district = (formData.get('district') as string)?.trim() || undefined
+  const regon = (formData.get('regon') as string)?.trim() || null
+  const gusAddress = (formData.get('address') as string)?.trim() || null
+  const gusCity = (formData.get('city') as string)?.trim() || null
+  const postalCode = (formData.get('postalCode') as string)?.trim() || null
+  const bankAccountIban = (formData.get('bankAccountIban') as string)?.trim() || null
+  const vatStatusRaw = (formData.get('vatStatus') as string)?.trim() || null
+  const vatStatus =
+    vatStatusRaw === 'active_vat' || vatStatusRaw === 'vat_exempt' ? vatStatusRaw : null
+  const organizationType =
+    (formData.get('organizationType') as 'spółdzielnia' | 'wspólnota' | null) ?? 'wspólnota'
   if (!acceptTerms || acceptTerms === '0') {
     redirect(`/rejestracja?error=${encodeURIComponent('Musisz zaakceptować regulamin i politykę prywatności')}`)
   }
@@ -143,18 +168,18 @@ async function registerActionImpl(
   }
 
   if (!nip || !companyName) {
-    redirect(`/rejestracja?error=${encodeURIComponent('NIP i Nazwa są wymagane')}`)
+    redirect(`/rejestracja?error=${encodeURIComponent('Podaj prawidłowy NIP i poczekaj na pobranie nazwy firmy')}`)
   }
 
   if (!phone) {
     redirect(`/rejestracja?error=${encodeURIComponent('Telefon jest wymagany')}`)
   }
 
-  if (userType === 'manager') {
-    if (!organizationType || !street || !district) {
-      redirect(`/rejestracja?error=${encodeURIComponent('Uzupełnij typ organizacji, adres (ulica, dzielnica)')}`)
-    }
+  if (!isValidPolishPhone(phone)) {
+    redirect(`/rejestracja?error=${encodeURIComponent(POLISH_PHONE_INVALID_MESSAGE)}`)
   }
+
+  const normalizedPhone = normalizePolishPhone(phone)
 
   if (password.length < 6) {
     redirect(`/rejestracja?error=${encodeURIComponent('Hasło musi mieć co najmniej 6 znaków')}`)
@@ -172,31 +197,54 @@ async function registerActionImpl(
     redirect(`/rejestracja?error=${encodeURIComponent(registrationClosedMessage('manager'))}`)
   }
 
+  const normalizedNip = normalizeNip(nip)
+  if (!isValidNip(normalizedNip)) {
+    return { error: 'Podaj prawidłowy numer NIP' }
+  }
+
+  const { createAdminClient } = await import('../supabase/admin')
+  const admin = createAdminClient()
+
+  if (await isNipAlreadyRegistered(admin, normalizedNip)) {
+    return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+  }
+
+  if (await isEmailAlreadyRegistered(admin, email)) {
+    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
+  }
+
+  const origin = getPublicAppOrigin();
+  const confirmationMessage = encodeURIComponent('Adres email został potwierdzony.');
+  const confirmationNext = `/?message=${confirmationMessage}`;
+  const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(confirmationNext)}`;
+
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo,
       data: {
         first_name: firstName,
         last_name: lastName,
         user_type: userType,
-        phone,
+        phone: normalizedPhone,
       },
     },
   })
 
   if (authError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(authError.message)}`)
+    return { error: translateRegistrationErrorMessage(authError.message) }
   }
 
   if (!authData.user) {
-    redirect(`/rejestracja?error=${encodeURIComponent('Nie udało się utworzyć konta')}`)
+    return { error: 'Nie udało się utworzyć konta' }
+  }
+
+  if (authData.user.identities?.length === 0) {
+    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
   }
 
   const userId = authData.user.id
-
-  const { createAdminClient } = await import('../supabase/admin')
-  const admin = createAdminClient()
 
   const { error: profileError } = await admin
     .from('user_profiles')
@@ -205,14 +253,16 @@ async function registerActionImpl(
       user_type: userType,
       first_name: firstName,
       last_name: lastName,
-      phone: phone || null,
+      phone: normalizedPhone || null,
+      nip: normalizedNip,
       is_verified: userType === 'manager',
       profile_completed: false,
       onboarding_completed: false,
     })
 
   if (profileError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(profileError.message)}`)
+    await admin.auth.admin.deleteUser(userId)
+    return { error: translateRegistrationErrorMessage(profileError.message) }
   }
 
   const companyType: 'spółdzielnia' | 'wspólnota' | 'contractor' =
@@ -220,20 +270,17 @@ async function registerActionImpl(
       ? (organizationType as 'spółdzielnia' | 'wspólnota')
       : 'contractor'
 
-  const address =
-    userType === 'manager' && street && city && district
-      ? `${street}, ${city}, ${district}`
-      : undefined
-
   const companyPayload = {
     name: companyName,
     type: companyType,
-    nip: nip || null,
-    address: address ?? null,
-    city: userType === 'manager' ? (city || 'Warszawa') : null,
+    nip: normalizedNip || null,
+    regon,
+    address: gusAddress,
+    city: gusCity || (userType === 'manager' ? 'Warszawa' : null),
+    postal_code: postalCode,
     country: 'PL',
     email: email,
-    phone: phone || null,
+    phone: normalizedPhone || null,
     is_verified: userType === 'manager',
     verification_level: userType === 'manager' ? ('verified' as const) : ('none' as const),
   }
@@ -246,7 +293,15 @@ async function registerActionImpl(
     .single()
 
   if (companyError) {
-    redirect(`/rejestracja?error=${encodeURIComponent(companyError.message)}`)
+    await admin.auth.admin.deleteUser(userId)
+    const companyErrorMessage = companyError.message.toLowerCase()
+    if (
+      companyErrorMessage.includes('duplicate') ||
+      companyErrorMessage.includes('unique')
+    ) {
+      return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+    }
+    return { error: translateRegistrationErrorMessage(companyError.message) }
   }
 
   if (!companyRow?.id) {
@@ -267,6 +322,22 @@ async function registerActionImpl(
 
   if (ucError) {
     redirect(`/rejestracja?error=${encodeURIComponent(ucError.message)}`)
+  }
+
+  const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')
+  const financeResult = await persistRegistrationFinanceSettings(admin, {
+    userId,
+    normalizedNip,
+    bankAccountIban,
+    vatStatus,
+  })
+
+  if (!financeResult.persisted && financeResult.error) {
+    console.error('[registerAction] finance settings persist failed', {
+      userId,
+      nip: normalizedNip,
+      error: financeResult.error,
+    })
   }
 
   revalidatePath('/', 'layout')
@@ -316,9 +387,50 @@ async function updateUserActionImpl(userData: UpdateUserData) {
     return { error: 'Not authenticated' }
   }
 
+  const patch: UpdateUserData = {}
+
+  if (userData.first_name !== undefined) {
+    const firstName = userData.first_name.trim()
+    if (!firstName) {
+      return { error: 'Imię jest wymagane' }
+    }
+    patch.first_name = firstName
+  }
+
+  if (userData.last_name !== undefined) {
+    const lastName = userData.last_name.trim()
+    if (!lastName) {
+      return { error: 'Nazwisko jest wymagane' }
+    }
+    patch.last_name = lastName
+  }
+
+  if (userData.phone !== undefined) {
+    const phone = userData.phone.trim()
+    if (!phone) {
+      return { error: 'Telefon jest wymagany' }
+    }
+    if (!isValidPolishPhone(phone)) {
+      return { error: POLISH_PHONE_INVALID_MESSAGE }
+    }
+    patch.phone = normalizePolishPhone(phone)
+  }
+
+  if (userData.profile_completed !== undefined) {
+    patch.profile_completed = userData.profile_completed
+  }
+
+  if (userData.onboarding_completed !== undefined) {
+    patch.onboarding_completed = userData.onboarding_completed
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { success: true }
+  }
+
   const { error } = await supabase
     .from('user_profiles')
-    .update(userData)
+    .update(patch)
     .eq('id', user.id)
 
   if (error) {
@@ -329,37 +441,95 @@ async function updateUserActionImpl(userData: UpdateUserData) {
   return { success: true }
 }
 
-function getPublicAppOrigin(): string {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'http://localhost:3000'
-  return base.replace(/\/$/, '')
-}
-
 /**
- * Sends Supabase password recovery email (PKCE). Link lands on `/auth/callback` then `/auth/aktualizacja-hasla`.
+ * Generates a new random password, updates the user via admin API, and emails it via Resend.
+ * Always returns success for valid emails (anti-enumeration).
  */
 async function requestPasswordResetEmailActionImpl(
   email: string
 ): Promise<{ success: true } | { error: string }> {
-  const supabase = await createClient()
   const trimmed = email.trim().toLowerCase()
   if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return { error: 'Podaj prawidłowy adres email' }
   }
 
-  const origin = getPublicAppOrigin()
-  const next = encodeURIComponent('/auth/aktualizacja-hasla')
-  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-    redirectTo: `${origin}/auth/callback?next=${next}`,
+  if (!isPasswordResetEmailConfigured()) {
+    return {
+      error:
+        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
+    }
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient()
+  } catch (error) {
+    console.error('requestPasswordResetEmailAction: admin client unavailable', error)
+    return {
+      error:
+        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
+    }
+  }
+
+  const user = await findAuthUserByEmail(admin, trimmed)
+  if (!user) {
+    return { success: true }
+  }
+
+  const newPassword = generateSecurePassword()
+  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    password: newPassword,
   })
 
-  if (error) {
-    return { error: error.message }
+  if (updateError) {
+    console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
+    return { success: true }
+  }
+
+  const origin = getPublicAppOrigin()
+  const loginUrl = `${origin}/logowanie`
+  const emailResult = await sendPasswordResetEmail({
+    toEmail: trimmed,
+    password: newPassword,
+    loginUrl,
+  })
+
+  if (!emailResult.sent) {
+    console.error(
+      'requestPasswordResetEmailAction: email not sent',
+      emailResult.skippedReason ?? 'unknown',
+    )
   }
 
   return { success: true }
+}
+
+/**
+ * Resends signup confirmation email with PKCE callback URL.
+ */
+async function resendConfirmationEmailActionImpl(
+  email: string,
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient();
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return { error: 'Podaj prawidłowy adres email' };
+  }
+
+  const origin = getPublicAppOrigin();
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: trimmed,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+    },
+  });
+
+  if (error) {
+    return { error: translateRegistrationErrorMessage(error.message) };
+  }
+
+  return { success: true };
 }
 
 /**
@@ -370,11 +540,10 @@ export async function resetPasswordAction(email: string) {
 }
 
 /**
- * Server Action for deleting user account
- * This permanently deletes the user from auth.users, which cascades to delete
- * user_profiles and all related data via database CASCADE constraints
+ * Server Action for deleting user account.
+ * Removes linked company/NIP data, auth user, and profile.
  */
-async function deleteAccountActionImpl() {
+async function deleteAccountActionImpl(): Promise<DeleteAccountActionResult> {
   try {
     const supabase = await createClient()
     
@@ -387,19 +556,20 @@ async function deleteAccountActionImpl() {
 
     const userId = user.id
 
-    // Use admin client to delete the user
-    // Import dynamically to avoid issues if service role key is not set
     const { createAdminClient } = await import('../supabase/admin')
     const adminClient = createAdminClient()
-    
-    // Delete the auth user - this will cascade delete user_profiles and related data
+
+    const dataCleanup = await deleteUserAccountData(adminClient, userId)
+    if (dataCleanup.ok === false) {
+      return { error: dataCleanup.error }
+    }
+
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
     
     if (deleteError) {
       console.error('Error deleting user account:', deleteError)
       console.error('Delete error details:', JSON.stringify(deleteError, null, 2))
       
-      // Provide more specific error messages
       if (deleteError.message?.includes('not found') || deleteError.message?.includes('does not exist')) {
         return { error: 'Użytkownik nie został znaleziony.' }
       }
@@ -414,14 +584,23 @@ async function deleteAccountActionImpl() {
       return { error: `Błąd bazy danych podczas usuwania użytkownika: ${deleteError.message || 'Nieznany błąd'}` }
     }
 
+    // Safety net: profile row should already be gone after deleteUserAccountData.
+    const { error: profileDeleteError } = await adminClient
+      .from('user_profiles')
+      .delete()
+      .eq('id', userId)
+
+    if (profileDeleteError) {
+      console.error('Error deleting user profile after auth deletion:', profileDeleteError)
+    }
+
     // Revalidate all paths to clear any cached user data
     revalidatePath('/', 'layout')
     
-    // Sign out and redirect to homepage
-    // Note: User is already deleted, but we clear any remaining session
+    // Clear local session cookies (user is already deleted server-side)
     await supabase.auth.signOut({ scope: 'local' })
     
-    redirect('/')
+    return { success: true }
   } catch (error: unknown) {
     console.error('Error in deleteAccountAction:', error)
     
@@ -456,5 +635,9 @@ export const updateUserAction = instrumentServerAction('updateUserAction', updat
 export const requestPasswordResetEmailAction = instrumentServerAction(
   'requestPasswordResetEmailAction',
   requestPasswordResetEmailActionImpl
+)
+export const resendConfirmationEmailAction = instrumentServerAction(
+  'resendConfirmationEmailAction',
+  resendConfirmationEmailActionImpl,
 )
 export const deleteAccountAction = instrumentServerAction('deleteAccountAction', deleteAccountActionImpl)

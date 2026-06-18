@@ -1,6 +1,8 @@
 /**
  * Canonical Polish URL paths for the application.
  */
+import { KONTO_DOKUMENTY_PATH } from './konto-tabs';
+
 export const routes = {
   home: '/',
   logowanie: '/logowanie',
@@ -30,6 +32,16 @@ export const routes = {
   konsultacjaEksperta: '/konsultacja-eksperta',
   regulamin: '/regulamin',
   politykaPrywatnosci: '/polityka-prywatnosci',
+  ustawieniaPlikowCookie: '/ustawienia-plikow-cookie',
+  oNas: '/o-nas',
+  kontakt: '/kontakt',
+  aktualnosci: '/aktualnosci',
+  faq: '/faq',
+  kategorieUslug: '/kategorie-uslug',
+  pomocDlaZarzadcow: '/pomoc-dla-zarzadcow',
+  pomocDlaWykonawcow: '/pomoc-dla-wykonawcow',
+  dlaWspolnot: '/dla-wspolnot',
+  dlaWykonawcow: '/dla-wykonawcow',
   panelWykonawcy: '/panel-wykonawcy',
   panelWykonawcyAplikacje: '/panel-wykonawcy/aplikacje',
   panelWykonawcyPanel: '/panel-wykonawcy/panel',
@@ -55,7 +67,7 @@ export const routes = {
   administracjaOferty: '/administracja/oferty',
   administracjaOgloszenia: '/administracja/ogloszenia',
   authAktualizacjaHasla: '/auth/aktualizacja-hasla',
-  kontoDokumenty: '/konto?tab=documents',
+  kontoDokumenty: KONTO_DOKUMENTY_PATH,
 } as const
 
 export type AppRoute = (typeof routes)[keyof typeof routes]

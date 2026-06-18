@@ -26,3 +26,14 @@ export const WARSAW_DISTRICTS = [
 export type WarsawDistrict = (typeof WARSAW_DISTRICTS)[number];
 
 export const DEFAULT_CITY = 'Warszawa';
+
+/** Map GUS gmina to an official Warsaw district name when possible. */
+export function mapGusGminaToWarsawDistrict(gmina: string | null | undefined): string | null {
+  if (!gmina) {
+    return null;
+  }
+
+  const normalized = gmina.trim().toLowerCase();
+  const match = WARSAW_DISTRICTS.find(district => district.toLowerCase() === normalized);
+  return match ?? null;
+}

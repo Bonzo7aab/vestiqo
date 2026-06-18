@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '../../lib/supabase/client';
 import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { toast } from 'sonner';
+import { kontoCompanyDataHref } from '../../lib/konto-tabs';
 
 export default function ContestTypeSelection() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function ContestTypeSelection() {
     if (user?.userType === 'manager') {
       if (hasCompany === false) {
         toast.error('Najpierw musisz dodać dane firmy w profilu');
-        router.push('/konto?tab=company');
+        router.push(kontoCompanyDataHref('manager'));
         return;
       }
       if (isCheckingCompany || hasCompany === null) {

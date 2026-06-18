@@ -47,6 +47,11 @@ double_confirm_changes = true
 # Disable email confirmations for local testing
 enable_confirmations = false
 
+[auth.email.template.confirmation]
+subject = "Potwierdź rejestrację w Vestiqo"
+content_path = "./supabase/templates/confirmation.html"
+# Password reset emails are sent via Resend (see src/lib/email/send-password-reset-email.ts), not Supabase recovery template.
+
 [auth.external.apple]
 enabled = false
 

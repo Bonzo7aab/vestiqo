@@ -4,6 +4,10 @@ import { extractCity, extractSublocality } from '../../utils/locationMapping';
 import { isJobExpired } from '../../utils/jobHelpers';
 import type { DeadlineFilterKey, FilterState } from './filter-state';
 import { WARSAW_CITY } from './filter-state';
+import {
+  categoryFilterKeysMatch,
+  subcategoryFilterKeysMatch,
+} from '../config/categoryConfig';
 
 export type FilterCountDimension =
   | 'categories'
@@ -177,13 +181,22 @@ export function jobMatchesFilters(job: Job, filters: FilterState): boolean {
       typeof job.category === 'string'
         ? job.category
         : job.category?.name || 'Inne';
-    if (!filters.categories.includes(jobCategory)) return false;
+    const categorySlug =
+      typeof job.category === 'object' ? job.category?.slug : undefined;
+    const matchesCategory = filters.categories.some((filterKey) =>
+      categoryFilterKeysMatch(jobCategory, filterKey, categorySlug),
+    );
+    if (!matchesCategory) return false;
   }
 
   if (filters.subcategories.length > 0) {
-    if (job.subcategory && !filters.subcategories.includes(job.subcategory)) {
-      return false;
-    }
+    if (!job.subcategory) return false;
+    const categorySlug =
+      typeof job.category === 'object' ? job.category?.slug : undefined;
+    const matchesSubcategory = filters.subcategories.some((filterKey) =>
+      subcategoryFilterKeysMatch(job.subcategory!, filterKey, categorySlug),
+    );
+    if (!matchesSubcategory) return false;
   }
 
   if (filters.cities.length > 0) {

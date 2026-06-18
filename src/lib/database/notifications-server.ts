@@ -89,8 +89,8 @@ export async function createNotificationWithPush(
         const pushPayload: PushNotificationPayload = {
           title: options.title,
           body: options.message,
-          icon: '/logo.svg',
-          badge: '/logo.svg',
+          icon: '/brand/vestiqo-mark.svg',
+          badge: '/brand/vestiqo-mark.svg',
           tag: options.type,
           data: {
             notificationId,

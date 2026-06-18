@@ -114,11 +114,11 @@ export const JobListHeader: React.FC<JobListHeaderProps> = ({
           {/* Notifications Toggle */}
           {searchQuery && (
             <div className="flex items-center space-x-2 mr-4">
-              <Bell className={`h-4 w-4 ${notificationsEnabled ? 'text-blue-800' : 'text-gray-600'}`} />
+              <Bell className={`h-4 w-4 ${notificationsEnabled ? 'text-primary' : 'text-gray-600'}`} />
               <Switch
                 checked={notificationsEnabled}
                 onCheckedChange={setNotificationsEnabled}
-                className="data-[state=checked]:bg-blue-800"
+                className="data-[state=checked]:bg-primary"
               />
               <Label className="text-xs text-gray-600 cursor-pointer">
                 Powiadomienia
@@ -137,7 +137,7 @@ export const JobListHeader: React.FC<JobListHeaderProps> = ({
                 <SelectItem 
                   key={option.value} 
                   value={option.value} 
-                  className="hover:bg-blue-50 hover:text-blue-800 text-gray-900 focus:bg-blue-50 focus:text-blue-800 data-[highlighted]:bg-blue-50 data-[highlighted]:text-blue-800"
+                  className="hover:bg-brand-unread hover:text-primary text-gray-900 focus:bg-brand-unread focus:text-primary data-[highlighted]:bg-brand-unread data-[highlighted]:text-primary"
                 >
                   <div className="flex flex-col w-full">
                     <span className="font-medium">{option.label}</span>
@@ -153,7 +153,7 @@ export const JobListHeader: React.FC<JobListHeaderProps> = ({
             variant={isMapVisible ? 'default' : 'outline'}
             size="sm"
             onClick={onToggleMap}
-            className={`px-3 ${isMapVisible ? 'bg-blue-800 hover:bg-blue-900 text-white' : 'border-gray-200 text-gray-900 hover:bg-gray-50'}`}
+            className={`px-3 ${isMapVisible ? 'bg-primary hover:bg-primary/90 text-white' : 'border-gray-200 text-gray-900 hover:bg-gray-50'}`}
           >
             <Map className="w-4 h-4 mr-2" />
             {isMapVisible ? 'Wróć do listy' : 'Pokaż mapę'}

@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { formatTimeAgo } from '../../../components/contractor-dashboard/shared/utils';
 import type { ContractorStats } from '../../../lib/database/contractors';
+import { kontoCompanyDataHref } from '../../../lib/konto-tabs';
 
 interface DashboardData {
   stats: ContractorStats;
@@ -236,7 +237,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
               <Star className="w-4 h-4 mr-2" />
               Zapisane konkursy
             </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/konto?tab=company')}>
+            <Button variant="outline" className="w-full justify-start" onClick={() => router.push(kontoCompanyDataHref('contractor'))}>
               <Edit className="w-4 h-4 mr-2" />
               Edytuj profil firmy
             </Button>

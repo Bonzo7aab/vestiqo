@@ -11,8 +11,8 @@ import {
   getOcPolicyScanSignedUrl,
   removeVerificationDocumentsFromBucket,
   upsertContractorAccountSettings,
-  uploadOcPolicyScan,
 } from '../lib/database/contractor-account';
+import { uploadVerificationDocumentClient } from '../lib/verification/upload-document-client';
 import { createClient } from '../lib/supabase/client';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -106,8 +106,14 @@ export function ContractorInsuranceSettings({ userId }: ContractorInsuranceSetti
 
     try {
       setIsSaving(true);
-      const uploadResult = await uploadOcPolicyScan(userId, file);
-      const saved = await upsertContractorAccountSettings(userId, { ocPolicyScanPath: uploadResult.path });
+      const uploadResult = await uploadVerificationDocumentClient('oc-policy', file);
+      if (uploadResult.error || !uploadResult.path) {
+        toast.error(uploadResult.error ?? 'Nie udało się zapisać skanu polisy');
+        return;
+      }
+      const saved = await upsertContractorAccountSettings(userId, {
+        ocPolicyScanPath: uploadResult.path,
+      });
       if (!saved.ocPolicyScanPath || saved.ocPolicyScanPath !== uploadResult.path) {
         toast.error(
           'Plik został wgrany do magazynu, ale ścieżka nie została zapisana w bazie. Uruchom migrację contractor_account_settings lub sprawdź RLS.'

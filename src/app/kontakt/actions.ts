@@ -1,0 +1,81 @@
+'use server';
+
+import { companyLegal } from '../../lib/content/company-legal';
+import { contactRoleOptions, type ContactRole } from '../../lib/content/kontakt';
+import { isValidEmail } from '../../lib/email/validate-email';
+
+interface ContactFormResult {
+  success: boolean;
+  error?: string;
+}
+
+function getRoleLabel(role: ContactRole): string {
+  return contactRoleOptions.find((option) => option.value === role)?.label ?? role;
+}
+
+export async function submitContactForm(formData: FormData): Promise<ContactFormResult> {
+  const name = String(formData.get('name') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
+  const phone = String(formData.get('phone') ?? '').trim();
+  const subject = String(formData.get('subject') ?? '').trim();
+  const message = String(formData.get('message') ?? '').trim();
+  const role = String(formData.get('role') ?? 'other') as ContactRole;
+
+  if (!name || !email || !subject || !message) {
+    return { success: false, error: 'Uzupełnij wszystkie wymagane pola.' };
+  }
+
+  if (!isValidEmail(email)) {
+    return { success: false, error: 'Podaj poprawny adres e-mail.' };
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  const to = process.env.CONTACT_FORM_TO_EMAIL ?? companyLegal.emails.help;
+
+  if (!apiKey || !from) {
+    console.info('Contact form submission (email not configured):', {
+      name,
+      email,
+      phone,
+      subject,
+      role,
+      message,
+    });
+    return { success: true };
+  }
+
+  const html = `
+    <h2>Nowe zapytanie z formularza kontaktowego Vestiqo</h2>
+    <p><strong>Rola:</strong> ${getRoleLabel(role)}</p>
+    <p><strong>Imię i nazwisko:</strong> ${name}</p>
+    <p><strong>E-mail:</strong> ${email}</p>
+    ${phone ? `<p><strong>Telefon:</strong> ${phone}</p>` : ''}
+    <p><strong>Temat:</strong> ${subject}</p>
+    <p><strong>Wiadomość:</strong></p>
+    <p>${message.replace(/\n/g, '<br />')}</p>
+  `;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      reply_to: email,
+      subject: `[Kontakt Vestiqo] ${subject}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('Contact form Resend error:', res.status, text);
+    return { success: false, error: 'Nie udało się wysłać wiadomości. Spróbuj ponownie później.' };
+  }
+
+  return { success: true };
+}

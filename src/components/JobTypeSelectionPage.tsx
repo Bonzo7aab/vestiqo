@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ArrowLeft, FileText, Gavel, Clock, Users, Star, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { kontoCompanyDataHref } from '../lib/konto-tabs';
 
 interface JobTypeSelectionPageProps {
   onBack: () => void;
@@ -42,7 +43,7 @@ export default function JobTypeSelectionPage({ onBack, onSelectJob, onSelectTend
               <AlertCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm text-amber-700">
-                  Najpierw musisz <Link href="/konto?tab=company" className="text-blue-700 underline">dodać dane firmy w profilu</Link>, aby móc tworzyć zgłoszenia i przetargi.
+                  Najpierw musisz <Link href={kontoCompanyDataHref('manager')} className="text-blue-700 underline">dodać dane firmy w profilu</Link>, aby móc tworzyć zgłoszenia i przetargi.
                 </p>
               </div>
             </div>

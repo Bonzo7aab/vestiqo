@@ -3,6 +3,10 @@ import type { Database } from '../../types/database';
 import type { Application } from '../../types/application';
 import type { Budget, BudgetInput } from '../../types/budget';
 import { budgetFromDatabase, budgetToDatabase, formatBudget } from '../../types/budget';
+import {
+  resolveCategoryIdsFromFilterKeys,
+  resolveSubcategoryIdsFromFilterKeys,
+} from '../config/categoryConfig';
 import { fetchAllCategories, fetchAllCategoriesWithSubcategories } from './categories';
 import { JOB_WORKFLOW_STATUSES, isJobWorkflowStatusRegression } from '../job-workflow-status';
 import {
@@ -906,22 +910,15 @@ export async function fetchJobs(
 
       if (allCategories) {
         if (filters.categories && filters.categories.length > 0) {
-          for (const categoryName of filters.categories) {
-            const category = allCategories.find(c => c.name === categoryName);
-            if (category) {
-              mainCategoryIds.push(category.id);
-            }
-          }
+          mainCategoryIds.push(
+            ...resolveCategoryIdsFromFilterKeys(allCategories, filters.categories),
+          );
         }
 
         if (filters.subcategories && filters.subcategories.length > 0) {
-          for (const mainCategory of allCategories) {
-            for (const sub of mainCategory.subcategories) {
-              if (filters.subcategories.includes(sub.name)) {
-                subcategoryIds.push(sub.id);
-              }
-            }
-          }
+          subcategoryIds.push(
+            ...resolveSubcategoryIdsFromFilterKeys(allCategories, filters.subcategories),
+          );
         }
       }
 
@@ -1352,7 +1349,9 @@ export async function fetchJobsAndTenders(
       status: tender.status,
       salary: `${tender.estimated_value} ${tender.currency}`,
       budget: `${tender.estimated_value} ${tender.currency}`,
-      category: tender.category?.name || 'Inne',
+      category: tender.category
+        ? { name: tender.category.name, slug: tender.category.slug }
+        : 'Inne',
       subcategory: tender.subcategory?.name,
       deadline: tender.submission_deadline,
       urgency: 'medium' as const,

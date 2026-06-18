@@ -21,6 +21,7 @@ import { useJobsContext } from '../contexts/JobsContext';
 import { createClient } from '../lib/supabase/client';
 import { createJobApplication, createTenderBid } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
+import { kontoCompanyDataHref } from '../lib/konto-tabs';
 import { VerificationRequiredApplyDialog } from '../components/VerificationRequiredApplyDialog';
 import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
 import { ContestOfferSubmissionDialog } from '../components/contest-offer/ContestOfferSubmissionDialog';
@@ -443,7 +444,7 @@ function HomePageContent() {
     if (!company) {
       toast.error('Musisz najpierw dodać informacje o swojej firmie w profilu konta');
       setApplicationModalOpen(false);
-      router.push('/konto?tab=company');
+      router.push(kontoCompanyDataHref('contractor'));
       return;
     }
 
@@ -475,7 +476,7 @@ function HomePageContent() {
           if (errorMessage.includes('company') || errorMessage.includes('firm') || errorMessage.includes('Contractor must have')) {
             toast.error('Musisz najpierw dodać informacje o swojej firmie');
             setApplicationModalOpen(false);
-            router.push('/konto?tab=company');
+            router.push(kontoCompanyDataHref('contractor'));
             return;
           }
           
@@ -516,7 +517,7 @@ function HomePageContent() {
           if (errorMessage.includes('company') || errorMessage.includes('firm') || errorMessage.includes('Contractor must have')) {
             toast.error('Musisz najpierw dodać informacje o swojej firmie');
             setApplicationModalOpen(false);
-            router.push('/konto?tab=company');
+            router.push(kontoCompanyDataHref('contractor'));
             return;
           }
           

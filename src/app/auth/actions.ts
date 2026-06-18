@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '../../lib/supabase/server'
-
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
@@ -92,54 +91,6 @@ export async function signOut() {
 
   revalidatePath('/', 'layout')
   redirect('/')
-}
-
-export async function resetPassword(formData: FormData) {
-  const supabase = await createClient()
-
-  const email = formData.get('email') as string
-
-  if (!email) {
-    redirect('/error')
-  }
-
-  const origin =
-    (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(
-      /\/$/,
-      ''
-    )
-  const next = encodeURIComponent('/auth/aktualizacja-hasla')
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=${next}`,
-  })
-
-  if (error) {
-    redirect('/error')
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/auth/reset-password-sent')
-}
-
-export async function updatePassword(formData: FormData) {
-  const supabase = await createClient()
-
-  const password = formData.get('password') as string
-  const confirmPassword = formData.get('confirmPassword') as string
-
-  if (password !== confirmPassword) {
-    redirect('/error?message=Passwords do not match')
-  }
-
-  const { error } = await supabase.auth.updateUser({ password })
-
-  if (error) {
-    redirect('/error')
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
 }
 
 export async function updateProfile(formData: FormData) {

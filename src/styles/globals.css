@@ -7,19 +7,22 @@
 :root {
   --font-size: 16px;
   --background: 0 0% 100%;
-  --foreground: 215 25% 17%;
+  --foreground: 215 19% 35%;
   --card: 0 0% 100%;
-  --card-foreground: 215 25% 17%;
+  --card-foreground: 215 19% 35%;
   --popover: 0 0% 100%;
-  --popover-foreground: 215 25% 17%;
-  --primary: 221 83% 40%;
+  --popover-foreground: 215 19% 35%;
+  /* OPD-26 CTA / accent blue (#2563EB) */
+  --primary: 217 91% 53%;
   --primary-foreground: 0 0% 100%;
+  /* OPD-26 navy (#0F172A) — headings, authority */
+  --brand-navy: 222 47% 11%;
   --secondary: 210 40% 96%;
-  --secondary-foreground: 221 83% 40%;
+  --secondary-foreground: 222 47% 11%;
   --muted: 210 40% 98%;
   --muted-foreground: 215 16% 47%;
-  --accent: 210 100% 92%;
-  --accent-foreground: 221 83% 40%;
+  --accent: 214 100% 97%;
+  --accent-foreground: 222 47% 11%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
   --success: 160 84% 39%;
@@ -34,21 +37,22 @@
   --switch-background: 214 32% 82%;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: 221 83% 40%;
-  --chart-1: 221 83% 40%;
+  --font-weight-bold: 700;
+  --ring: 217 91% 53%;
+  --chart-1: 217 91% 53%;
   --chart-2: 160 84% 39%;
   --chart-3: 32 95% 44%;
   --chart-4: 0 72% 51%;
   --chart-5: 258 90% 66%;
   --radius: 0.625rem;
   --sidebar: 210 40% 98%;
-  --sidebar-foreground: 215 25% 17%;
-  --sidebar-primary: 221 83% 40%;
+  --sidebar-foreground: 215 19% 35%;
+  --sidebar-primary: 217 91% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 210 40% 96%;
-  --sidebar-accent-foreground: 221 83% 40%;
+  --sidebar-accent-foreground: 222 47% 11%;
   --sidebar-border: 214 32% 91%;
-  --sidebar-ring: 221 83% 40%;
+  --sidebar-ring: 217 91% 53%;
 }
 
 .dark {
@@ -103,6 +107,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand-navy: var(--brand-navy);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -158,14 +163,16 @@
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
     h1 {
       font-size: var(--text-2xl);
-      font-weight: var(--font-weight-medium);
+      font-weight: var(--font-weight-bold);
       line-height: 1.5;
+      color: hsl(var(--brand-navy));
     }
 
     h2 {
       font-size: var(--text-xl);
-      font-weight: var(--font-weight-medium);
+      font-weight: var(--font-weight-bold);
       line-height: 1.5;
+      color: hsl(var(--brand-navy));
     }
 
     h3 {

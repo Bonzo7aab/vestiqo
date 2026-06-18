@@ -22,6 +22,7 @@ import {
   formatContestLocation,
   formatContestSubmissionDeadline,
 } from '../../lib/contest-display';
+import { formatContestCategoryLine } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
 
 interface ContestJobCardProps {
@@ -40,7 +41,7 @@ interface ContestJobCardProps {
   };
   contestStatus: string;
   submissionDeadline: string | null;
-  categoryLabel: string;
+  contestCategoryLine?: string;
   deadlineDaysRemaining: number | null;
   isEndingSoon: boolean;
   isExpired?: boolean;
@@ -63,14 +64,14 @@ function InlineSep(): React.ReactElement {
   return <span className="text-border shrink-0 select-none" aria-hidden>·</span>;
 }
 
-function SubcategoryLabel({ subcategory }: { subcategory?: string }): React.ReactElement | null {
-  if (!subcategory) {
+function CategoryLine({ label }: { label?: string }): React.ReactElement | null {
+  if (!label) {
     return null;
   }
 
   return (
-    <p className="w-fit max-w-full truncate text-xs font-medium text-muted-foreground">
-      {subcategory}
+    <p className="w-fit max-w-full truncate text-xs font-medium text-muted-foreground" title={label}>
+      {label}
     </p>
   );
 }
@@ -82,6 +83,7 @@ export function ContestJobCard({
   job,
   contestStatus,
   submissionDeadline,
+  contestCategoryLine,
   deadlineDaysRemaining,
   isEndingSoon,
   isExpired = false,
@@ -102,6 +104,12 @@ export function ContestJobCard({
   const cityDistrict = formatContestLocation(job.location);
   const buildingName = job.contestInfo?.buildingName;
   const locationLabel = job.contestInfo?.buildingAddress?.trim() || cityDistrict;
+  const categoryLine =
+    contestCategoryLine ??
+    formatContestCategoryLine({
+      category: job.category,
+      subcategory: job.subcategory,
+    });
   const offerCount = job.applications ?? job.metrics?.applications ?? 0;
   const bookmarkTooltip = isBookmarked ? 'Usuń z zapisanych' : 'Dodaj do zapisanych';
 
@@ -178,7 +186,7 @@ export function ContestJobCard({
               ) : null}
             </div>
 
-            <SubcategoryLabel subcategory={job.subcategory} />
+            <CategoryLine label={categoryLine} />
           </div>
         </div>
 

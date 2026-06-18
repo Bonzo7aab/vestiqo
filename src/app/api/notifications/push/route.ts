@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
     const payload: PushNotificationPayload = {
       title,
       body: message,
-      icon: icon.startsWith('/') ? icon : '/logo.svg',
-      badge: '/logo.svg',
+      icon: icon.startsWith('/') ? icon : '/brand/vestiqo-mark.svg',
+      badge: '/brand/vestiqo-mark.svg',
       url: redirectUrl,
       data,
       timestamp: Date.now()

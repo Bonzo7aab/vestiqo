@@ -1,0 +1,91 @@
+/**
+ * Password reset email — styled like `supabase/templates/confirmation.html`.
+ * Sent via Resend (not Supabase Auth recovery template).
+ */
+export const PASSWORD_RESET_EMAIL_SUBJECT = 'Nowe hasło — Vestiqo';
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export function buildPasswordResetEmailHtml(params: {
+  password: string;
+  loginUrl: string;
+}): string {
+  const password = escapeHtml(params.password);
+  const loginUrl = escapeHtml(params.loginUrl);
+
+  return `<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>Nowe hasło — Vestiqo</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#F8FAFC;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:520px;background-color:#FFFFFF;border-radius:16px;border:1px solid #E2E8F0;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.06);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 100%);padding:36px 32px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#BFDBFE;">Vestiqo</p>
+              <h1 style="margin:0;color:#FFFFFF;font-size:26px;font-weight:700;line-height:1.2;letter-spacing:-0.02em;">Nowe hasło do konta</h1>
+              <p style="margin:12px 0 0;color:#EFF6FF;font-size:14px;line-height:1.5;">Platforma dla zarządców i wykonawców</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 32px 32px;">
+              <p style="margin:0 0 12px;color:#0F172A;font-size:16px;line-height:1.6;font-weight:500;">Cześć!</p>
+              <p style="margin:0 0 28px;color:#334155;font-size:15px;line-height:1.65;">
+                Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta w <strong style="color:#0F172A;">Vestiqo</strong>. Poniżej znajdziesz nowe, tymczasowe hasło.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;margin:0 0 28px;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 8px;color:#64748B;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Twoje nowe hasło</p>
+                    <p style="margin:0;color:#0F172A;font-size:18px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;word-break:break-all;letter-spacing:0.04em;">
+                      ${password}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 28px;">
+                <tr>
+                  <td align="center" style="border-radius:10px;background-color:#2563EB;">
+                    <a href="${loginUrl}" target="_blank" style="display:inline-block;padding:14px 32px;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;border-radius:10px;line-height:1.2;">
+                      Zaloguj się
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 12px;color:#334155;font-size:15px;line-height:1.65;">
+                Po zalogowaniu zalecamy zmianę hasła w ustawieniach konta na własne, łatwe do zapamiętania.
+              </p>
+              <p style="margin:0;color:#64748B;font-size:13px;line-height:1.55;">
+                Jeśli to nie Ty prosiłeś o reset hasła, skontaktuj się z nami pod adresem <a href="mailto:kontakt@vestiqo.pl" style="color:#2563EB;text-decoration:underline;">kontakt@vestiqo.pl</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px;background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;">
+              <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.5;">
+                © Vestiqo · Platforma konkursów w nieruchomościach
+              </p>
+              <p style="margin:0;color:#94A3B8;font-size:12px;line-height:1.5;">
+                <a href="mailto:kontakt@vestiqo.pl" style="color:#64748B;text-decoration:none;">kontakt@vestiqo.pl</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}

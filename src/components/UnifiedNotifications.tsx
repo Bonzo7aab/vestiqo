@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useUserProfile } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../lib/database/notifications';
 import { createClient } from '../lib/supabase/client';
+import { KONTO_DOKUMENTY_PATH } from '../lib/konto-tabs';
 import type { Database } from '../types/database';
 import type {
   ApplicationNotification,
@@ -368,7 +369,7 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
       case 'system': {
         const systemNotif = notification as SystemNotification;
         const verificationPath =
-          user?.userType === 'manager' ? '/konto' : '/konto?tab=documents';
+          user?.userType === 'manager' ? '/konto' : KONTO_DOKUMENTY_PATH;
         const target =
           systemNotif.actionUrl ||
           (systemNotif.type === 'verification_rejected' ? verificationPath : '/konto');

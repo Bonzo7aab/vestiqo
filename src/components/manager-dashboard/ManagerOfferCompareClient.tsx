@@ -496,6 +496,14 @@ export function ManagerOfferCompareClient({
     return profiles[id] ?? null;
   }, [detailApp, detailBid, profiles]);
 
+  const isSelectedOffer =
+    detailApp?.status === 'accepted' || detailBid?.status === 'accepted';
+
+  const showSelectInDetail =
+    (kind === 'job' || !compareReadOnly) &&
+    (kind !== 'contest' || canSelectWinner || !contestMode) &&
+    !(contestMode && detailBid);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -892,7 +900,7 @@ export function ManagerOfferCompareClient({
                 </div>
               )}
 
-              {showContactDetails ? (
+              {isSelectedOffer && showContactDetails ? (
                 <section className="rounded-xl border bg-muted/30 p-4">
                   <h4 className="mb-3 text-sm font-semibold">Kontakt do wykonawcy</h4>
                   {detailProfile ? (
@@ -914,22 +922,24 @@ export function ManagerOfferCompareClient({
                 </section>
               ) : null}
 
-              <div className="flex flex-col gap-2 sm:flex-row pt-2">
-                {(kind === 'job' || !compareReadOnly) &&
-                (kind !== 'contest' || canSelectWinner || !contestMode) &&
-                !(contestMode && detailBid) ? (
-                <Button className="flex-1" onClick={openConfirmSelect}>
-                  Wybierz tę ofertę
-                </Button>
-                ) : null}
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowContactDetails((prev) => !prev)}
-                >
-                  {showContactDetails ? 'Ukryj dane kontaktowe' : 'Zapytaj o szczegóły'}
-                </Button>
-              </div>
+              {(showSelectInDetail || isSelectedOffer) ? (
+                <div className="flex flex-col gap-2 sm:flex-row pt-2">
+                  {showSelectInDetail ? (
+                    <Button className="flex-1" onClick={openConfirmSelect}>
+                      Wybierz tę ofertę
+                    </Button>
+                  ) : null}
+                  {isSelectedOffer ? (
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowContactDetails((prev) => !prev)}
+                    >
+                      {showContactDetails ? 'Ukryj dane kontaktowe' : 'Zapytaj o szczegóły'}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           )}
         </DialogContent>

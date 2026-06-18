@@ -1,10 +1,15 @@
-import type { VerificationState } from './types';
+import type { VerificationState, AdminUserStatus } from './types';
 
 export const VERIFICATION_STATUS_LABELS: Record<VerificationState, string> = {
   approved: 'Zweryfikowany',
   pending: 'Weryfikacja w toku',
   rejected: 'Odrzucony',
-  unsubmitted: 'Weryfikacja w toku',
+  unsubmitted: 'Wymaga weryfikacji',
+};
+
+export const ADMIN_USER_STATUS_LABELS: Record<AdminUserStatus, string> = {
+  ...VERIFICATION_STATUS_LABELS,
+  email_unconfirmed: 'Wymaga potwierdzenia email',
 };
 
 export const VERIFICATION_REJECTION_REASONS = [
@@ -51,6 +56,10 @@ export function verificationStatusLabel(state: VerificationState): string {
   return VERIFICATION_STATUS_LABELS[state];
 }
 
+export function adminUserStatusLabel(state: AdminUserStatus): string {
+  return ADMIN_USER_STATUS_LABELS[state];
+}
+
 export function formatVerificationRejectionReason(
   reasonId: VerificationRejectionReasonId,
   customText?: string
@@ -77,4 +86,12 @@ export function verificationStatusBadgeClass(state: VerificationState): string {
     default:
       return 'border border-amber-500/40 bg-amber-500/10 text-amber-800';
   }
+}
+
+export function adminUserStatusBadgeClass(state: AdminUserStatus): string {
+  if (state === 'email_unconfirmed') {
+    return 'border border-sky-500/40 bg-sky-500/10 text-sky-800';
+  }
+
+  return verificationStatusBadgeClass(state);
 }

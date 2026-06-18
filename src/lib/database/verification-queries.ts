@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import { resolveVerificationStatus } from '../verification/resolve-verification-state';
 import type { VerificationStatus } from '../verification/types';
 
 const EMPTY_STATUS: VerificationStatus = {
@@ -41,26 +42,6 @@ export async function getUserVerificationStatus(
   }
 
   const typedProfile = profile as ProfileVerificationRow & { user_type?: string | null };
-  if (typedProfile.user_type === 'manager') {
-    return {
-      state: 'approved',
-      submittedAt: typedProfile.verification_submitted_at ?? null,
-      decidedAt: null,
-      reason: null,
-    };
-  }
-
-  const isVerified = typedProfile.is_verified === true;
-  const submittedAt = typedProfile.verification_submitted_at ?? null;
-
-  if (isVerified) {
-    return {
-      state: 'approved',
-      submittedAt,
-      decidedAt: null,
-      reason: null,
-    };
-  }
 
   const { data: decisionRow } = await sb
     .from('verification_decisions')
@@ -70,21 +51,10 @@ export async function getUserVerificationStatus(
     .limit(1)
     .maybeSingle();
 
-  const latest = decisionRow as DecisionRow | null;
-
-  if (latest?.decision === 'rejected' && !submittedAt) {
-    return {
-      state: 'rejected',
-      submittedAt: null,
-      decidedAt: latest.created_at,
-      reason: latest.reason ?? null,
-    };
-  }
-
-  return {
-    state: 'pending',
-    submittedAt,
-    decidedAt: null,
-    reason: null,
-  };
+  return resolveVerificationStatus({
+    userType: typedProfile.user_type,
+    isVerified: typedProfile.is_verified,
+    submittedAt: typedProfile.verification_submitted_at ?? null,
+    latestDecision: (decisionRow as DecisionRow | null) ?? null,
+  });
 }

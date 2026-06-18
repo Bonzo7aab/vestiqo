@@ -16,6 +16,11 @@ import {
 } from '../../../../lib/database/admin-verification';
 import { VAT_STATUS_OPTIONS } from '../../../../lib/contractor/constants';
 import { normalizeIbanInput } from '../../../../lib/contractor/iban';
+import { isAuthUserEmailConfirmed } from '../../../../lib/auth/email-confirmation';
+import {
+  resolveAdminUserStatus,
+  resolveQueueVerificationState,
+} from '../../../../lib/admin/resolve-admin-user-status';
 import { VerificationSubjectPanel } from '../../../../components/admin/VerificationSubjectPanel';
 import { AdminNotesCollapsibleSection } from '../../../../components/admin/AdminNotesCollapsibleSection';
 
@@ -89,6 +94,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
   let email: string | null = primaryEarly?.companies?.email ?? null;
 
   const elevatedClient = createAdminClientOrNull();
+  let emailConfirmed = true;
   if (elevatedClient) {
     try {
       const { data: authUser, error: authError } = await elevatedClient.auth.admin.getUserById(userId);
@@ -99,6 +105,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
         });
       } else {
         email = authUser.user?.email ?? email;
+        emailConfirmed = isAuthUserEmailConfirmed(authUser.user);
       }
     } catch (authErr) {
       console.error('[admin/weryfikacja] auth.admin.getUserById threw', authErr);
@@ -120,32 +127,34 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
     ocGuaranteeAmountPln: null,
   };
 
+  const { data: cas, error: casError } = await sb
+    .from('contractor_account_settings')
+    .select(
+      'oc_valid_until, oc_policy_scan_path, bank_account_iban, vat_status, oc_guarantee_amount'
+    )
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (casError) {
+    console.error('[admin/weryfikacja] contractor_account_settings read failed', {
+      userId,
+      code: casError.code,
+      message: casError.message,
+    });
+  }
   if (profile.user_type === 'contractor') {
-    const { data: cas, error: casError } = await sb
-      .from('contractor_account_settings')
-      .select(
-        'oc_valid_until, oc_policy_scan_path, bank_account_iban, vat_status, oc_guarantee_amount'
-      )
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (casError) {
-      console.error('[admin/weryfikacja] contractor_account_settings read failed', {
-        userId,
-        code: casError.code,
-        message: casError.message,
-      });
-    }
     ocValidUntil = (cas?.oc_valid_until as string) ?? null;
     ocPolicyScanPath = (cas?.oc_policy_scan_path as string) ?? null;
+  }
 
-    const rawIban = typeof cas?.bank_account_iban === 'string' ? cas.bank_account_iban : null;
-    const ibanDigits = rawIban ? normalizeIbanInput(rawIban) : '';
-    subjectProfile.bankAccountIban = ibanDigits.length === 26 ? ibanDigits : rawIban;
+  const rawIban = typeof cas?.bank_account_iban === 'string' ? cas.bank_account_iban : null;
+  const ibanDigits = rawIban ? normalizeIbanInput(rawIban) : '';
+  subjectProfile.bankAccountIban = ibanDigits.length === 26 ? ibanDigits : rawIban;
 
-    const vatStatus = cas?.vat_status as string | null | undefined;
-    subjectProfile.vatStatusLabel =
-      VAT_STATUS_OPTIONS.find((o) => o.value === vatStatus)?.label ?? null;
+  const vatStatus = cas?.vat_status as string | null | undefined;
+  subjectProfile.vatStatusLabel =
+    VAT_STATUS_OPTIONS.find((o) => o.value === vatStatus)?.label ?? null;
 
+  if (profile.user_type === 'contractor') {
     const guarantee = cas?.oc_guarantee_amount;
     if (typeof guarantee === 'number' && Number.isFinite(guarantee)) {
       subjectProfile.ocGuaranteeAmountPln = guarantee;
@@ -211,6 +220,18 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
 
   const documents = mergeRequiredVerificationDocuments(userType, uploadedDocuments);
 
+  const queueVerificationState = resolveQueueVerificationState(
+    profile.is_verified as boolean | null,
+    (profile.verification_submitted_at as string | null) ?? null,
+  );
+  const adminDisplayStatus = resolveAdminUserStatus({
+    emailConfirmed,
+    verificationState:
+      verificationStatus.state === 'approved' && !profile.is_verified
+        ? queueVerificationState
+        : verificationStatus.state,
+  });
+
   return (
     <div className="space-y-6">
       <VerificationSubjectPanel
@@ -218,7 +239,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
         firstName={(profile.first_name as string) ?? ''}
         lastName={(profile.last_name as string) ?? ''}
         userType={userType}
-        verificationState={verificationStatus.state}
+        adminDisplayStatus={adminDisplayStatus}
         rejectionReason={verificationStatus.reason}
         email={email ?? company?.email ?? null}
         phone={(profile.phone as string | null) ?? company?.phone ?? null}

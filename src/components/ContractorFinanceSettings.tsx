@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Banknote, Edit2, X, Check } from 'lucide-react';
+import { Banknote, CheckCircle2, Edit2, Loader2, ShieldAlert, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getContractorAccountSettings,
@@ -10,6 +10,7 @@ import {
 } from '../lib/database/contractor-account';
 import { VAT_STATUS_OPTIONS } from '../lib/contractor/constants';
 import { formatIbanDisplay, isValidPolishIban, normalizeIbanInput } from '../lib/contractor/iban';
+import { verifyContractorBankAccountAction } from '../lib/mf-vat-whitelist/actions';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -20,20 +21,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { cn } from './ui/utils';
 
 interface ContractorFinanceSettingsProps {
   userId: string;
 }
+
+type WhitelistUiStatus = 'idle' | 'loading' | 'assigned' | 'not_assigned' | 'error';
 
 export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
-  const [iban, setIban] = React.useState('');
-  const [vatStatus, setVatStatus] = React.useState<string>('');
-  const [savedIban, setSavedIban] = React.useState('');
-  const [savedVatStatus, setSavedVatStatus] = React.useState<string>('');
+  const [iban, setIban] = useState('');
+  const [vatStatus, setVatStatus] = useState<string>('');
+  const [savedIban, setSavedIban] = useState('');
+  const [savedVatStatus, setSavedVatStatus] = useState<string>('');
+  const [savedWhitelistAssigned, setSavedWhitelistAssigned] = useState<boolean | null>(null);
+  const [savedWhitelistCheckedForDate, setSavedWhitelistCheckedForDate] = useState<string | null>(null);
+  const [savedWhitelistRequestId, setSavedWhitelistRequestId] = useState<string | null>(null);
+  const [whitelistStatus, setWhitelistStatus] = useState<WhitelistUiStatus>('idle');
+  const [whitelistMessage, setWhitelistMessage] = useState<string | null>(null);
+  const lastVerifiedIbanRef = useRef<string | null>(null);
+  const verifyAbortRef = useRef(0);
+
+  const applyWhitelistResult = useCallback(
+    (normalizedIban: string, assigned: boolean, checkedForDate: string, requestId: string | null) => {
+      lastVerifiedIbanRef.current = normalizedIban;
+      setSavedWhitelistAssigned(assigned);
+      setSavedWhitelistCheckedForDate(checkedForDate);
+      setSavedWhitelistRequestId(requestId);
+      setWhitelistStatus(assigned ? 'assigned' : 'not_assigned');
+      setWhitelistMessage(
+        assigned
+          ? 'Rachunek jest przypisany do NIP firmy na białej liście VAT'
+          : 'Rachunek nie jest przypisany do NIP firmy na białej liście VAT',
+      );
+    },
+    [],
+  );
+
+  const runWhitelistVerification = useCallback(
+    async (ibanValue: string, options?: { silent?: boolean }) => {
+      const normalized = normalizeIbanInput(ibanValue);
+      if (!normalized || !isValidPolishIban(normalized)) {
+        return;
+      }
+
+      if (lastVerifiedIbanRef.current === normalized) {
+        return;
+      }
+
+      const requestId = ++verifyAbortRef.current;
+      setWhitelistStatus('loading');
+      setWhitelistMessage(null);
+
+      const result = await verifyContractorBankAccountAction(normalized);
+
+      if (requestId !== verifyAbortRef.current) {
+        return;
+      }
+
+      if ('error' in result) {
+        setWhitelistStatus('error');
+        setWhitelistMessage(result.error);
+        if (!options?.silent) {
+          toast.error(result.error);
+        }
+        return;
+      }
+
+      applyWhitelistResult(
+        normalized,
+        result.data.assigned,
+        result.data.checkedForDate,
+        result.data.requestId,
+      );
+    },
+    [applyWhitelistResult],
+  );
 
   React.useEffect(() => {
     const load = async () => {
@@ -45,6 +112,19 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
         setVatStatus(vatValue);
         setSavedIban(ibanValue);
         setSavedVatStatus(vatValue);
+        setSavedWhitelistAssigned(settings.vatWhitelistAccountAssigned);
+        setSavedWhitelistCheckedForDate(settings.vatWhitelistCheckedForDate);
+        setSavedWhitelistRequestId(settings.vatWhitelistRequestId);
+
+        if (ibanValue && settings.vatWhitelistAccountAssigned !== null) {
+          lastVerifiedIbanRef.current = ibanValue;
+          setWhitelistStatus(settings.vatWhitelistAccountAssigned ? 'assigned' : 'not_assigned');
+          setWhitelistMessage(
+            settings.vatWhitelistAccountAssigned
+              ? 'Rachunek jest przypisany do NIP firmy na białej liście VAT'
+              : 'Rachunek nie jest przypisany do NIP firmy na białej liście VAT',
+          );
+        }
       } catch (error) {
         console.error('Error loading finance settings:', error);
         toast.error('Nie udało się załadować danych finansowych');
@@ -55,6 +135,24 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
     void load();
   }, [userId]);
 
+  const normalizedIban = normalizeIbanInput(iban);
+
+  useEffect(() => {
+    if (!isEditing || !isValidPolishIban(normalizedIban)) {
+      return;
+    }
+
+    if (lastVerifiedIbanRef.current === normalizedIban) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void runWhitelistVerification(normalizedIban, { silent: true });
+    }, 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedIban, isEditing, runWhitelistVerification]);
+
   const handleSave = async () => {
     const normalized = normalizeIbanInput(iban);
     if (normalized && !isValidPolishIban(normalized)) {
@@ -64,10 +162,31 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
 
     try {
       setIsSaving(true);
+
+      if (normalized) {
+        await runWhitelistVerification(normalized, { silent: true });
+      } else {
+        lastVerifiedIbanRef.current = null;
+        setWhitelistStatus('idle');
+        setWhitelistMessage(null);
+        setSavedWhitelistAssigned(null);
+        setSavedWhitelistCheckedForDate(null);
+        setSavedWhitelistRequestId(null);
+      }
+
       await upsertContractorAccountSettings(userId, {
         bankAccountIban: normalized || null,
         vatStatus: vatStatus === 'active_vat' || vatStatus === 'vat_exempt' ? vatStatus : null,
+        ...(normalized
+          ? {}
+          : {
+              vatWhitelistVerifiedAt: null,
+              vatWhitelistAccountAssigned: null,
+              vatWhitelistRequestId: null,
+              vatWhitelistCheckedForDate: null,
+            }),
       });
+
       setSavedIban(normalized);
       setSavedVatStatus(vatStatus);
       setIban(normalized);
@@ -83,13 +202,54 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
   };
 
   const handleCancel = () => {
+    verifyAbortRef.current += 1;
     setIban(savedIban);
     setVatStatus(savedVatStatus);
     setIsEditing(false);
+
+    if (savedIban && savedWhitelistAssigned !== null) {
+      lastVerifiedIbanRef.current = savedIban;
+      setWhitelistStatus(savedWhitelistAssigned ? 'assigned' : 'not_assigned');
+      setWhitelistMessage(
+        savedWhitelistAssigned
+          ? 'Rachunek jest przypisany do NIP firmy na białej liście VAT'
+          : 'Rachunek nie jest przypisany do NIP firmy na białej liście VAT',
+      );
+    } else {
+      lastVerifiedIbanRef.current = null;
+      setWhitelistStatus('idle');
+      setWhitelistMessage(null);
+    }
+  };
+
+  const handleIbanChange = (value: string) => {
+    const normalized = normalizeIbanInput(value);
+    setIban(normalized);
+    if (lastVerifiedIbanRef.current && lastVerifiedIbanRef.current !== normalized) {
+      lastVerifiedIbanRef.current = null;
+      setWhitelistStatus('idle');
+      setWhitelistMessage(null);
+    }
   };
 
   const vatLabel =
     VAT_STATUS_OPTIONS.find(o => o.value === savedVatStatus)?.label ?? '—';
+
+  const displayWhitelistStatus = isEditing ? whitelistStatus : savedWhitelistAssigned !== null
+    ? savedWhitelistAssigned
+      ? 'assigned'
+      : 'not_assigned'
+    : 'idle';
+
+  const displayWhitelistMessage = isEditing
+    ? whitelistMessage
+    : savedWhitelistAssigned !== null
+      ? savedWhitelistAssigned
+        ? 'Rachunek jest przypisany do NIP firmy na białej liście VAT'
+        : 'Rachunek nie jest przypisany do NIP firmy na białej liście VAT'
+      : null;
+
+  const displayCheckedForDate = savedWhitelistCheckedForDate;
 
   return (
     <div className="border rounded-lg p-4 bg-card">
@@ -106,25 +266,39 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
         <p className="text-sm text-muted-foreground">Ładowanie danych finansowych…</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="contractor-iban">Numer konta bankowego (IBAN)</Label>
             {isEditing ? (
               <>
-                <Input
-                  id="contractor-iban"
-                  value={formatIbanDisplay(iban)}
-                  onChange={e => setIban(normalizeIbanInput(e.target.value))}
-                  inputMode="numeric"
-                  placeholder="26 cyfr bez prefiksu PL"
-                  maxLength={32}
-                />
-                <p className="text-xs text-muted-foreground">Wprowadź 26 cyfr numeru rachunku (bez PL).</p>
+                <div className="relative">
+                  <Input
+                    id="contractor-iban"
+                    value={formatIbanDisplay(iban)}
+                    onChange={e => handleIbanChange(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="26 cyfr bez prefiksu PL"
+                    maxLength={32}
+                  />
+                  {whitelistStatus === 'loading' && (
+                    <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Po wpisaniu 26 cyfr konto zostanie automatycznie sprawdzone na białej liście VAT (MF).
+                </p>
               </>
             ) : (
               <p className="text-sm py-2 px-3 bg-muted rounded-md">
                 {savedIban ? formatIbanDisplay(savedIban) : '—'}
               </p>
             )}
+            <WhitelistStatusMessage
+              status={displayWhitelistStatus}
+              message={displayWhitelistMessage}
+              checkedForDate={displayCheckedForDate}
+              requestId={savedWhitelistRequestId}
+              showRequestId={!isEditing}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="contractor-vat-status">Status podatnika VAT</Label>
@@ -147,6 +321,51 @@ export function ContractorFinanceSettings({ userId }: ContractorFinanceSettingsP
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function WhitelistStatusMessage({
+  status,
+  message,
+  checkedForDate,
+  requestId,
+  showRequestId,
+}: {
+  status: WhitelistUiStatus;
+  message: string | null;
+  checkedForDate: string | null;
+  requestId: string | null;
+  showRequestId: boolean;
+}) {
+  if (status === 'idle' || !message) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-2 rounded-md border px-3 py-2 text-xs',
+        status === 'assigned' && 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700',
+        status === 'not_assigned' && 'border-amber-500/30 bg-amber-500/5 text-amber-800',
+        status === 'error' && 'border-destructive/30 bg-destructive/5 text-destructive',
+        status === 'loading' && 'border-border/60 bg-muted/40 text-muted-foreground',
+      )}
+    >
+      {status === 'assigned' ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+      ) : (
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+      )}
+      <div className="space-y-1">
+        <p>{message}</p>
+        {checkedForDate ? (
+          <p className="text-muted-foreground">Data weryfikacji w wykazie MF: {checkedForDate}</p>
+        ) : null}
+        {showRequestId && requestId ? (
+          <p className="text-muted-foreground">ID zapytania MF: {requestId}</p>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -186,7 +405,7 @@ function FinanceCardHeader({
             Anuluj
           </Button>
           <Button variant="default" size="sm" onClick={onSave} disabled={isSaving}>
-            <Check className="h-4 w-4 mr-2" />
+            <CheckCircle2 className="h-4 w-4 mr-2" />
             {isSaving ? 'Zapisywanie...' : 'Zapisz'}
           </Button>
         </div>

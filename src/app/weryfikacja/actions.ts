@@ -4,8 +4,6 @@ import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../lib/supabase/server';
 import type { Database, Json } from '../../types/database';
-import { STORAGE_BUCKETS } from '../../lib/storage/buckets';
-import { uploadObject } from '../../lib/storage/r2/operations';
 
 const DEFAULT_CONTRACTOR_NOTIFICATION_CHANNELS = {
   email: true,
@@ -98,33 +96,8 @@ async function fetchOcPolicyScanPathServer(
   return (data?.oc_policy_scan_path as string | null) ?? null;
 }
 
-const MAX_BYTES = 10 * 1024 * 1024;
-const ALLOWED_EXT = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp']);
-
-function validateDocFile(file: File): void {
-  if (file.size > MAX_BYTES) {
-    throw new Error(`Plik jest zbyt duży (max ${MAX_BYTES / (1024 * 1024)} MB)`);
-  }
-  const rawExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? '' : '';
-  const mime = file.type?.toLowerCase() ?? '';
-  const mimeOk =
-    mime === '' ||
-    mime === 'application/pdf' ||
-    mime.startsWith('image/jpeg') ||
-    mime.startsWith('image/png') ||
-    mime.startsWith('image/webp');
-  const extOk = ALLOWED_EXT.has(rawExt);
-  if (!extOk && !mimeOk) {
-    throw new Error('Dozwolone formaty: PDF, JPG, PNG, WEBP');
-  }
-}
-
-function safeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
-}
-
 export async function submitVerificationDocumentsAction(
-  formData: FormData
+  uploadedPaths: Record<string, string>,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const {
@@ -163,22 +136,12 @@ export async function submitVerificationDocumentsAction(
   const newPaths: Record<string, string> = {};
 
   for (const key of docKeys) {
-    const entry = formData.get(key);
-    if (entry instanceof File && entry.size > 0) {
-      validateDocFile(entry);
-      const ext = entry.name.includes('.') ? entry.name.split('.').pop()?.toLowerCase() ?? 'pdf' : 'pdf';
-      const safeExt = ALLOWED_EXT.has(ext) ? ext : 'pdf';
-      const path = `${user.id}/weryfikacja/${key}/${Date.now()}-${safeFilename(entry.name) || `upload.${safeExt}`}`;
-      try {
-        await uploadObject(STORAGE_BUCKETS.VERIFICATION_DOCUMENTS, path, entry);
-      } catch (upErr) {
-        return {
-          ok: false,
-          error: upErr instanceof Error ? upErr.message : 'Nie udało się przesłać pliku.',
-        };
-      }
-      newPaths[key] = path;
+    const path = uploadedPaths[key]?.trim();
+    if (!path) continue;
+    if (!path.startsWith(`${user.id}/weryfikacja/${key}/`)) {
+      return { ok: false, error: 'Nieprawidłowa ścieżka przesłanego dokumentu.' };
     }
+    newPaths[key] = path;
   }
 
   const merged = { ...existingPaths, ...newPaths };
@@ -249,6 +212,44 @@ export async function submitVerificationDocumentsAction(
     };
   }
 
+  if (userType === 'contractor' && !onlyOptionalUploads) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: contractorSettings, error: settingsError } = await (supabase as any)
+      .from('contractor_account_settings')
+      .select('oc_valid_until, oc_guarantee_amount')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (settingsError) {
+      return { ok: false, error: 'Nie udało się wczytać danych polisy OC.' };
+    }
+
+    const ocValidUntil =
+      typeof contractorSettings?.oc_valid_until === 'string'
+        ? contractorSettings.oc_valid_until.trim()
+        : '';
+    const guaranteeRaw = contractorSettings?.oc_guarantee_amount;
+    const guaranteeAmount =
+      typeof guaranteeRaw === 'number'
+        ? guaranteeRaw
+        : guaranteeRaw != null
+          ? Number(guaranteeRaw)
+          : NaN;
+
+    if (!ocValidUntil) {
+      return {
+        ok: false,
+        error: 'Uzupełnij datę ważności polisy OC przed wysłaniem dokumentów.',
+      };
+    }
+    if (!Number.isFinite(guaranteeAmount) || guaranteeAmount <= 0) {
+      return {
+        ok: false,
+        error: 'Uzupełnij sumę gwarancyjną polisy OC przed wysłaniem dokumentów.',
+      };
+    }
+  }
+
   const profileUpdate: { verification_document_paths: Json; verification_submitted_at?: string } = {
     verification_document_paths: merged as Json,
   };
@@ -266,7 +267,7 @@ export async function submitVerificationDocumentsAction(
   }
 
   // Mirror any newly uploaded insurance file into the contractor's OC
-  // settings so /konto?tab=contractor-data reflects the same state.
+  // settings so /konto?tab=twoje-dane reflects the same state.
   if (userType === 'contractor' && newPaths.insurance) {
     await syncInsuranceToContractorSettings(supabase, user.id, newPaths.insurance);
   }

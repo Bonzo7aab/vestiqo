@@ -15,6 +15,7 @@ import { needsVerificationAttention } from "../lib/verification/needs-verificati
 import { createClient } from "../lib/supabase/client";
 import { createJob, fetchJobById, updateManagerJob } from "../lib/database/jobs";
 import { fetchUserPrimaryCompany } from "../lib/database/companies";
+import { kontoCompanyDataHref } from "../lib/konto-tabs";
 import { fetchAllCategoriesWithSubcategories } from "../lib/database/categories";
 import type { CategoryWithSubcategories } from "../lib/database/categories";
 import { fetchCompanyBuildings } from "../lib/database/buildings";
@@ -510,7 +511,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
           <Card>
             <CardContent className="pt-6 text-center space-y-4 gap-2 flex flex-col justify-center">
               <p className="text-muted-foreground">Nie znaleziono firmy. Uzupełnij dane firmy w profilu.</p>
-              <Link href="/konto?tab=company">
+              <Link href={kontoCompanyDataHref('manager')}>
                 <Button>Dodaj dane firmy w profilu</Button>
               </Link>
               <Button variant="outline" onClick={onBack} className="mt-2">

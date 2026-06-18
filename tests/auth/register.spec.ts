@@ -1,6 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { createTestUser, deleteTestUser, clearAuthState, waitForAuthInitialized } from '../helpers/auth-helpers';
 import { ROUTES } from '../config/constants';
+
+/** Valid Polish NIP used when GUS lookup is available in the test environment. */
+const TEST_NIP = '5261040828';
+
+async function fillNipAndWaitForCompanyName(page: Page, nip = TEST_NIP): Promise<void> {
+  await page.fill('input[name="nip"]', nip);
+  await page.locator('input[name="nip"]').blur();
+  await expect(page.locator('[data-testid="register-company-name"]')).not.toHaveText(/^\s*$/, {
+    timeout: 15000,
+  });
+}
 
 test.describe('Registration Page', () => {
   // Track test data for cleanup
@@ -79,9 +90,8 @@ test.describe('Registration Page', () => {
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'Contractor');
     await page.fill('input[name="email"]', email);
-    await page.fill('input[name="phone"]', '+48123456789');
-    await page.fill('input[name="nip"]', '1234567890');
-    await page.fill('input[name="companyName"]', 'Test Contractor Sp. z o.o.');
+    await page.fill('input[name="phone"]', '+48 512 345 678');
+    await fillNipAndWaitForCompanyName(page);
     await page.fill('input[name="password"]', password);
     await page.fill('input[name="confirmPassword"]', password);
     await page.locator('form').getByRole('checkbox', { name: /akceptuję regulamin/i }).check();
@@ -92,7 +102,7 @@ test.describe('Registration Page', () => {
     await page.waitForURL(
       (url) =>
         url.pathname.includes('/rejestracja/wybor-weryfikacji') ||
-        (url.pathname.includes('/konto') && url.search.includes('tab=documents')) ||
+        (url.pathname.includes('/konto') && url.search.includes('tab=dokumenty')) ||
         url.pathname.includes('/logowanie'),
       { timeout: 15000 }
     );
@@ -102,7 +112,7 @@ test.describe('Registration Page', () => {
       await expect(page.getByText('Prześlij dokumenty teraz')).toBeVisible();
       await expect(page.getByText('Zrobię to później')).toBeVisible();
     } else if (page.url().includes('/konto')) {
-      expect(page.url()).toMatch(/tab=documents/);
+      expect(page.url()).toMatch(/tab=dokumenty/);
     }
 
     // Cleanup: delete the created user
@@ -120,15 +130,11 @@ test.describe('Registration Page', () => {
     await expect(page.locator('input[name="firstName"]')).toBeVisible({ timeout: 10000 });
 
     await page.locator('form').getByText('Zarządca').click();
-    await page.locator('form').getByText('Wspólnota').click();
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'Manager');
     await page.fill('input[name="email"]', email);
-    await page.fill('input[name="phone"]', '+48123456789');
-    await page.fill('input[name="nip"]', '1234567890');
-    await page.fill('input[name="companyName"]', 'Wspólnota Mieszkaniowa Test');
-    await page.fill('input[name="street"]', 'ul. Testowa 1');
-    await page.selectOption('select[name="district"]', 'Mokotów');
+    await page.fill('input[name="phone"]', '+48 512 345 678');
+    await fillNipAndWaitForCompanyName(page);
     await page.fill('input[name="password"]', password);
     await page.fill('input[name="confirmPassword"]', password);
     await page.locator('form').getByRole('checkbox', { name: /akceptuję regulamin/i }).check();
@@ -181,9 +187,8 @@ test.describe('Registration Page', () => {
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'User');
     await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="phone"]', '+48123456789');
-    await page.fill('input[name="nip"]', '1234567890');
-    await page.fill('input[name="companyName"]', 'Test Co');
+    await page.fill('input[name="phone"]', '+48 512 345 678');
+    await fillNipAndWaitForCompanyName(page);
     await page.fill('input[name="password"]', '12345');
     await page.fill('input[name="confirmPassword"]', '12345');
     await page.locator('form').getByRole('checkbox', { name: /akceptuję regulamin/i }).check();
@@ -216,9 +221,8 @@ test.describe('Registration Page', () => {
     await firstNameInput.fill('Test');
     await page.fill('input[name="lastName"]', 'User');
     await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="phone"]', '+48123456789');
-    await page.fill('input[name="nip"]', '1234567890');
-    await page.fill('input[name="companyName"]', 'Test Co');
+    await page.fill('input[name="phone"]', '+48 512 345 678');
+    await fillNipAndWaitForCompanyName(page);
     await page.fill('input[name="password"]', 'Password123!');
     await page.fill('input[name="confirmPassword"]', 'DifferentPassword123!');
     await page.locator('form').getByRole('checkbox', { name: /akceptuję regulamin/i }).check();

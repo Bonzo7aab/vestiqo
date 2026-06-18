@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { OnboardingFlow } from '../../components/OnboardingFlow';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '../../contexts/AuthContext';
+import { KONTO_DOKUMENTY_PATH } from '../../lib/konto-tabs';
 
 export default function Onboarding() {
   const router = useRouter();
@@ -27,9 +28,7 @@ export default function Onboarding() {
   return (
     <OnboardingFlow 
       onComplete={() => router.push('/')}
-      onVerificationClick={() =>
-        router.push('/konto?tab=documents')
-      }
+      onVerificationClick={() => router.push(KONTO_DOKUMENTY_PATH)}
     />
   );
 }

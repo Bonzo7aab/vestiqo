@@ -30,7 +30,7 @@ import {
   buildRejectReasonFromFields,
 } from './VerificationRejectReasonFields';
 import type { VerificationRejectionReasonId } from '../../lib/verification/status';
-import type { VerificationState } from '../../lib/verification/types';
+import type { AdminUserStatus } from '../../lib/verification/types';
 import {
   approveVerificationSubjectAction,
   rejectVerificationSubjectAction,
@@ -41,6 +41,7 @@ import type {
   DocumentReviewMap,
   VerificationDocumentEntry,
 } from '../../lib/database/admin-verification';
+import { AdminDeleteUserAccountButton } from './AdminDeleteUserAccountButton';
 import { formatIbanDisplay } from '../../lib/contractor/iban';
 
 interface VerificationSubjectPanelProps {
@@ -48,7 +49,7 @@ interface VerificationSubjectPanelProps {
   firstName: string;
   lastName: string;
   userType: string;
-  verificationState: VerificationState;
+  adminDisplayStatus: AdminUserStatus;
   rejectionReason: string | null;
   email: string | null;
   phone: string | null;
@@ -198,7 +199,7 @@ export function VerificationSubjectPanel({
   firstName,
   lastName,
   userType,
-  verificationState,
+  adminDisplayStatus,
   rejectionReason,
   email,
   phone,
@@ -316,7 +317,7 @@ export function VerificationSubjectPanel({
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{userTypeLabel(userType)}</Badge>
-                  <VerificationStatusBadge state={verificationState} />
+                  <VerificationStatusBadge state={adminDisplayStatus} />
                   <Link
                     href="#admin-notes"
                     className="inline-flex items-center gap-1 rounded-md border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
@@ -362,6 +363,12 @@ export function VerificationSubjectPanel({
                 <ShieldX className="h-4 w-4" />
                 Odrzuć
               </Button>
+              <AdminDeleteUserAccountButton
+                userId={subjectUserId}
+                userLabel={`${firstName} ${lastName}`.trim()}
+                variant="destructive"
+                size="default"
+              />
             </div>
           </div>
 
@@ -478,7 +485,7 @@ export function VerificationSubjectPanel({
               </Button>
             </div>
           </div>
-        ) : verificationState === 'rejected' && rejectionReason ? (
+        ) : rejectionReason ? (
           <div className="border-t border-destructive/20 bg-destructive/[0.04] px-5 py-2.5">
             <p className="text-xs font-medium text-destructive">Powód odrzucenia</p>
             <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-snug">

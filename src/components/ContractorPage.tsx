@@ -54,6 +54,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import PortfolioProjectForm from './PortfolioProjectForm';
 import ServicePricingManager from './ServicePricingManager';
 import { toast } from 'sonner';
+import { kontoCompanyDataHref } from '../lib/konto-tabs';
 import Image from 'next/image';
 
 interface ContractorPageProps {
@@ -1076,7 +1077,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
                     <Star className="w-4 h-4 mr-2" />
                     Zapisane zgłoszenia
                   </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/konto?tab=company')}>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => router.push(kontoCompanyDataHref('contractor'))}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edytuj profil firmy
                   </Button>

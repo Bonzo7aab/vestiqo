@@ -262,7 +262,7 @@ test.describe('Route Protection', () => {
       await page.goto(ROUTES.contractorDashboard);
       
       // Should not redirect to login - wait for page to load
-      // Note: contractor-dashboard redirects to /panel-wykonawcy/panel or /konto?tab=company if no company
+      // Note: contractor-dashboard redirects to /panel-wykonawcy/panel or /konto if no company
       // Accept either as long as we're not on login (both mean user is authenticated)
       try {
         await page.waitForURL((url) => 

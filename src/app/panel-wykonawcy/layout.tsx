@@ -7,6 +7,7 @@ import { isContractorServicesFeatureEnabled } from '../../lib/flagship/contracto
 import { isOrdersFeatureEnabled } from '../../lib/flagship/orders-feature';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
 import { ContractorDashboardNav } from '../../components/contractor-dashboard/ContractorDashboardNav';
+import { kontoCompanyDataHref } from '../../lib/konto-tabs';
 
 export default async function ContractorDashboardLayout({
   children,
@@ -24,7 +25,7 @@ export default async function ContractorDashboardLayout({
   const { data: company, error: companyError } = await fetchUserPrimaryCompany(supabase, user.id);
   
   if (companyError || !company) {
-    redirect('/konto?tab=company');
+    redirect(kontoCompanyDataHref('contractor'));
   }
 
   const verificationStatus = await getUserVerificationStatus(user.id, supabase);

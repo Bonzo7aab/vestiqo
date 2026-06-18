@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2,
   Map,
   Shield,
   Sparkles,
@@ -12,6 +11,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../ui/utils';
+import { BrandLogo } from '../BrandLogo';
+import { BRAND } from '../../lib/brand';
 
 export const authFieldClassName =
   'h-11 border-border/80 bg-background shadow-sm focus-visible:ring-primary/30';
@@ -79,12 +80,9 @@ function AuthSidePanel({
         <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-white/15"
+            className="inline-flex items-center rounded-2xl border border-white/15 bg-white px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-white/95"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
-              <Building2 className="h-5 w-5" strokeWidth={2.25} />
-            </span>
-            <span className="text-xl font-bold tracking-tight">Domio</span>
+            <BrandLogo variant="full" className="h-7 w-auto" />
           </Link>
 
           <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
@@ -180,11 +178,9 @@ export function AuthPageLayout({
             )}
           >
             <div className="mb-6 lg:hidden">
-              <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold text-primary">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Building2 className="h-4 w-4" />
-                </span>
-                Domio
+              <Link href="/" className="inline-flex items-center gap-2">
+                <BrandLogo variant="mark" className="h-8 w-8" />
+                <span className="text-xl font-bold tracking-tight text-primary">{BRAND.name}</span>
               </Link>
             </div>
 

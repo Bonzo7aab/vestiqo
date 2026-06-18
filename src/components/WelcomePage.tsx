@@ -155,7 +155,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex justify-center mb-4">
-            <div className="h-20 w-20 bg-blue-800 rounded-lg flex items-center justify-center">
+            <div className="h-20 w-20 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white text-3xl font-bold">D</span>
             </div>
           </div>
@@ -272,7 +272,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
         </Card>
 
         {/* Next Steps */}
-        <Card className="bg-blue-800 text-white border-0">
+        <Card className="bg-primary text-white border-0">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <h3 className="text-xl font-semibold">
@@ -291,7 +291,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
                 <Button 
                   variant="secondary" 
                   onClick={onGetStarted}
-                  className="bg-white text-blue-800 hover:bg-slate-100"
+                  className="bg-white text-primary hover:bg-slate-100"
                 >
                   Rozpocznij
                 </Button>

@@ -51,7 +51,7 @@ export const ROUTES = {
   postContest: '/dodaj-konkurs',
   tenderCreation: '/tworzenie-przetargu',
   managerKonkursy: '/panel-zarzadcy/konkursy',
-  contractorVerificationDocuments: '/konto?tab=documents',
+  contractorVerificationDocuments: '/konto?tab=dokumenty',
   adminVerification: '/administracja/weryfikacja',
 } as const;
 

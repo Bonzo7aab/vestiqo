@@ -68,8 +68,8 @@ export async function sendPushNotification(
     const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon || '/logo.svg',
-      badge: payload.badge || '/logo.svg',
+      icon: payload.icon || '/brand/vestiqo-mark.svg',
+      badge: payload.badge || '/brand/vestiqo-mark.svg',
       tag: payload.tag || 'default',
       data: {
         ...payload.data,

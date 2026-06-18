@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -11,9 +11,8 @@ import {
   Lock,
   Eye,
   EyeOff,
-  MapPin,
   Loader2,
-  ChevronRight,
+  CircleAlert,
   ClipboardList,
   FileCheck,
   UserCircle,
@@ -24,10 +23,19 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
 import { registerAction } from '../lib/auth/actions';
-import { WARSAW_DISTRICTS, DEFAULT_CITY } from '../lib/config/warsawDistricts';
+import { translateRegistrationErrorMessage } from '../lib/auth/errorMessages';
+import { lookupCompanyByNipAction } from '../lib/gus/actions';
+import { isValidNip, normalizeNip } from '../lib/gus/nip';
+import {
+  formatPolishPhoneDisplay,
+  isValidPolishPhone,
+  normalizePolishPhone,
+  POLISH_PHONE_INVALID_MESSAGE,
+} from '../lib/phone/polish-phone';
+import { isValidEmail, INVALID_EMAIL_MESSAGE } from '../lib/email/validate-email';
 import { useUserProfile } from '../contexts/AuthContext';
 import {
   registrationClosedMessage,
@@ -39,11 +47,14 @@ import {
   AuthPageLayout,
   authFieldClassName,
 } from './auth/AuthPageLayout';
+import { AuthFieldError } from './auth/AuthFieldError';
 import { cn } from './ui/utils';
 
 interface RegisterPageProps {
   registrationSettings: RegistrationSettings;
 }
+
+const MANAGER_ORGANIZATION_TYPE = 'wspólnota' as const;
 
 function RoleOption({
   id,
@@ -87,13 +98,18 @@ function RoleOption({
   );
 }
 
+const PASSWORD_MISMATCH_MESSAGE = 'Hasła nie są identyczne';
+
 export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const router = useRouter();
   const { refreshSession } = useUserProfile();
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const error = formError || searchParams?.get('error') || undefined;
+  const urlError = searchParams?.get('error');
+  const error =
+    formError ||
+    (urlError ? translateRegistrationErrorMessage(urlError) : undefined);
   const message = searchParams?.get('message') || undefined;
   const defaultUserTypeParam = searchParams?.get('userType') as 'contractor' | 'manager' | null;
 
@@ -106,11 +122,203 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   })();
 
   const [selectedUserType, setSelectedUserType] = useState<'contractor' | 'manager'>(resolvedDefaultType);
-  const [organizationType, setOrganizationType] = useState<'spółdzielnia' | 'wspólnota'>('wspólnota');
-  const [district, setDistrict] = useState<string>('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [nip, setNip] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [regon, setRegon] = useState('');
+  const [gusAddress, setGusAddress] = useState('');
+  const [gusCity, setGusCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [bankAccountIban, setBankAccountIban] = useState('');
+  const [vatStatus, setVatStatus] = useState('');
+  const [gusLookupStatus, setGusLookupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [gusLookupMessage, setGusLookupMessage] = useState<string | null>(null);
+  const lastLookedUpNipRef = useRef<string | null>(null);
+  const gusLookupAbortRef = useRef(0);
+
+  const clearGusDerivedFields = useCallback(() => {
+    setRegon('');
+    setGusAddress('');
+    setGusCity('');
+    setPostalCode('');
+    setBankAccountIban('');
+    setVatStatus('');
+    setCompanyName('');
+    lastLookedUpNipRef.current = null;
+  }, []);
+
+  const runGusLookup = useCallback(async (nipValue: string) => {
+    const normalized = normalizeNip(nipValue);
+
+    if (!isValidNip(normalized)) {
+      setGusLookupStatus('error');
+      setGusLookupMessage('Nieprawidłowy numer NIP');
+      return;
+    }
+
+    if (lastLookedUpNipRef.current === normalized) {
+      return;
+    }
+
+    const requestId = ++gusLookupAbortRef.current;
+    setGusLookupStatus('loading');
+    setGusLookupMessage(null);
+
+    const result = await lookupCompanyByNipAction(normalized);
+
+    if (requestId !== gusLookupAbortRef.current) {
+      return;
+    }
+
+    if ('error' in result) {
+      setGusLookupStatus('error');
+      setGusLookupMessage(result.error);
+      clearGusDerivedFields();
+      return;
+    }
+
+    lastLookedUpNipRef.current = normalized;
+    setCompanyName(result.data.name);
+    setRegon(result.data.regon);
+    setGusAddress(result.data.address ?? '');
+    setGusCity(result.data.city ?? '');
+    setPostalCode(result.data.postalCode ?? '');
+    setBankAccountIban(result.data.bankAccountIban ?? '');
+    setVatStatus(result.data.vatStatus ?? '');
+    setGusLookupStatus('success');
+    setGusLookupMessage(null);
+  }, [clearGusDerivedFields]);
+
+  const handleSelectUserType = (type: 'contractor' | 'manager') => {
+    setSelectedUserType(type);
+  };
+
+  const normalizedNip = normalizeNip(nip);
+  const gusNipValidationError =
+    normalizedNip.length >= 10 && !isValidNip(normalizedNip) ? 'Nieprawidłowy numer NIP' : null;
+
+  const phoneError = (() => {
+    if (!phoneTouched) {
+      return null;
+    }
+    if (!phone.trim()) {
+      return 'Telefon jest wymagany';
+    }
+    if (!isValidPolishPhone(phone)) {
+      return POLISH_PHONE_INVALID_MESSAGE;
+    }
+    return null;
+  })();
+
+  const emailError = (() => {
+    if (!emailTouched) {
+      return null;
+    }
+    if (!email.trim()) {
+      return 'Email jest wymagany';
+    }
+    if (!isValidEmail(email)) {
+      return INVALID_EMAIL_MESSAGE;
+    }
+    return null;
+  })();
+
+  const passwordMismatchError = (() => {
+    if (!confirmPasswordTouched) {
+      return null;
+    }
+    if (!confirmPassword.trim()) {
+      return null;
+    }
+    if (password !== confirmPassword) {
+      return PASSWORD_MISMATCH_MESSAGE;
+    }
+    return null;
+  })();
+
+  const fieldErrorClass = 'border-destructive focus-visible:ring-destructive/30';
+
+  useEffect(() => {
+    if (!isValidNip(normalizedNip) || lastLookedUpNipRef.current === normalizedNip) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void runGusLookup(normalizedNip);
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedNip, runGusLookup]);
+
+  const handleNipBlur = () => {
+    const normalized = normalizeNip(nip);
+    if (isValidNip(normalized) && lastLookedUpNipRef.current !== normalized) {
+      void runGusLookup(normalized);
+    }
+  };
+
+  const handleNipChange = (value: string) => {
+    setNip(value);
+    const normalized = normalizeNip(value);
+    if (lastLookedUpNipRef.current && lastLookedUpNipRef.current !== normalized) {
+      clearGusDerivedFields();
+      setGusLookupStatus('idle');
+      setGusLookupMessage(null);
+    }
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (formError) {
+      setFormError(null);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    setPhoneTouched(true);
+    if (isValidPolishPhone(phone)) {
+      setPhone(formatPolishPhoneDisplay(phone));
+    }
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (formError) {
+      setFormError(null);
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setEmailTouched(true);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (formError) {
+      setFormError(null);
+    }
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    if (formError) {
+      setFormError(null);
+    }
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    setConfirmPasswordTouched(true);
+  };
 
   const roleRegistrationClosed =
     (selectedUserType === 'contractor' && !registrationSettings.contractorOpen) ||
@@ -127,13 +335,44 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       return;
     }
 
+    if (!isValidNip(normalizedNip)) {
+      setFormError('Podaj prawidłowy numer NIP');
+      return;
+    }
+
+    if (!companyName.trim()) {
+      setFormError('Wpisz NIP i poczekaj na pobranie nazwy firmy');
+      return;
+    }
+
+    setPhoneTouched(true);
+    setEmailTouched(true);
+    setConfirmPasswordTouched(true);
+
+    if (!isValidPolishPhone(phone)) {
+      setFormError(POLISH_PHONE_INVALID_MESSAGE);
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setFormError(INVALID_EMAIL_MESSAGE);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setFormError(PASSWORD_MISMATCH_MESSAGE);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
+    formData.set('phone', normalizePolishPhone(phone));
+    formData.set('email', email.trim());
 
     startTransition(async () => {
       const result = await registerAction(formData);
 
       if (result && 'error' in result) {
-        setFormError(result.error);
+        setFormError(translateRegistrationErrorMessage(result.error));
         return;
       }
 
@@ -217,8 +456,16 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       }
     >
       {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
+        <Alert
+          variant="destructive"
+          className="mb-4 border-destructive bg-destructive/15 shadow-sm"
+          data-testid="register-error"
+        >
+          <CircleAlert className="h-5 w-5" />
+          <AlertTitle className="text-destructive">Nie udało się zarejestrować</AlertTitle>
+          <AlertDescription className="text-sm font-medium text-destructive">
+            {error}
+          </AlertDescription>
         </Alert>
       )}
       {message && (
@@ -248,7 +495,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                 id="register-manager"
                 checked={selectedUserType === 'manager'}
                 disabled={!registrationSettings.managerOpen}
-                onSelect={() => setSelectedUserType('manager')}
+                onSelect={() => handleSelectUserType('manager')}
                 icon={Building}
                 label="Zarządca"
               />
@@ -256,113 +503,62 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                 id="register-contractor"
                 checked={selectedUserType === 'contractor'}
                 disabled={!registrationSettings.contractorOpen}
-                onSelect={() => setSelectedUserType('contractor')}
+                onSelect={() => handleSelectUserType('contractor')}
                 icon={User}
                 label="Wykonawca"
               />
             </div>
           </AuthFormSection>
 
-          {selectedUserType === 'manager' && (
-            <AuthFormSection title="Typ organizacji">
-              <div className="grid grid-cols-2 gap-3">
-                {(['spółdzielnia', 'wspólnota'] as const).map(type => (
-                  <div key={type} className="relative">
-                    <input
-                      type="radio"
-                      name="organizationType"
-                      value={type}
-                      id={`org-${type}`}
-                      checked={organizationType === type}
-                      onChange={() => setOrganizationType(type)}
-                      className="peer sr-only"
-                    />
-                    <Label
-                      htmlFor={`org-${type}`}
-                      className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-border/60 p-3 text-sm font-medium transition-all hover:border-primary/40 peer-checked:border-primary peer-checked:bg-primary/5"
-                    >
-                      {type === 'spółdzielnia' ? 'Spółdzielnia' : 'Wspólnota'}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </AuthFormSection>
-          )}
-
           <AuthFormSection title="Firma">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nip">NIP</Label>
+            <div className="space-y-2">
+              <Label htmlFor="nip">NIP</Label>
+              <div className="relative">
                 <Input
                   id="nip"
                   name="nip"
+                  value={nip}
+                  onChange={e => handleNipChange(e.target.value)}
+                  onBlur={handleNipBlur}
                   placeholder="0000000000"
                   className={authFieldClassName}
                   required
                   disabled={isPending}
+                  inputMode="numeric"
+                  autoComplete="off"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Nazwa</Label>
-                <div className="relative">
-                  <Building className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="companyName"
-                    name="companyName"
-                    placeholder={
-                      selectedUserType === 'manager'
-                        ? 'np. Wspólnota Mieszkaniowa Osiedle Zielone'
-                        : 'np. Firma Budowlana ABC'
-                    }
-                    className={`pl-10 ${authFieldClassName}`}
-                    required
-                    disabled={isPending}
+              <div className="flex min-h-5 items-center gap-2">
+                {gusLookupStatus === 'loading' && (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                )}
+                {gusNipValidationError || (gusLookupStatus === 'error' && gusLookupMessage) ? (
+                  <AuthFieldError
+                    message={gusNipValidationError ?? gusLookupMessage}
+                    reserveSpace={false}
+                    className="min-h-5 flex-1 border-0 bg-transparent p-0"
                   />
-                </div>
+                ) : (
+                  <p
+                    className="min-h-5 text-sm leading-5 text-foreground"
+                    data-testid="register-company-name"
+                  >
+                    {companyName || '\u00a0'}
+                  </p>
+                )}
               </div>
             </div>
 
+            <input type="hidden" name="companyName" value={companyName} />
+            <input type="hidden" name="regon" value={regon} />
+            <input type="hidden" name="postalCode" value={postalCode} />
+            <input type="hidden" name="address" value={gusAddress} />
+            <input type="hidden" name="city" value={gusCity} />
             {selectedUserType === 'manager' && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="street">Ulica</Label>
-                  <div className="relative">
-                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="street"
-                      name="street"
-                      placeholder="ul. Przykładowa 1"
-                      className={`pl-10 ${authFieldClassName}`}
-                      required
-                      disabled={isPending}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="district">Dzielnica</Label>
-                  <select
-                    id="district"
-                    name="district"
-                    value={district}
-                    onChange={e => setDistrict(e.target.value)}
-                    required
-                    disabled={isPending}
-                    className={cn(
-                      'flex w-full rounded-md border border-border/80 bg-background px-3 py-2 text-sm shadow-sm',
-                      'h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
-                    )}
-                  >
-                    <option value="">Wybierz dzielnicę</option>
-                    {WARSAW_DISTRICTS.map(d => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <input type="hidden" name="city" value={DEFAULT_CITY} />
-              </div>
+              <input type="hidden" name="organizationType" value={MANAGER_ORGANIZATION_TYPE} />
             )}
+            <input type="hidden" name="bankAccountIban" value={bankAccountIban} />
+            <input type="hidden" name="vatStatus" value={vatStatus} />
           </AuthFormSection>
 
           <AuthFormSection title="Osoba kontaktowa">
@@ -399,13 +595,20 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="+48 123 456 789"
-                    className={`pl-10 ${authFieldClassName}`}
+                    value={phone}
+                    onChange={e => handlePhoneChange(e.target.value)}
+                    onBlur={handlePhoneBlur}
+                    placeholder="+48 512 345 678"
+                    className={cn('pl-10', authFieldClassName, phoneError && fieldErrorClass)}
                     required
                     disabled={isPending}
                     autoComplete="tel"
+                    inputMode="tel"
+                    aria-invalid={phoneError ? true : undefined}
+                    aria-describedby={phoneError ? 'phone-error' : undefined}
                   />
                 </div>
+                <AuthFieldError message={phoneError} id="phone-error" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -415,13 +618,19 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     id="email"
                     name="email"
                     type="email"
+                    value={email}
+                    onChange={e => handleEmailChange(e.target.value)}
+                    onBlur={handleEmailBlur}
                     placeholder="twoj@email.pl"
-                    className={`pl-10 ${authFieldClassName}`}
+                    className={cn('pl-10', authFieldClassName, emailError && fieldErrorClass)}
                     required
                     disabled={isPending}
                     autoComplete="email"
+                    aria-invalid={emailError ? true : undefined}
+                    aria-describedby={emailError ? 'email-error' : undefined}
                   />
                 </div>
+                <AuthFieldError message={emailError} id="email-error" />
               </div>
             </div>
           </AuthFormSection>
@@ -436,8 +645,10 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => handlePasswordChange(e.target.value)}
                     placeholder="Co najmniej 6 znaków"
-                    className={`pl-10 pr-10 ${authFieldClassName}`}
+                    className={cn('pl-10 pr-10', authFieldClassName)}
                     required
                     disabled={isPending}
                     autoComplete="new-password"
@@ -461,11 +672,20 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => handleConfirmPasswordChange(e.target.value)}
+                    onBlur={handleConfirmPasswordBlur}
                     placeholder="Powtórz hasło"
-                    className={`pl-10 pr-10 ${authFieldClassName}`}
+                    className={cn(
+                      'pl-10 pr-10',
+                      authFieldClassName,
+                      passwordMismatchError && fieldErrorClass,
+                    )}
                     required
                     disabled={isPending}
                     autoComplete="new-password"
+                    aria-invalid={passwordMismatchError ? true : undefined}
+                    aria-describedby={passwordMismatchError ? 'confirm-password-error' : undefined}
                   />
                   <button
                     type="button"
@@ -481,6 +701,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     )}
                   </button>
                 </div>
+                <AuthFieldError message={passwordMismatchError} id="confirm-password-error" />
               </div>
             </div>
           </AuthFormSection>
@@ -515,12 +736,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {selectedUserType === 'contractor' ? 'Tworzenie konta...' : 'Rejestracja...'}
-              </>
-            ) : selectedUserType === 'contractor' ? (
-              <>
-                Dalej
-                <ChevronRight className="ml-2 h-4 w-4" />
+                Rejestracja...
               </>
             ) : (
               'Zarejestruj się'

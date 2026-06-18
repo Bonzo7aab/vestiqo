@@ -16,6 +16,10 @@ import { Badge } from '../ui/badge';
 import type { ContestInfo, Job } from '../../types/job';
 import { selectionCriteriaTotalWeight } from '../../types/tender-contest';
 import { ContestQuestionsTab } from './ContestQuestionsTab';
+import {
+  getCategoryDisplayName,
+  getSubcategoryDisplayName,
+} from '../../lib/config/categoryConfig';
 
 interface TenderContestDetailTabsProps {
   job: Job & { contestInfo: ContestInfo };
@@ -45,8 +49,14 @@ export function TenderContestDetailTabs({
   onQuestionsCountChange,
 }: TenderContestDetailTabsProps): React.ReactElement {
   const { contestInfo } = job;
-  const categoryName =
-    typeof job.category === 'string' ? job.category : job.category?.name ?? 'Inne';
+  const categoryName = getCategoryDisplayName({
+    slug: typeof job.category === 'object' ? job.category?.slug : undefined,
+    name: typeof job.category === 'string' ? job.category : job.category?.name,
+  });
+  const subcategoryName = getSubcategoryDisplayName({
+    name: job.subcategory ?? undefined,
+    categorySlug: typeof job.category === 'object' ? job.category?.slug : undefined,
+  });
   const criteriaWeightSum = selectionCriteriaTotalWeight(contestInfo.selectionCriteria.items);
 
   return (
@@ -65,7 +75,7 @@ export function TenderContestDetailTabs({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailRow label="Kategoria" value={categoryName} />
                 {job.subcategory ? (
-                  <DetailRow label="Podkategoria" value={job.subcategory} />
+                  <DetailRow label="Podkategoria" value={subcategoryName ?? job.subcategory} />
                 ) : null}
                 {contestInfo.buildingName ? (
                   <DetailRow label="Nieruchomość" value={contestInfo.buildingName} />

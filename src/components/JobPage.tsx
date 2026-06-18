@@ -33,6 +33,7 @@ import {
   readBookmarkCountOverrides,
 } from '../utils/bookmarkCountOverrides';
 import { toast } from 'sonner';
+import { kontoCompanyDataHref } from '../lib/konto-tabs';
 import { getJobById, getTenderById } from '../lib/data';
 import { incrementJobViews, incrementTenderViews, createJobApplication, createTenderBid, type JobWithCompany, type TenderWithCompany } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
@@ -52,6 +53,10 @@ import { ManagerJobStatusSelect } from './manager-dashboard/ManagerJobStatusSele
 import { canManagerEditJobFields, getJobWorkflowStatusLabel } from '../lib/job-workflow-status';
 import { getContestWorkflowStatusLabel } from '../lib/tender-workflow-status';
 import { formatContestLocation } from '../lib/contest-display';
+import {
+  getCategoryDisplayName,
+  getSubcategoryDisplayName,
+} from '../lib/config/categoryConfig';
 import { ContestStatusBadge } from './manager-dashboard/ContestStatusBadge';
 import { VerificationRequiredApplyDialog } from './VerificationRequiredApplyDialog';
 import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
@@ -1198,11 +1203,17 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs md:text-sm">
-                        {typeof job.category === 'string' ? job.category : job.category?.name || 'Inne'}
+                        {getCategoryDisplayName({
+                          slug: typeof job.category === 'object' ? job.category?.slug : undefined,
+                          name: typeof job.category === 'string' ? job.category : job.category?.name,
+                        })}
                       </Badge>
                       {job.subcategory ? (
                         <Badge variant="secondary" className="shrink-0 text-[10px] sm:text-xs md:text-sm">
-                          {job.subcategory}
+                          {getSubcategoryDisplayName({
+                            name: job.subcategory,
+                            categorySlug: typeof job.category === 'object' ? job.category?.slug : undefined,
+                          }) ?? job.subcategory}
                         </Badge>
                       ) : null}
                     </div>
@@ -1768,7 +1779,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                     className={
                       hasExistingBid && job.postType === 'contest'
                         ? 'w-full'
-                        : 'w-full bg-blue-800 hover:bg-blue-900 text-white'
+                        : 'w-full'
                     }
                     size="lg"
                     isLoggedIn={Boolean(user)}
@@ -1966,7 +1977,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
             <Button
               onClick={() => {
                 setShowCompanyRequiredDialog(false);
-                router.push('/konto?tab=company');
+                router.push(kontoCompanyDataHref('contractor'));
               }}
               className="bg-blue-600 hover:bg-blue-700"
             >

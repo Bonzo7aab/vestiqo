@@ -14,9 +14,14 @@ import { createClient } from '../lib/supabase/client';
 import { fetchUserPrimaryCompany, upsertUserCompany } from '../lib/database/companies';
 import { BuildingManagement } from './BuildingManagement';
 import { cn } from './ui/utils';
+import { GusNipStatusHint } from './gus/GusNipStatusHint';
+import { useGusNipLookup } from '../lib/gus/use-gus-nip-lookup';
+import type { CompanyLookupResult } from '../lib/gus/types';
 
 interface CompanyManagementFormProps {
   user: AuthUser;
+  /** When true, only show building management (company data lives in ProfileForm). */
+  buildingsOnly?: boolean;
 }
 
 const MANAGER_COMPANY_TYPES = [
@@ -34,7 +39,7 @@ const CONTRACTOR_COMPANY_TYPES = [
   { value: 'service_provider', label: 'Usługodawca' },
 ];
 
-export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
+export function CompanyManagementForm({ user, buildingsOnly = false }: CompanyManagementFormProps) {
   const isManager = user.userType === 'manager';
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -67,6 +72,34 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
   });
 
   const [originalCompanyData, setOriginalCompanyData] = useState(companyData);
+
+  const applyGusCompanyData = useCallback((data: CompanyLookupResult) => {
+    setCompanyData(prev => ({
+      ...prev,
+      name: data.name,
+      regon: data.regon,
+      address: data.address ?? prev.address,
+      city: data.city ?? prev.city,
+      postal_code: data.postalCode ?? prev.postal_code,
+    }));
+    if (fieldErrors.name) {
+      setFieldErrors(prev => ({ ...prev, name: false }));
+    }
+    if (fieldErrors.regon) {
+      setFieldErrors(prev => ({ ...prev, regon: false }));
+    }
+  }, [fieldErrors.name, fieldErrors.regon]);
+
+  const clearGusDerivedFields = useCallback(() => {
+    setCompanyData(prev => ({ ...prev, regon: '' }));
+  }, []);
+
+  const gusLookup = useGusNipLookup({
+    enabled: isEditing,
+    nip: companyData.nip,
+    onApply: applyGusCompanyData,
+    onClearDerived: clearGusDerivedFields,
+  });
 
   // Fetch existing company on mount and when user changes
   const loadCompany = useCallback(async () => {
@@ -285,6 +318,7 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
       } else {
         setSuccess('Dane firmy zostały zapisane pomyślnie');
         setIsEditing(false);
+        gusLookup.resetLookupState();
         // Refetch company data from database to ensure we have the latest data
         await loadCompany();
         setTimeout(() => setSuccess(''), 3000);
@@ -298,6 +332,7 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
 
   const handleCancel = () => {
     setCompanyData(originalCompanyData);
+    gusLookup.resetLookupState();
     setIsEditing(false);
     setError('');
     setFieldErrors({});
@@ -364,8 +399,34 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
       <div className="border rounded-lg p-4 bg-card">
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <p className="ml-2 text-sm text-muted-foreground">Ładowanie danych firmy...</p>
+          <p className="ml-2 text-sm text-muted-foreground">
+            {buildingsOnly ? 'Ładowanie nieruchomości...' : 'Ładowanie danych firmy...'}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  if (buildingsOnly) {
+    return (
+      <div className="space-y-4" id="nieruchomosci">
+        {hasCompany && companyId ? (
+          <BuildingManagement companyId={companyId} />
+        ) : (
+          <div className="border rounded-lg p-4 bg-card">
+            <div className="flex items-center gap-2 mb-2">
+              <Building className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
+            </div>
+            <div className="text-center py-6">
+              <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">
+                Dane firmy z rejestracji są widoczne powyżej. Nieruchomości możesz dodać po
+                utworzeniu konta.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -550,14 +611,32 @@ export function CompanyManagementForm({ user }: CompanyManagementFormProps) {
                   </Label>
                   {isEditing ? (
                     <>
-                      <Input
-                        id="companyNip"
-                        value={companyData.nip}
-                        onChange={(e) => handleCompanyChange('nip', e.target.value)}
-                        placeholder="1234567890"
-                        type="number"
-                        required
-                        className={cn(fieldErrors.nip ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '', 'placeholder:text-muted-foreground/60 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none')}
+                      <div className="relative">
+                        <Input
+                          id="companyNip"
+                          value={companyData.nip}
+                          onChange={e =>
+                            gusLookup.handleNipChange(e.target.value, value =>
+                              handleCompanyChange('nip', value),
+                            )
+                          }
+                          onBlur={gusLookup.handleNipBlur}
+                          placeholder="1234567890"
+                          inputMode="numeric"
+                          required
+                          className={cn(
+                            fieldErrors.nip ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '',
+                            'placeholder:text-muted-foreground/60',
+                          )}
+                        />
+                        {gusLookup.isLoading ? (
+                          <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                        ) : null}
+                      </div>
+                      <GusNipStatusHint
+                        status={gusLookup.status}
+                        validationError={gusLookup.validationError}
+                        message={gusLookup.message}
                       />
                       {fieldErrors.nip && (
                         <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">

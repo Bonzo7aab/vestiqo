@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Alert, AlertDescription } from './ui/alert';
 import { useUserProfile } from '../contexts/AuthContext';
 import { requestPasswordResetEmailAction } from '../lib/auth/actions';
+import { BrandLogo } from './BrandLogo';
 
 interface ForgotPasswordPageProps {
   onBack: () => void;
@@ -73,12 +74,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
           {/* Logo and title */}
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/logo.svg" 
-                alt="Urbi.eu Logo" 
-                className="h-16 w-auto"
-              />
+              <BrandLogo variant="full" className="h-16 w-auto" />
             </div>
           </div>
 
@@ -90,7 +86,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
               </div>
               <CardTitle className="text-2xl">Email wysłany!</CardTitle>
               <CardDescription>
-                Jeśli konto o podanym adresie email istnieje, wyślemy na nie instrukcje resetowania hasła.
+                Jeśli konto o podanym adresie email istnieje, wyślemy na nie nowe hasło.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -99,7 +95,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
                 <AlertDescription>
                   <strong>Sprawdź swoją skrzynkę email</strong>
                   <br />
-                  Link do resetowania hasła został wysłany na adres: <strong>{email}</strong>
+                  Nowe hasło zostało wysłane na adres: <strong>{email}</strong>
                 </AlertDescription>
               </Alert>
 
@@ -108,6 +104,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Sprawdź folder spam/junk</li>
                   <li>Upewnij się, że adres email jest prawidłowy</li>
+                  <li>Zaloguj się nowym hasłem i zmień je w ustawieniach konta</li>
                   <li>Spróbuj ponownie za kilka minut</li>
                 </ul>
               </div>
@@ -144,12 +141,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
         {/* Logo and title */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/logo.svg" 
-              alt="Urbi.eu Logo" 
-              className="h-16 w-auto"
-            />
+            <BrandLogo variant="full" className="h-16 w-auto" />
           </div>
           <p className="text-muted-foreground">
             Resetowanie hasła
@@ -161,7 +153,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">Zapomniałeś hasła?</CardTitle>
             <CardDescription>
-              Wprowadź swój adres email, a wyślemy Ci instrukcje resetowania hasła
+              Wprowadź swój adres email, a wyślemy Ci nowe hasło
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,7 +194,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
                 ) : (
                   <>
                     <Mail className="h-4 w-4 mr-2" />
-                    Wyślij instrukcje
+                    Wyślij nowe hasło
                   </>
                 )}
               </Button>

@@ -25,16 +25,20 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Domio - Platforma dla Zarządców i Wykonawców',
+  title: 'Vestiqo - Platforma dla Zarządców i Wykonawców',
   description: 'Platforma łącząca zarządców nieruchomości z wykwalifikowanymi wykonawcami',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
     type: 'website',
     locale: 'pl_PL',
     url: '/',
-    siteName: 'Domio',
-    title: 'Domio - Platforma dla Zarządców i Wykonawców',
+    siteName: 'Vestiqo',
+    title: 'Vestiqo - Platforma dla Zarządców i Wykonawców',
     description: 'Platforma łącząca zarządców nieruchomości z wykwalifikowanymi wykonawcami',
+  },
+  icons: {
+    icon: [{ url: '/brand/vestiqo-mark.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/brand/vestiqo-mark.svg' }],
   },
   robots: {
     index: true,
@@ -73,7 +77,7 @@ export default function RootLayout({
                 <JobsProvider>
                   <LayoutProvider>
                     <HeaderWithSession />
-                    <main className="min-h-[calc(100vh-10rem)] pb-20 lg:pb-0">
+                    <main className="min-h-[calc(100vh-12rem)] pb-20 lg:pb-0">
                       {children}
                     </main>
                     <MobileMenuDock />

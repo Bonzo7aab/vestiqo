@@ -13,6 +13,7 @@ import {
   getContestSubmissionDeadline,
   resolveContestStatus,
 } from '../lib/contest-display';
+import { formatContestCategoryLine } from '../lib/config/categoryConfig';
 
 interface JobCardProps {
   job: Partial<Job> & {
@@ -85,9 +86,13 @@ const JobCard = React.memo(function JobCard({
   const isTender = useMemo(() => job.postType === 'contest', [job.postType]);
   const contestStatus = useMemo(() => resolveContestStatus(job), [job]);
   const submissionDeadline = useMemo(() => getContestSubmissionDeadline(job), [job]);
-  const categoryLabel = useMemo(
-    () => (typeof job.category === 'string' ? job.category : job.category?.name || job.type),
-    [job.category, job.type],
+  const contestCategoryLine = useMemo(
+    () =>
+      formatContestCategoryLine({
+        category: job.category,
+        subcategory: job.subcategory,
+      }),
+    [job.category, job.subcategory],
   );
 
   // Calculate days remaining for deadline
@@ -134,7 +139,7 @@ const JobCard = React.memo(function JobCard({
         job={job}
         contestStatus={contestStatus}
         submissionDeadline={submissionDeadline}
-        categoryLabel={categoryLabel}
+        contestCategoryLine={contestCategoryLine}
         deadlineDaysRemaining={deadlineDaysRemaining}
         isEndingSoon={isEndingSoon}
         isExpired={isExpired}

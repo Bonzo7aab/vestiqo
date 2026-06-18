@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   User,
@@ -19,6 +19,7 @@ import { HeaderJobSearch } from './HeaderJobSearch';
 import { Button } from './ui/button';
 import { UnifiedNotifications } from './UnifiedNotifications';
 import { useUserProfile } from '../contexts/AuthContext';
+import { createClient } from '../lib/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,25 +42,32 @@ import { useNavigationWithLoading } from '../hooks/useNavigationWithLoading';
 import { usePathname } from 'next/navigation';
 import { useLayoutContext } from './ConditionalFooter';
 import {
+  mergeAuthUsersForDisplay,
   needsVerificationAttention,
+  verificationAttentionAriaLabel,
   verificationMenuLabel,
 } from '../lib/verification/needs-verification-attention';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../lib/verification/documents-route';
+import { BrandLogo } from './BrandLogo';
 
 interface HeaderProps {
   initialUser?: AuthUser | null;
-  /** Set server-side from Flagship `new-tender-system` flag. Defaults to Domio. */
-  brandTitle?: string;
   /** Set server-side from Flagship `orders` flag. Defaults to hidden. */
   showOrders?: boolean;
 }
 
-export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }: HeaderProps) {
+export function Header({
+  initialUser,
+  showOrders = false,
+}: HeaderProps) {
   const router = useNavigationWithLoading();
   const pathname = usePathname();
   const { setIsMapExpanded } = useLayoutContext();
   const { user: contextUser, session, isAuthenticated: contextIsAuthenticated, logout, isLoading } = useUserProfile();
   const [isMounted, setIsMounted] = useState(false);
+  const [liveVerificationSubmittedAt, setLiveVerificationSubmittedAt] = useState<
+    string | null | undefined
+  >(undefined);
 
   // Ensure consistent hydration
   useEffect(() => {
@@ -74,19 +82,79 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
     ? contextIsAuthenticated
     : !!(initialUser || contextIsAuthenticated)
 
-  // Determine current user for display:
-  // Priority: contextUser > initialUser > temporary user from session
-  // This ensures we show user info immediately after login, even if profile is still loading
-  const currentUser = contextUser || initialUser || 
-    (session?.user ? {
-      id: session.user.id,
-      email: session.user.email || '',
-      firstName: session.user.user_metadata?.first_name || session.user.email?.split('@')[0] || 'User',
-      lastName: session.user.user_metadata?.last_name || '',
-      userType: session.user.user_metadata?.user_type || 'contractor',
-    } as AuthUser : null)
+  // Merge client + server profile so verification_submitted_at from SSR is kept in the menu label.
+  const currentUser = useMemo(() => {
+    const sessionFallback = session?.user
+      ? ({
+          id: session.user.id,
+          email: session.user.email || '',
+          firstName:
+            session.user.user_metadata?.first_name ||
+            session.user.email?.split('@')[0] ||
+            'User',
+          lastName: session.user.user_metadata?.last_name || '',
+          userType: session.user.user_metadata?.user_type || 'contractor',
+          isVerified: false,
+          verificationSubmittedAt: null,
+          profileCompleted: false,
+          onboardingCompleted: false,
+        } as AuthUser)
+      : null;
 
-  const showVerificationAttention = needsVerificationAttention(currentUser)
+    return mergeAuthUsersForDisplay(contextUser, initialUser ?? null, sessionFallback);
+  }, [contextUser, initialUser, session]);
+
+  const shouldFetchVerificationSubmittedAt =
+    isMounted &&
+    Boolean(currentUser?.id) &&
+    currentUser?.userType === 'contractor' &&
+    !currentUser.isVerified;
+
+  useEffect(() => {
+    if (!shouldFetchVerificationSubmittedAt || !currentUser?.id) {
+      return;
+    }
+
+    let cancelled = false;
+    const supabase = createClient();
+
+    void supabase
+      .from('user_profiles')
+      .select('verification_submitted_at')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || error) {
+          return;
+        }
+        setLiveVerificationSubmittedAt(data?.verification_submitted_at ?? null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    shouldFetchVerificationSubmittedAt,
+    currentUser?.id,
+    pathname,
+  ]);
+
+  const userForVerificationUi = useMemo(() => {
+    if (!currentUser) {
+      return null;
+    }
+    if (!shouldFetchVerificationSubmittedAt || liveVerificationSubmittedAt === undefined) {
+      return currentUser;
+    }
+    return {
+      ...currentUser,
+      verificationSubmittedAt:
+        liveVerificationSubmittedAt ?? currentUser.verificationSubmittedAt ?? null,
+    };
+  }, [currentUser, liveVerificationSubmittedAt, shouldFetchVerificationSubmittedAt]);
+
+  const showVerificationAttention = needsVerificationAttention(currentUser);
+  const verificationAttentionLabel = verificationAttentionAriaLabel(userForVerificationUi);
   const isAdmin = currentUser?.platformRole === 'platform_admin'
   const showFavoritesNav =
     !currentUser ||
@@ -189,7 +257,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
         </AvatarFallback>
       </Avatar>
       {showVerificationAttention && (
-        <span className="absolute -top-1 -right-1" aria-label="Wymagana weryfikacja">
+        <span className="absolute -top-1 -right-1" aria-label={verificationAttentionLabel}>
           <VerificationAttentionIcon className="h-4 w-4 fill-amber-50" />
         </span>
       )}
@@ -209,9 +277,10 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
         <div className="flex items-center justify-between h-16">
           {/* 1. Logo Section - Left */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold cursor-pointer" style={{ color: '#1e40af' }} onClick={handleHomeClick}>
-              {brandTitle}
-            </h1>
+            <BrandLogo
+              variant="full"
+              onClick={handleHomeClick}
+            />
           </div>
 
           {/* 2. Center - Search (hidden on mobile) */}
@@ -227,7 +296,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
                   variant="default"
                   size="sm"
                   onClick={handleAdminPanelClick}
-                  className="shrink-0 bg-blue-800 hover:bg-blue-900"
+                  className="shrink-0"
                 >
                   ADMIN
                 </Button>
@@ -237,7 +306,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
                     variant="default"
                     size="sm"
                     onClick={handleCreateContestClick}
-                    className="shrink-0 bg-blue-800 hover:bg-blue-900"
+                    className="shrink-0"
                   >
                     Utwórz konkurs
                   </Button>
@@ -390,7 +459,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
                                 onClick={handleVerificationClick}
                               >
                                 <VerificationAttentionIcon className="mr-2 h-4 w-4" />
-                                <span>{verificationMenuLabel(currentUser)}</span>
+                                <span>{verificationMenuLabel(userForVerificationUi)}</span>
                               </Button>
                             )}
                             {showOrders ? (
@@ -577,7 +646,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
                         {showVerificationAttention && (
                           <DropdownMenuItem onClick={handleVerificationClick}>
                             <VerificationAttentionIcon className="mr-2 h-4 w-4" />
-                            <span>{verificationMenuLabel(currentUser)}</span>
+                            <span>{verificationMenuLabel(userForVerificationUi)}</span>
                           </DropdownMenuItem>
                         )}
                         {showOrders ? (
@@ -668,12 +737,12 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
             ) : (
               <>
                 <div className="md:hidden flex items-center space-x-2">
-                  <Button variant="default" size="sm" onClick={handleCreateContestClick} className="shrink-0 bg-blue-800 hover:bg-blue-900">
+                  <Button variant="default" size="sm" onClick={handleCreateContestClick} className="shrink-0">
                     Utwórz konkurs
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="default" size="sm" className="text-sm bg-blue-800 hover:bg-blue-900 text-white">
+                      <Button variant="default" size="sm" className="text-sm">
                         Zaloguj się
                         <ChevronDown className="h-4 w-4 ml-1" />
                       </Button>
@@ -693,7 +762,7 @@ export function Header({ initialUser, brandTitle = 'Domio', showOrders = false }
                 <div className="hidden md:block">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="default" size="sm" className="text-sm bg-blue-800 hover:bg-blue-900 text-white">
+                      <Button variant="default" size="sm" className="text-sm">
                         Zaloguj się
                         <ChevronDown className="h-4 w-4 ml-1" />
                       </Button>

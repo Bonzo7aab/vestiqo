@@ -11,7 +11,7 @@ import { createClient } from '../lib/supabase/client'
 import { requestPasswordResetEmailAction } from '../lib/auth/actions'
 
 interface PasswordFormProps {
-  /** Logged-in user email (e.g. from account page) — required for „Zmień hasło” and reset link. */
+  /** Logged-in user email (e.g. from account page) — required for „Zmień hasło” and reset email. */
   accountEmail?: string
 }
 
@@ -123,7 +123,7 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
         setError(result.error)
         return
       }
-      setSuccess('Wysłano link resetujący na Twój adres email. Sprawdź skrzynkę (również folder spam).')
+      setSuccess('Wysłano nowe hasło na Twój adres email. Sprawdź skrzynkę (również folder spam).')
       setTimeout(() => setSuccess(''), 8000)
     } catch {
       setError('Nie udało się wysłać wiadomości resetującej')
@@ -157,11 +157,11 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
             <h4 className="font-medium">Reset hasła emailem</h4>
           </div>
           <Button variant="outline" size="sm" onClick={handleSendResetEmail} disabled={resetSending || !accountEmail}>
-            {resetSending ? 'Wysyłanie…' : 'Wyślij link resetujący'}
+            {resetSending ? 'Wysyłanie…' : 'Wyślij nowe hasło'}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Otrzymasz wiadomość z linkiem. Po kliknięciu ustawisz nowe hasło na bezpiecznej stronie.
+          Otrzymasz wiadomość z nowym, tymczasowym hasłem. Po zalogowaniu zmień je w ustawieniach konta.
         </p>
       </div>
 
@@ -193,7 +193,7 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
         {!isEditingPassword ? (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Znasz obecne hasło? Użyj „Zmień hasło”. W przeciwnym razie wyślij link resetujący powyżej.
+              Znasz obecne hasło? Użyj „Zmień hasło”. W przeciwnym razie wyślij nowe hasło emailem powyżej.
             </p>
             <div className="flex items-center py-2 px-3 bg-muted rounded-md">
               <Lock className="h-4 w-4 mr-2 text-muted-foreground" />

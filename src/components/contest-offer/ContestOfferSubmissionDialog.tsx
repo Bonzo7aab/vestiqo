@@ -552,7 +552,7 @@ export function ContestOfferSubmissionDialog({
             {currentStep === totalSteps && (
               <Button
                 type="button"
-                className="bg-blue-800 hover:bg-blue-900"
+                className="bg-primary hover:bg-primary/90"
                 disabled={isSubmitting || isLoading}
                 onClick={() => void handleSubmit()}
               >

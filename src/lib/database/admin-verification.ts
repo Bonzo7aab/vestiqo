@@ -14,6 +14,8 @@ export interface VerificationQueueRowBase {
   updatedAt: string | null;
   documentsSubmitted: number;
   documentsExpected: number;
+  /** Set on the server via auth.admin when listing the queue. */
+  emailConfirmed?: boolean;
 }
 
 export interface PendingVerificationRow extends VerificationQueueRowBase {

@@ -239,7 +239,7 @@ const variantStyles: Record<DockVariant, string> = {
   canvas:
     "bg-linear-to-t from-neutral-100/95 to-neutral-50/90 dark:from-neutral-900/95 dark:to-neutral-950/90 border-2 border-neutral-200/50 dark:border-neutral-800/50",
   frost:
-    "bg-linear-to-t from-blue-100/30 to-blue-50/20 dark:from-blue-900/30 dark:to-blue-950/20 backdrop-blur-xl border border-blue-200/50 dark:border-blue-800/30 shadow-lg shadow-blue-500/10",
+    "bg-linear-to-t from-blue-100/30 to-blue-50/20 dark:from-blue-900/30 dark:to-blue-950/20 backdrop-blur-xl border border-blue-200/50 dark:border-primary/30 shadow-lg shadow-blue-500/10",
   sunset:
     "bg-linear-to-t from-orange-500/20 via-pink-500/20 to-purple-500/20 dark:from-orange-600/20 dark:via-pink-600/20 dark:to-purple-600/20 backdrop-blur-xs border border-orange-500/30 dark:border-orange-400/30",
   ocean:
@@ -265,7 +265,7 @@ const itemVariantStyles: Record<DockVariant, string> = {
   chalk: "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700",
   paper: "bg-stone-50/50 dark:bg-stone-900/50 hover:bg-stone-100/70 dark:hover:bg-stone-800/70",
   canvas: "bg-neutral-50/50 dark:bg-neutral-900/50 hover:bg-neutral-100/70 dark:hover:bg-neutral-800/70",
-  frost: "bg-blue-100/30 dark:bg-blue-900/30 hover:bg-blue-200/40 dark:hover:bg-blue-800/40",
+  frost: "bg-blue-100/30 dark:bg-blue-900/30 hover:bg-blue-200/40 dark:hover:bg-primary/40",
   sunset: "bg-orange-500/20 dark:bg-orange-600/20 hover:bg-orange-500/30 dark:hover:bg-orange-600/30",
   ocean: "bg-cyan-500/20 dark:bg-cyan-600/20 hover:bg-cyan-500/30 dark:hover:bg-cyan-600/30",
   forest: "bg-green-800/20 dark:bg-green-900/20 hover:bg-green-700/30 dark:hover:bg-green-800/30",
@@ -284,7 +284,7 @@ const tooltipVariantStyles: Record<DockVariant, string> = {
   chalk: "bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700",
   paper: "bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800",
   canvas: "bg-neutral-100 dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800",
-  frost: "bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-800",
+  frost: "bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-primary",
   sunset: "bg-orange-500/90 dark:bg-orange-600/90 border border-orange-400 dark:border-orange-500",
   ocean: "bg-cyan-500/90 dark:bg-cyan-600/90 border border-cyan-400 dark:border-cyan-500",
   forest: "bg-green-800/90 dark:bg-green-900/90 border border-green-600 dark:border-green-500",

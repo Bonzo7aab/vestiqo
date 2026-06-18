@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
 
-/** Verification documents moved to /konto?tab=documents for contractors. */
+import { KONTO_DOKUMENTY_PATH } from '../../lib/konto-tabs';
+
+/** Verification documents moved to /konto?tab=dokumenty for contractors. */
 export default async function Verification() {
   const supabase = await createClient();
   const {
@@ -9,8 +11,8 @@ export default async function Verification() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/logowanie?redirectTo=/konto?tab=documents');
+    redirect(`/logowanie?redirectTo=${encodeURIComponent(KONTO_DOKUMENTY_PATH)}`);
   }
 
-  redirect('/konto?tab=documents');
+  redirect(KONTO_DOKUMENTY_PATH);
 }
