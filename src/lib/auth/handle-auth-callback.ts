@@ -41,11 +41,10 @@ export async function resolvePostAuthCallbackRedirect(
   type: EmailOtpType | null = null,
 ): Promise<string> {
   if (type === 'recovery') {
-    const requested = sanitizeRedirectPath(next, '');
-    if (requested) {
-      return requested;
-    }
-    return '/auth/aktualizacja-hasla';
+    const message = encodeURIComponent(
+      'Reset hasła odbywa się przez wysłanie nowego hasła na email.',
+    );
+    return `/zapomniane-haslo?message=${message}`;
   }
 
   if (type === 'signup' || type === 'email') {

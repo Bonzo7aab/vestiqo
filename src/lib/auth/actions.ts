@@ -17,6 +17,13 @@ import { isValidNip, normalizeNip } from '../gus/nip'
 import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
+import { generateSecurePassword } from './generate-password'
+import { findAuthUserByEmail } from './find-user-by-email'
+import { createAdminClient } from '../supabase/admin'
+import {
+  isPasswordResetEmailConfigured,
+  sendPasswordResetEmail,
+} from '../email/send-password-reset-email'
 
 export interface LoginData {
   email: string
@@ -435,25 +442,63 @@ async function updateUserActionImpl(userData: UpdateUserData) {
 }
 
 /**
- * Sends Supabase password recovery email. Link lands on `/auth/confirm` then `/auth/aktualizacja-hasla`.
+ * Generates a new random password, updates the user via admin API, and emails it via Resend.
+ * Always returns success for valid emails (anti-enumeration).
  */
 async function requestPasswordResetEmailActionImpl(
   email: string
 ): Promise<{ success: true } | { error: string }> {
-  const supabase = await createClient()
   const trimmed = email.trim().toLowerCase()
   if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return { error: 'Podaj prawidłowy adres email' }
   }
 
-  const origin = getPublicAppOrigin()
-  const next = encodeURIComponent('/auth/aktualizacja-hasla')
-  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-    redirectTo: `${origin}/auth/confirm?next=${next}`,
+  if (!isPasswordResetEmailConfigured()) {
+    return {
+      error:
+        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
+    }
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient()
+  } catch (error) {
+    console.error('requestPasswordResetEmailAction: admin client unavailable', error)
+    return {
+      error:
+        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
+    }
+  }
+
+  const user = await findAuthUserByEmail(admin, trimmed)
+  if (!user) {
+    return { success: true }
+  }
+
+  const newPassword = generateSecurePassword()
+  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    password: newPassword,
   })
 
-  if (error) {
-    return { error: error.message }
+  if (updateError) {
+    console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
+    return { success: true }
+  }
+
+  const origin = getPublicAppOrigin()
+  const loginUrl = `${origin}/logowanie`
+  const emailResult = await sendPasswordResetEmail({
+    toEmail: trimmed,
+    password: newPassword,
+    loginUrl,
+  })
+
+  if (!emailResult.sent) {
+    console.error(
+      'requestPasswordResetEmailAction: email not sent',
+      emailResult.skippedReason ?? 'unknown',
+    )
   }
 
   return { success: true }
