@@ -80,8 +80,7 @@ function CategoryIconTile({
 
   return (
     <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-      style={{ backgroundColor: `${color}18` }}
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background"
       aria-hidden
     >
       {React.createElement(iconType, { className: 'h-6 w-6', style: { color } })}

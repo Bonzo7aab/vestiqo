@@ -1,9 +1,10 @@
 import {
   Hammer,
-  Sparkles,
+  BrushCleaning,
   TreePine,
-  Zap,
+  Wrench,
   ClipboardCheck,
+  DraftingCompass,
   FileText,
   type LucideIcon,
 } from 'lucide-react';
@@ -37,7 +38,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Budowlanka',
     shortName: 'Budowlanka',
     legacyNames: ['Roboty Budowlane i Remonty', 'Budowlane'],
-    color: '#1e3a8a',
+    color: '#f59e0b',
     icon: Hammer,
     description: 'Remonty dachów, termomodernizacja, renowacja, wymiana stolarki',
     subcategories: [
@@ -68,8 +69,8 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Sprzątanie',
     shortName: 'Sprzątanie',
     legacyNames: ['Sprzątanie i Utrzymanie Czystości'],
-    color: '#10b981',
-    icon: Sparkles,
+    color: '#38bdf8',
+    icon: BrushCleaning,
     description: 'Sprzątanie nieruchomości, mycie okien, DDD',
     subcategories: [
       {
@@ -135,8 +136,8 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Instalacje',
     shortName: 'Instalacje',
     legacyNames: ['Instalacje i Systemy Techniczne'],
-    color: '#3b82f6',
-    icon: Zap,
+    color: '#1d4ed8',
+    icon: Wrench,
     description: 'Instalacje wodno-kanalizacyjne, elektryczne, systemy bezpieczeństwa',
     subcategories: [
       {
@@ -168,7 +169,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Przeglądy i Serwis',
     shortName: 'Przeglądy i Serwis',
     legacyNames: ['Przeglądy i Obsługa Techniczna', 'Przeglądy'],
-    color: '#f97316',
+    color: '#374151',
     icon: ClipboardCheck,
     description: 'Przeglądy techniczne, inspekcje, serwis urządzeń',
     subcategories: [
@@ -196,8 +197,8 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Inżynieria',
     shortName: 'Inżynieria',
     legacyNames: ['Ekspertyzy i Projekty', 'Ekspertyzy'],
-    color: '#8b5cf6',
-    icon: FileText,
+    color: '#64748b',
+    icon: DraftingCompass,
     description: 'Audyty energetyczne, projekty budowlane, nadzór inwestorski',
     subcategories: [
       {
@@ -293,6 +294,17 @@ export function getCategoryDisplayName(input?: {
   slug?: string | null;
   name?: string | null;
 }): string {
+  if (input?.name) {
+    for (const config of getAllCategoryConfigs()) {
+      if (namesMatch(input.name, config.name, config.legacyNames)) {
+        return config.name;
+      }
+    }
+    if (!input.slug) {
+      return input.name;
+    }
+  }
+
   if (input?.slug) {
     const bySlug = getCategoryConfig(input.slug);
     if (bySlug) {
@@ -301,11 +313,6 @@ export function getCategoryDisplayName(input?: {
   }
 
   if (input?.name) {
-    for (const config of getAllCategoryConfigs()) {
-      if (namesMatch(input.name, config.name, config.legacyNames)) {
-        return config.name;
-      }
-    }
     return input.name;
   }
 
@@ -351,6 +358,19 @@ export function getSubcategoryDisplayName(input?: {
     return undefined;
   }
 
+  if (input.name) {
+    for (const category of getAllCategoryConfigs()) {
+      for (const sub of category.subcategories) {
+        if (namesMatch(input.name, sub.name, sub.legacyNames)) {
+          return sub.name;
+        }
+      }
+    }
+    if (!input.slug) {
+      return input.name;
+    }
+  }
+
   if (input.slug && input.categorySlug) {
     const bySlug = getSubcategoryConfig(input.categorySlug, input.slug);
     if (bySlug) {
@@ -369,20 +389,6 @@ export function getSubcategoryDisplayName(input?: {
   }
 
   if (input.name) {
-    const categories = input.categorySlug
-      ? [getCategoryConfig(input.categorySlug)].filter(Boolean)
-      : getAllCategoryConfigs();
-
-    for (const category of categories) {
-      if (!category) {
-        continue;
-      }
-      for (const sub of category.subcategories) {
-        if (namesMatch(input.name, sub.name, sub.legacyNames)) {
-          return sub.name;
-        }
-      }
-    }
     return input.name;
   }
 

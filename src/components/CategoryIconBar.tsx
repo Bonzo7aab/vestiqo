@@ -202,18 +202,17 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
                   title={category.label}
                 className={cn(
                   'group relative flex-shrink-0 flex flex-col items-center justify-center gap-1.5',
-                  'size-[4.75rem] sm:size-[5.25rem] rounded-xl border p-1.5',
+                  'size-[4.75rem] sm:size-[5.25rem] rounded-xl border bg-background p-1.5',
                   'text-center transition-all duration-150',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
                   isSelected
                     ? 'shadow-sm'
-                    : 'border-border/70 hover:border-border hover:bg-muted/30'
+                    : 'border-border/70 hover:border-border hover:bg-muted/20'
                 )}
                 style={
                   isSelected
                     ? {
                         borderColor: accentColor,
-                        backgroundColor: `${accentColor}10`,
                       } as React.CSSProperties
                     : undefined
                 }
@@ -236,19 +235,11 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
                   </span>
                 )}
                 <span
-                  className={cn(
-                    'flex items-center justify-center size-8 sm:size-9 rounded-lg transition-colors',
-                    isSelected ? '' : 'bg-muted/80 group-hover:bg-muted'
-                  )}
-                  style={
-                    isSelected
-                      ? { backgroundColor: `${accentColor}20` }
-                      : undefined
-                  }
+                  className="flex items-center justify-center size-8 sm:size-9 rounded-lg"
                 >
                   <Icon
                     className="size-4 sm:size-[1.125rem]"
-                    style={isSelected ? { color: accentColor } : undefined}
+                    style={{ color: isSelected ? accentColor : undefined }}
                   />
                 </span>
                 <span

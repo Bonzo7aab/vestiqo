@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { googleMapsConfig, mapOptions, markerColors, createMarkerGlyph, lightenColor } from '../lib/google-maps/config';
+import { getCategoryColor } from '../lib/config/categoryConfig';
 import { generateInfoWindowContent, generateMobileDrawerContent } from '../lib/google-maps/infoWindowContent';
 import { Job } from '../types/job';
 import {
@@ -38,6 +39,7 @@ interface MarkerConfig {
   isHovered?: boolean;
   postType?: 'job' | 'contest';
   urgency?: 'low' | 'medium' | 'high';
+  categorySlug?: string;
   jobData?: Job;
 }
 
@@ -86,24 +88,34 @@ class MarkerPool {
     config: MarkerConfig,
     map: google.maps.Map
   ): void {
-    // Determine background color based on priority/urgency
+    // OPD-105: contest markers use white pin + category-colored icon
     let backgroundColor: string;
+    let glyphColor: string;
+    let borderColor: string;
+
     if (config.isSelected) {
       backgroundColor = markerColors.selected.background;
+      glyphColor = markerColors.selected.glyphColor;
+      borderColor = markerColors.selected.borderColor;
+    } else if (config.postType === 'contest' && config.categorySlug) {
+      const categoryColor = getCategoryColor(config.categorySlug);
+      backgroundColor = '#ffffff';
+      glyphColor = categoryColor;
+      borderColor = categoryColor;
     } else if (config.urgency && ['low', 'medium', 'high'].includes(config.urgency)) {
-      // Ensure urgency is valid before using it as a key
       backgroundColor = markerColors.priority[config.urgency];
+      glyphColor = '#ffffff';
+      borderColor = lightenColor(backgroundColor, 30);
     } else {
       backgroundColor = markerColors.priority.medium;
+      glyphColor = '#ffffff';
+      borderColor = lightenColor(backgroundColor, 30);
     }
 
-    const borderColor = lightenColor(backgroundColor, 30);
     const postType = config.postType || 'job';
     const baseScale = config.isSelected ? 1.6 : (config.isHovered ? 1.35 : 1.3);
 
-    // Create PinElement - create new one each time to ensure background color is properly applied
-    // Note: Cloning PinElement.element loses the background color styling, so we create new instances
-    const glyph = createMarkerGlyph(postType, backgroundColor);
+    const glyph = createMarkerGlyph(postType, glyphColor, config.categorySlug);
     const pinElement = new google.maps.marker.PinElement({
       background: backgroundColor,
       borderColor: borderColor,
@@ -603,6 +615,7 @@ const MapComponent: React.FC<{
           isHovered: markerData.isHovered,
           postType: markerData.postType,
           urgency: markerData.urgency,
+          categorySlug: markerData.categorySlug,
           jobData: markerData.jobData,
         };
 
@@ -845,6 +858,7 @@ export interface MapMarker {
   isUrgent?: boolean; // Legacy support
   postType?: 'job' | 'contest';
   urgency?: 'low' | 'medium' | 'high';
+  categorySlug?: string;
   jobData?: Job;
 }
 

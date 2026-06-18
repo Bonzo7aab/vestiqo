@@ -45,6 +45,7 @@ import {
   ContestOfferFieldError,
   fieldErrorInputClass,
 } from '../contest-offer/ContestOfferFieldError';
+import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
 
 export interface TenderContestFormProps {
@@ -118,6 +119,11 @@ export function TenderContestForm({
     [buildings],
   );
 
+  const filterCategoryTree = useMemo(
+    () => buildFilterCategoryTree(categoriesFromDb),
+    [categoriesFromDb],
+  );
+
   const hasValidSubmissionDeadline = useMemo(
     () => Boolean(form.submissionDeadline && !Number.isNaN(form.submissionDeadline.getTime())),
     [form.submissionDeadline],
@@ -130,7 +136,15 @@ export function TenderContestForm({
 
   useEffect(() => {
     if (!initialForm) return;
-    setForm(initialForm);
+    setForm({
+      ...initialForm,
+      category: initialForm.category
+        ? getCategoryDisplayName({ name: initialForm.category })
+        : initialForm.category,
+      subcategory: initialForm.subcategory
+        ? getSubcategoryDisplayName({ name: initialForm.subcategory }) ?? initialForm.subcategory
+        : initialForm.subcategory,
+    });
   }, [initialForm]);
 
   useEffect(() => {
@@ -400,9 +414,9 @@ export function TenderContestForm({
                   <SelectValue placeholder="Wybierz kategorię" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesFromDb.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
+                  {filterCategoryTree.map((c) => (
+                    <SelectItem key={c.id} value={c.filterKey}>
+                      {c.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -424,11 +438,11 @@ export function TenderContestForm({
                   <SelectValue placeholder="Wybierz podkategorię" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesFromDb
-                    .find((c) => c.name === form.category)
+                  {filterCategoryTree
+                    .find((c) => c.filterKey === form.category)
                     ?.subcategories.map((sub) => (
-                      <SelectItem key={sub.id} value={sub.name}>
-                        {sub.name}
+                      <SelectItem key={sub.id} value={sub.filterKey}>
+                        {sub.label}
                       </SelectItem>
                     ))}
                 </SelectContent>

@@ -11,6 +11,7 @@ import { getCurrentLocation, calculateDistance } from '../lib/google-maps/geocod
 import { extractCity, extractSublocality } from '../utils/locationMapping';
 import type { Job } from '../types/job';
 import type { FilterState } from './JobFilters';
+import { resolveCategorySlugFromJob } from '../lib/config/categoryConfig';
 import { jobMatchesFilters, matchesFavoritesFilter } from '../lib/filters/filter-logic';
 import { getBookmarkedJobs } from '../utils/bookmarkStorage';
 import { BOOKMARK_COUNT_CHANGED_EVENT } from '../utils/bookmarkCountOverrides';
@@ -376,6 +377,7 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
         isUrgent: job.urgent, // Legacy support
         postType: job.postType || 'job', // Job type for icon selection
         urgency, // Priority level for color selection
+        categorySlug: resolveCategorySlugFromJob({ category: job.category }),
         jobData: job,
       };
     });
