@@ -1,39 +1,47 @@
-import Link from 'next/link';
 import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
+import { HelpPageCta } from '../../components/content/FaqAccordion';
+import { HelpTimeline } from '../../components/content/MarketingPageLayout';
+import {
+  managerHelpIntro,
+  managerHelpSteps,
+  managerSecurityStandards,
+} from '../../lib/content/support-pages';
 import { routes } from '../../lib/routes';
 
 export const metadata = staticInfoMetadata(
   'Pomoc dla Zarządców',
-  'Wsparcie dla zarządców nieruchomości korzystających z Vestiqo.',
+  'Przewodnik krok po kroku dla zarządców, spółdzielni i wspólnot mieszkaniowych.',
 );
 
 export default function ManagerHelpPage() {
   return (
     <StaticInfoPage
-      title="Pomoc dla Zarządców"
-      description="Wsparcie dla zarządców nieruchomości korzystających z Vestiqo."
+      title="Pomoc dla Zarządcy, Spółdzielni i Wspólnot Mieszkaniowych"
+      description={managerHelpIntro}
     >
-      <p>
-        Jako zarządca możesz tworzyć konkursy, zbierać oferty wykonawców, porównywać
-        propozycje i wybierać najlepszego partnera do realizacji inwestycji.
-      </p>
-      <ul className="list-disc space-y-2 pl-6">
-        <li>
-          <Link href={routes.wyborTypuKonkursu} className="text-primary hover:underline">
-            Utwórz nowy konkurs
-          </Link>
-        </li>
-        <li>
-          <Link href={routes.panelZarzadcy} className="text-primary hover:underline">
-            Przejdź do panelu zarządcy
-          </Link>
-        </li>
-        <li>
-          <Link href={routes.samouczek} className="text-primary hover:underline">
-            Samouczek platformy
-          </Link>
-        </li>
-      </ul>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">
+          Przewodnik: Jak sprawnie przeprowadzić konkurs ofert w 4 krokach
+        </h2>
+        <HelpTimeline steps={managerHelpSteps} />
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">
+          Standardy bezpieczeństwa i transparentności
+        </h2>
+        <ul className="list-disc space-y-2 pl-6">
+          {managerSecurityStandards.map((item) => (
+            <li key={item.slice(0, 40)}>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <HelpPageCta
+        text="Gotowy do przyspieszenia inwestycji?"
+        buttonLabel="Dodaj bezpłatnie pierwszy konkurs ofert"
+        href={routes.wyborTypuKonkursu}
+      />
     </StaticInfoPage>
   );
 }

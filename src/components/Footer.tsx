@@ -4,37 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { BrandLogo } from './BrandLogo';
 import { footerColumns, footerTagline } from '../lib/footer-links';
-import { openCookieSettings } from '../lib/cookie-consent';
 import { cn } from './ui/utils';
 
 const linkClassName =
   'text-sm text-muted-foreground hover:text-foreground transition-colors text-left';
-
-function FooterLinkItem({
-  label,
-  href,
-  action,
-}: {
-  label: string;
-  href?: string;
-  action?: 'cookie-settings';
-}) {
-  if (action === 'cookie-settings') {
-    return (
-      <button type="button" onClick={openCookieSettings} className={linkClassName}>
-        {label}
-      </button>
-    );
-  }
-
-  if (!href) return null;
-
-  return (
-    <Link href={href} className={linkClassName}>
-      {label}
-    </Link>
-  );
-}
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -58,7 +31,9 @@ export function Footer() {
               <ul className="space-y-2.5">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <FooterLinkItem {...link} />
+                    <Link href={link.href} className={linkClassName}>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -72,9 +47,15 @@ export function Footer() {
             'md:flex-row md:items-center',
           )}
         >
-          <p className="text-center text-sm text-muted-foreground md:text-left">
-            {footerTagline}
-          </p>
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-sm text-muted-foreground">{footerTagline}</p>
+            <p className="text-xs text-muted-foreground">
+              DSA:{' '}
+              <a href="mailto:dsa@vestiqo.pl" className="hover:text-foreground transition-colors">
+                dsa@vestiqo.pl
+              </a>
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground">© {year} Vestiqo</p>
         </div>
       </div>

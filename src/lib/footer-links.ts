@@ -2,8 +2,7 @@ import { routes } from './routes';
 
 export interface FooterLink {
   label: string;
-  href?: string;
-  action?: 'cookie-settings';
+  href: string;
 }
 
 export interface FooterColumn {
@@ -28,9 +27,9 @@ export const footerColumns: FooterColumn[] = [
       { label: 'Kategorie usług', href: routes.kategorieUslug },
       {
         label: 'Dla Wspólnot i Spółdzielni Mieszkaniowych',
-        href: routes.zarzadcy,
+        href: routes.dlaWspolnot,
       },
-      { label: 'Dla Wykonawców i Firm', href: routes.wykonawcy },
+      { label: 'Dla Wykonawców i Firm', href: routes.dlaWykonawcow },
     ],
   },
   {
@@ -46,7 +45,7 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Regulamin', href: routes.regulamin },
       { label: 'Polityka prywatności i RODO', href: routes.politykaPrywatnosci },
-      { label: 'Ustawienia plików cookie', action: 'cookie-settings' },
+      { label: 'Ustawienia plików cookie', href: routes.ustawieniaPlikowCookie },
     ],
   },
 ];
