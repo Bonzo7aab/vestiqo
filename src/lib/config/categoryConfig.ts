@@ -312,6 +312,35 @@ export function getCategoryDisplayName(input?: {
   return 'Inne';
 }
 
+/** OPD-104 resolve category slug from job listing data for icon/color theming. */
+export function resolveCategorySlugFromJob(input?: {
+  category?: string | { name?: string; slug?: string } | null;
+}): string | undefined {
+  const categorySlug =
+    typeof input?.category === 'object' ? input.category.slug : undefined;
+  const categoryName =
+    typeof input?.category === 'string'
+      ? input.category
+      : input?.category?.name;
+
+  if (categorySlug) {
+    const bySlug = getCategoryConfig(categorySlug);
+    if (bySlug) {
+      return bySlug.slug;
+    }
+  }
+
+  if (categoryName) {
+    for (const config of getAllCategoryConfigs()) {
+      if (namesMatch(categoryName, config.name, config.legacyNames)) {
+        return config.slug;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 /** OPD-105 display name for a subcategory (by slug or legacy name). */
 export function getSubcategoryDisplayName(input?: {
   slug?: string | null;
