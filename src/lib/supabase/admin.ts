@@ -18,6 +18,11 @@ export function hasElevatedSupabaseKey(): boolean {
   return Boolean(resolveElevatedSupabaseKey() && process.env.NEXT_PUBLIC_SUPABASE_URL)
 }
 
+/** Exposes elevated key resolution for auth admin lookups (server-only). */
+export function resolveElevatedSupabaseKeyForLookup(): string | undefined {
+  return resolveElevatedSupabaseKey()
+}
+
 /**
  * Returns an elevated client when configured; otherwise `null` (no throw).
  * Use for optional admin features (e.g. auth.users email) in local dev without service role.

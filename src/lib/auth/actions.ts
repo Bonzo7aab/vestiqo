@@ -24,6 +24,7 @@ import {
   isPasswordResetEmailConfigured,
   sendPasswordResetEmail,
 } from '../email/send-password-reset-email'
+import * as Sentry from '@sentry/nextjs'
 
 export interface LoginData {
   email: string
@@ -477,17 +478,10 @@ async function requestPasswordResetEmailActionImpl(
   }
 
   const newPassword = generateSecurePassword()
-  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
-    password: newPassword,
-  })
-
-  if (updateError) {
-    console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
-    return { success: true }
-  }
-
   const origin = getPublicAppOrigin()
   const loginUrl = `${origin}/logowanie`
+
+  // Send email before updating password so a Resend failure does not lock the user out.
   const emailResult = await sendPasswordResetEmail({
     toEmail: trimmed,
     password: newPassword,
@@ -499,6 +493,30 @@ async function requestPasswordResetEmailActionImpl(
       'requestPasswordResetEmailAction: email not sent',
       emailResult.skippedReason ?? 'unknown',
     )
+    Sentry.captureMessage('Password reset email failed to send', {
+      level: 'error',
+      extra: {
+        reason: emailResult.skippedReason ?? 'unknown',
+        userId: user.id,
+      },
+    })
+    return { success: true }
+  }
+
+  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    password: newPassword,
+  })
+
+  if (updateError) {
+    console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
+    Sentry.captureMessage('Password reset email sent but password update failed', {
+      level: 'fatal',
+      extra: {
+        userId: user.id,
+        error: updateError.message,
+      },
+    })
+    return { success: true }
   }
 
   return { success: true }

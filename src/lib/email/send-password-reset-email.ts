@@ -37,7 +37,7 @@ export async function sendPasswordResetEmail(params: {
   if (!res.ok) {
     const text = await res.text();
     console.error('Password reset Resend error:', res.status, text);
-    return { sent: false, skippedReason: `Resend HTTP ${res.status}` };
+    return { sent: false, skippedReason: `Resend HTTP ${res.status}: ${text.slice(0, 200)}` };
   }
 
   return { sent: true };
