@@ -1,5 +1,3 @@
-import { routes } from '../routes';
-
 export const aboutPageContent = {
   title: 'O nas – Nowy Standard Konkursów Ofert w Nieruchomościach',
   description:
@@ -59,15 +57,4 @@ export const aboutPageContent = {
       },
     ],
   },
-  ctas: [
-    {
-      label: 'Utwórz darmowy konkurs',
-      href: routes.wyborTypuKonkursu,
-    },
-    {
-      label: 'Przeglądaj aktualne konkursy',
-      href: routes.home,
-      variant: 'outline' as const,
-    },
-  ],
 };

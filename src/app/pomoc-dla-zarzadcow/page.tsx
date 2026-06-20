@@ -1,12 +1,10 @@
 import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
-import { HelpPageCta } from '../../components/content/FaqAccordion';
 import { HelpTimeline } from '../../components/content/MarketingPageLayout';
 import {
   managerHelpIntro,
   managerHelpSteps,
   managerSecurityStandards,
 } from '../../lib/content/support-pages';
-import { routes } from '../../lib/routes';
 
 export const metadata = staticInfoMetadata(
   'Pomoc dla Zarządców',
@@ -36,12 +34,6 @@ export default function ManagerHelpPage() {
           ))}
         </ul>
       </section>
-
-      <HelpPageCta
-        text="Gotowy do przyspieszenia inwestycji?"
-        buttonLabel="Dodaj bezpłatnie pierwszy konkurs ofert"
-        href={routes.wyborTypuKonkursu}
-      />
     </StaticInfoPage>
   );
 }

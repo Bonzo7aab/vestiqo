@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
-import { AudienceTiles } from '../../components/content/MarketingPageLayout';
 import { FaqSection } from '../../components/content/FaqAccordion';
 import {
   faqContractorItems,
@@ -20,13 +19,6 @@ export default function FaqPage() {
       title="Najczęściej zadawane pytania"
       description={faqIntro}
     >
-      <AudienceTiles
-        tiles={[
-          { id: 'faq-managers', label: 'Jestem Zarządcą / Wspólnotą' },
-          { id: 'faq-contractors', label: 'Jestem Wykonawcą' },
-        ]}
-      />
-
       <FaqSection
         id="faq-managers"
         title="Dla Wspólnot, Spółdzielni i Zarządców"

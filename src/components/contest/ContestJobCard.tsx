@@ -139,12 +139,10 @@ function ContestStatsSidebar({
 }): React.ReactElement {
   return (
     <div className="flex min-h-full flex-col justify-between gap-4 p-4 md:w-40 lg:w-44">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 text-xs">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-muted-foreground">Złożone oferty:</span>
-            <span className="shrink-0 font-semibold tabular-nums text-foreground">{offerCount}</span>
-          </div>
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="text-muted-foreground">Złożone oferty:</span>
+          <span className="shrink-0 font-semibold tabular-nums text-foreground">{offerCount}</span>
         </div>
 
         {showBookmark && onBookmark ? (
@@ -154,7 +152,7 @@ function ContestStatsSidebar({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-8 w-8 shrink-0 -mt-0.5 -mr-1 text-muted-foreground hover:text-primary',
+                  'h-8 w-8 shrink-0 -mr-1 text-muted-foreground hover:text-primary',
                   isBookmarked && 'text-primary',
                 )}
                 onClick={onBookmark}

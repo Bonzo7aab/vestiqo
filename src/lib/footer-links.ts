@@ -16,14 +16,11 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'O nas', href: routes.oNas },
       { label: 'Kontakt', href: routes.kontakt },
-      { label: 'Aktualności', href: routes.aktualnosci },
     ],
   },
   {
     title: 'Dla użytkowników',
     links: [
-      { label: 'Utwórz konkurs', href: routes.wyborTypuKonkursu },
-      { label: 'Przeglądaj konkursy', href: routes.home },
       { label: 'Kategorie usług', href: routes.kategorieUslug },
       {
         label: 'Dla Wspólnot i Spółdzielni Mieszkaniowych',

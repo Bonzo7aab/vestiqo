@@ -18,7 +18,6 @@ export default function CommunitiesPage() {
     <MarketingPageLayout
       title={content.title}
       description={content.description}
-      cta={content.cta}
     >
       <p>{content.intro}</p>
 

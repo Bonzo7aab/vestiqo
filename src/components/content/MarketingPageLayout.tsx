@@ -58,35 +58,7 @@ export function MarketingPageLayout({
   );
 }
 
-interface HelpTimelineStep {
-  title: string;
-  description: string;
-}
-
-interface HelpTimelineProps {
-  steps: HelpTimelineStep[];
-}
-
-export function HelpTimeline({ steps }: HelpTimelineProps) {
-  return (
-    <ol className="relative space-y-8 border-l-2 border-border pl-8">
-      {steps.map((step, index) => (
-        <li key={step.title} className="relative">
-          <span
-            className="absolute -left-[2.35rem] flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--brand-navy))] text-sm font-bold text-white"
-            aria-hidden
-          >
-            {index + 1}
-          </span>
-          <h3 className="text-lg font-semibold text-[hsl(var(--brand-navy))]">
-            {step.title}
-          </h3>
-          <p className="mt-2 text-muted-foreground leading-relaxed">{step.description}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
+export { HelpTimeline } from './HelpTimeline';
 
 interface AudienceTile {
   id: string;

@@ -1,12 +1,10 @@
 import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
-import { HelpPageCta } from '../../components/content/FaqAccordion';
 import { HelpTimeline } from '../../components/content/MarketingPageLayout';
 import {
   contractorHelpBenefits,
   contractorHelpIntro,
   contractorHelpSteps,
 } from '../../lib/content/support-pages';
-import { routes } from '../../lib/routes';
 
 export const metadata = staticInfoMetadata(
   'Pomoc dla Wykonawców',
@@ -33,12 +31,6 @@ export default function ContractorHelpPage() {
           ))}
         </ul>
       </section>
-
-      <HelpPageCta
-        text="Znajdź kolejne zlecenie dla swojej firmy."
-        buttonLabel="Zarejestruj firmę za darmo"
-        href={routes.rejestracja}
-      />
     </StaticInfoPage>
   );
 }

@@ -15,13 +15,8 @@ export type ContactRole = (typeof contactRoleOptions)[number]['value'];
 export const contactDirectEmails = [
   {
     label: 'Ogólne pytania i pomoc techniczna',
-    email: companyLegal.emails.help,
+    email: companyLegal.emails.contact,
     description: 'Wsparcie z kontem, plikami lub formularzem',
-  },
-  {
-    label: 'Współpraca biznesowa i partnerstwa',
-    email: companyLegal.emails.business,
-    description: 'Duże spółdzielnie, zarządcy sieciowi i partnerzy komercyjni',
   },
 ];
 

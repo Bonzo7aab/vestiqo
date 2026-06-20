@@ -1,9 +1,5 @@
-import Link from 'next/link';
 import { ContentSection } from '../../components/content/ContentSection';
-import {
-  MarketingCta,
-  MarketingPageLayout,
-} from '../../components/content/MarketingPageLayout';
+import { MarketingPageLayout } from '../../components/content/MarketingPageLayout';
 import { aboutPageContent } from '../../lib/content/o-nas';
 import { staticInfoMetadata } from '../../components/StaticInfoPage';
 
@@ -53,17 +49,6 @@ export default function AboutPage() {
         </ul>
       </ContentSection>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {content.ctas.map((cta) => (
-          <MarketingCta
-            key={cta.label}
-            label={cta.label}
-            href={cta.href}
-            variant={cta.variant}
-            className="w-full"
-          />
-        ))}
-      </div>
     </MarketingPageLayout>
   );
 }

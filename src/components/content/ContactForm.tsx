@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Shield } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
@@ -21,6 +22,7 @@ import {
   type ContactRole,
 } from '../../lib/content/kontakt';
 import { submitContactForm } from '../../app/kontakt/actions';
+import { cn } from '../ui/utils';
 
 interface ContactFormProps {
   className?: string;
@@ -111,20 +113,42 @@ export function ContactForm({ className }: ContactFormProps) {
           <Textarea id="message" name="message" rows={6} required />
         </div>
 
-        <div className="flex items-start gap-3">
+        <label
+          htmlFor="consent"
+          className={cn(
+            'flex cursor-pointer gap-3 rounded-xl border p-4 transition-colors sm:gap-4 sm:p-5',
+            consent
+              ? 'border-primary/35 bg-primary/5 shadow-sm'
+              : 'border-border/70 bg-muted/20 hover:border-border hover:bg-muted/35',
+          )}
+        >
           <Checkbox
             id="consent"
             checked={consent}
             onCheckedChange={(checked) => setConsent(checked === true)}
+            className="mt-1 shrink-0"
           />
-          <Label htmlFor="consent" className="text-sm leading-relaxed font-normal">
-            Wyrażam zgodę na przetwarzanie moich danych osobowych w celu obsługi zapytania.{' '}
-            <Link href={routes.politykaPrywatnosci} className="text-primary hover:underline">
-              Więcej w Polityce Prywatności
-            </Link>
-            .
-          </Label>
-        </div>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Shield className="size-4 shrink-0 text-primary" aria-hidden />
+              <span className="text-sm font-semibold text-[hsl(var(--brand-navy))]">
+                Zgoda na przetwarzanie danych
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Wyrażam zgodę na przetwarzanie moich danych osobowych w celu obsługi zapytania.{' '}
+              <Link
+                href={routes.politykaPrywatnosci}
+                className="font-medium text-primary underline-offset-4 hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Polityka Prywatności
+              </Link>
+              .
+            </p>
+          </div>
+        </label>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

@@ -18,7 +18,6 @@ export default function ContractorsLandingPage() {
     <MarketingPageLayout
       title={content.title}
       description={content.description}
-      cta={content.cta}
     >
       <p>{content.intro}</p>
 

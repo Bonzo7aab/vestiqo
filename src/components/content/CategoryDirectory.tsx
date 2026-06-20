@@ -9,45 +9,76 @@ export function CategoryDirectory() {
   const categories = getAllCategoryConfigs();
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full min-w-[480px] text-left text-sm">
-        <thead className="bg-muted/60">
-          <tr>
-            <th className="px-4 py-3 font-semibold text-[hsl(var(--brand-navy))]">
-              Główna kategoria
-            </th>
-            <th className="px-4 py-3 font-semibold text-[hsl(var(--brand-navy))]">
-              Podkategoria
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((category) =>
-            category.subcategories.map((subcategory, index) => (
-              <tr key={`${category.slug}-${subcategory.slug}`} className="border-t border-border">
-                <td className="px-4 py-3 align-top">
-                  {index === 0 ? (
-                    <Link
-                      href={buildCategoryFilterUrl(category.name)}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {category.name}
-                    </Link>
-                  ) : null}
-                </td>
-                <td className="px-4 py-3">
+    <div className="space-y-4">
+      <div className="grid gap-4 md:hidden">
+        {categories.map((category) => (
+          <section
+            key={category.slug}
+            className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+          >
+            <Link
+              href={buildCategoryFilterUrl(category.name)}
+              className="text-base font-semibold text-[hsl(var(--brand-navy))] hover:text-primary"
+            >
+              {category.name}
+            </Link>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {category.subcategories.map((subcategory) => (
+                <Link
+                  key={subcategory.slug}
+                  href={buildSubcategoryFilterUrl(subcategory.name)}
+                  className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                >
+                  {subcategory.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-muted/60">
+            <tr>
+              <th className="px-5 py-4 font-semibold text-[hsl(var(--brand-navy))]">
+                Główna kategoria
+              </th>
+              <th className="px-5 py-4 font-semibold text-[hsl(var(--brand-navy))]">
+                Podkategorie
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((category) => (
+              <tr key={category.slug} className="border-t border-border/70 align-top">
+                <td className="px-5 py-4">
                   <Link
-                    href={buildSubcategoryFilterUrl(subcategory.name)}
-                    className="text-primary hover:underline"
+                    href={buildCategoryFilterUrl(category.name)}
+                    className="font-semibold text-primary hover:underline"
                   >
-                    {subcategory.name}
+                    {category.name}
                   </Link>
                 </td>
+                <td className="px-5 py-4">
+                  <div className="flex flex-wrap gap-2">
+                    {category.subcategories.map((subcategory) => (
+                      <Link
+                        key={subcategory.slug}
+                        href={buildSubcategoryFilterUrl(subcategory.name)}
+                        className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                      >
+                        {subcategory.name}
+                      </Link>
+                    ))}
+                  </div>
+                </td>
               </tr>
-            )),
-          )}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
