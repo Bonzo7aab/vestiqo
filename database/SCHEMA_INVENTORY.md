@@ -1,8 +1,8 @@
 # Schema inventory — table usage and naming
 
-Last updated: 2026-06-13. Cross-reference of SQL schema vs `src/` Supabase queries (`.from('…')`).
+Last updated: 2026-06-20. Cross-reference of SQL schema vs `src/` Supabase queries (`.from('…')`).
 
-For migration order see [README.md](./README.md). **Prod-pending SQL:** [`pending-prod/`](./pending-prod/). For production safety see [`.cursor/rules/supabase-production-safety.mdc`](../.cursor/rules/supabase-production-safety.mdc).
+For migration order see [README.md](./README.md). **New prod-pending SQL:** [`pending-prod/`](./pending-prod/) (queue empty). For production safety see [`.cursor/rules/supabase-production-safety.mdc`](../.cursor/rules/supabase-production-safety.mdc).
 
 ---
 
@@ -11,8 +11,7 @@ For migration order see [README.md](./README.md). **Prod-pending SQL:** [`pendin
 | Category | Count |
 |----------|-------|
 | Active tables | 30 |
-| Drop-unused migration (pending prod) | [`pending-prod/20260611140000_drop_unused_schema.sql`](./pending-prod/20260611140000_drop_unused_schema.sql) |
-| Tenders→contests rename (pending prod) | [`pending-prod/20260612120000_rename_tenders_to_contests.sql`](./pending-prod/20260612120000_rename_tenders_to_contests.sql) — **applied on test**, not prod |
+| Pending prod migrations | 0 (queue empty as of 2026-06-20) |
 
 ---
 
@@ -24,14 +23,18 @@ These tables have `.from()` usage in `src/`:
 
 ---
 
-## Pending production SQL
+## Production schema status
 
-Files not in production Supabase migration history live in **[`database/pending-prod/`](./pending-prod/)** (including drop-unused schema, push_subscriptions tracking, and tenders→contests rename).
+Prod (`vestiqo`) and test (`vestiqo-test`) both use `contests` / `contest_offers` (tenders rename applied). Recent migrations on prod include:
 
-- **Test:** `push_subscriptions`, `drop_unused_schema`, and `rename_tenders_to_contests` already applied on `vestiqo-test`
-- **Prod:** not applied — prod still uses `tenders` / `tender_bids` until you run pending files
+- Drop unused schema, push subscriptions
+- VAT whitelist columns on `contractor_account_settings`
+- OPD-105 short category names
+- OPD-41 in-app notification preferences + contest-end cron
+- OPD-106 selection protocol (`selection_justification`, `awarded_at`)
+- `no_offers` contest status + updated deadline function
 
-See [`pending-prod/README.md`](./pending-prod/README.md) for the full list and workflow.
+Source SQL lives in [`supabase/migrations/`](../supabase/migrations/). New migrations go to [`pending-prod/`](./pending-prod/) until applied to prod.
 
 ---
 

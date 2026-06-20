@@ -113,7 +113,7 @@ CREATE TABLE notification_preferences (
 );
 
 -- =============================================
--- ACTIVITY LOGGING — removed 2026-06-11 (see database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- ACTIVITY LOGGING — removed 2026-06-11 (see supabase/migrations/20260611140000_drop_unused_schema.sql)
 -- =============================================
 
 -- =============================================
@@ -136,7 +136,7 @@ CREATE TABLE questions (
 );
 
 -- =============================================
--- FEEDBACK AND SUPPORT — removed 2026-06-11 (see database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- FEEDBACK AND SUPPORT — removed 2026-06-11 (see supabase/migrations/20260611140000_drop_unused_schema.sql)
 -- =============================================
 
 -- =============================================

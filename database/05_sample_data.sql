@@ -171,4 +171,4 @@ DROP FUNCTION IF EXISTS create_sample_portfolio_projects();
 -- Note: Sample questions require user profiles to exist first
 -- They can be added after user registration in the application
 
--- Note: user_feedback and support_tickets tables removed 2026-06-11 (database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- Note: user_feedback and support_tickets tables removed 2026-06-11 (supabase/migrations/20260611140000_drop_unused_schema.sql)

@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_companies_type ON companies(type) WHERE type IN (
     'spółdzielnia', 'wspólnota'
 );
 
--- manager_browse_view + get_managers_for_browse removed 2026-06-11 (database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- manager_browse_view + get_managers_for_browse removed 2026-06-11 (supabase/migrations/20260611140000_drop_unused_schema.sql)
 
 -- Browse query indexes (app uses direct companies queries)
 CREATE INDEX IF NOT EXISTS idx_manager_browse_city ON companies(city) 

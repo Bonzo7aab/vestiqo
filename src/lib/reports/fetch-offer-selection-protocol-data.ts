@@ -178,7 +178,7 @@ export async function fetchOfferSelectionProtocolData(
       grossPrice: gross,
       startDate: start && !Number.isNaN(start.getTime()) ? formatProtocolDate(start.toISOString()) : '—',
       durationLabel,
-      warrantyLabel: warranty != null ? `${warranty} msc` : '—',
+      warrantyLabel: warranty != null ? `${warranty} mies.` : '—',
       statusLabel: bid.status === 'accepted' ? 'Wybrana' : 'Niewybrana',
     };
   });

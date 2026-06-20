@@ -367,24 +367,6 @@ export function ManagerKonkursyContent({
     );
   };
 
-  const renderViewResultAction = (row: ManagerContest): ReactElement | null => {
-    if (row.status !== 'awarded' || row.offersCount === 0) {
-      return null;
-    }
-
-    return (
-      <Button
-        variant="default"
-        size="sm"
-        className="h-8 shrink-0"
-        onClick={() => router.push(compareHref(row.id))}
-      >
-        <Eye className="h-4 w-4 mr-1.5" />
-        Zobacz wynik
-      </Button>
-    );
-  };
-
   const renderRepeatContestButton = (row: ManagerContest): ReactElement | null => {
     if (row.status !== 'no_offers') {
       return null;
@@ -409,12 +391,14 @@ export function ManagerKonkursyContent({
     const pendingCount = unansweredCounts[row.id] ?? 0;
 
     const abandonDraftAllowed = canAbandonManagerContestDraft(row.status, row.offersCount);
+    const showViewResults = row.status === 'awarded' && row.offersCount > 0;
     const showCooperationReviewEdit =
       row.hasSelectedOffer &&
       Boolean(row.selectedContractorCompanyId) &&
       Boolean(row.selectedContractorName) &&
       hasCooperationReview(row);
     const hasMenuItems =
+      showViewResults ||
       abandonDraftAllowed ||
       canCancelContest(row.status) ||
       showQuestions ||
@@ -443,17 +427,26 @@ export function ManagerKonkursyContent({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          {abandonDraftAllowed ? (
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setAbandonDraftTarget(row)}
-            >
-              Odrzuć szkic
+          {showViewResults ? (
+            <DropdownMenuItem onClick={() => router.push(compareHref(row.id))}>
+              <Eye className="h-4 w-4 mr-2" />
+              Zobacz wyniki
             </DropdownMenuItem>
+          ) : null}
+          {abandonDraftAllowed ? (
+            <>
+              {showViewResults ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setAbandonDraftTarget(row)}
+              >
+                Odrzuć szkic
+              </DropdownMenuItem>
+            </>
           ) : null}
           {showQuestions ? (
             <>
-              {abandonDraftAllowed ? <DropdownMenuSeparator /> : null}
+              {showViewResults || abandonDraftAllowed ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem onClick={() => openQuestionsDialog(row)}>
                 Pytania do konkursu
                 {pendingCount > 0 ? ` (${pendingCount})` : ''}
@@ -473,7 +466,10 @@ export function ManagerKonkursyContent({
           ) : null}
           {showCooperationReviewEdit ? (
             <>
-              {abandonDraftAllowed || showQuestions || canCancelContest(row.status) ? (
+              {showViewResults ||
+              abandonDraftAllowed ||
+              showQuestions ||
+              canCancelContest(row.status) ? (
                 <DropdownMenuSeparator />
               ) : null}
               <DropdownMenuItem onClick={() => setCooperationReviewTarget(row)}>
@@ -634,7 +630,6 @@ export function ManagerKonkursyContent({
                           <div className="inline-flex flex-nowrap items-center justify-end gap-1.5">
                             {renderDraftContinueButton(row)}
                             {renderPrimaryEvaluationAction(row)}
-                            {renderViewResultAction(row)}
                             {renderCooperationReviewButton(row)}
                             {renderRepeatContestButton(row)}
                             {renderActionsMenu(row)}

@@ -1,6 +1,6 @@
 # Archived unused schema
 
-Removed from active database on **2026-06-11** via [`pending-prod/20260611140000_drop_unused_schema.sql`](../pending-prod/20260611140000_drop_unused_schema.sql) (pending on prod; applied on test).
+Removed from active database on **2026-06-11** via [`supabase/migrations/20260611140000_drop_unused_schema.sql`](../../supabase/migrations/20260611140000_drop_unused_schema.sql) (applied on prod and test).
 
 ## Why dropped
 

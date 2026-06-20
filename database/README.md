@@ -6,7 +6,7 @@ This directory contains SQL migrations for setting up the Domio platform databas
 
 **Table usage, unused schema, and legacy naming:** see [SCHEMA_INVENTORY.md](./SCHEMA_INVENTORY.md).
 
-**Not yet on production:** see [`pending-prod/`](./pending-prod/) — apply to prod when ready, or ask the agent to run them.
+**New prod migrations:** add to [`pending-prod/`](./pending-prod/) until applied; canonical history in [`supabase/migrations/`](../supabase/migrations/) (queue empty as of 2026-06-20).
 
 ## Migration Order
 
@@ -67,7 +67,7 @@ For current auth/administracja flows, also apply these later migrations:
 - **60_harden_system_write_policies.sql** 🔒
 - **61_rename_job_bookmarks_to_bookmarks.sql** — polymorphic `bookmarks` table
 - **62_fix_bookmarks_count_triggers.sql** — drop legacy bookmark count triggers
-- **Pending prod queue:** [`pending-prod/`](./pending-prod/) — SQL not yet in production migration history; apply when ready
+- **Supabase migrations:** [`supabase/migrations/`](../supabase/migrations/) — includes drop-unused schema, tenders→contests rename, OPD-41/105/106, VAT whitelist
 
 > Note: `51_grant_platform_admin_by_email.sql` is environment-specific (hard-coded email)
 > and should be run manually only when intentionally granting admin access.

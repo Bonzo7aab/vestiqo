@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Download, Lock, Phone, Mail } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Download, Loader2, Lock, Phone, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '../../lib/supabase/client';
 import {
@@ -242,11 +242,11 @@ export function ManagerOfferCompareClient({
   const [profiles, setProfiles] = useState<Record<string, ContractorProfile | null>>({});
   const [detailApp, setDetailApp] = useState<Application | null>(null);
   const [detailBid, setDetailBid] = useState<TenderBidLike | null>(null);
-  const [showContactDetails, setShowContactDetails] = useState(false);
   const [confirmSelectOpen, setConfirmSelectOpen] = useState(false);
   const [pendingSelectBid, setPendingSelectBid] = useState<TenderBidLike | null>(null);
   const [selectingOffer, setSelectingOffer] = useState(false);
   const [selectionJustification, setSelectionJustification] = useState('');
+  const [protocolDownloading, setProtocolDownloading] = useState(false);
 
   const [sort, setSort] = useState<CompareSortState>({ key: 'net', dir: 'asc' });
 
@@ -443,13 +443,11 @@ export function ManagerOfferCompareClient({
   const openDetailFromApp = (app: Application): void => {
     setDetailApp(app);
     setDetailBid(null);
-    setShowContactDetails(false);
   };
 
   const openDetailFromBid = (bid: TenderBidLike): void => {
     setDetailBid(bid);
     setDetailApp(null);
-    setShowContactDetails(false);
   };
 
   const openConfirmSelect = (): void => {
@@ -473,6 +471,36 @@ export function ManagerOfferCompareClient({
     }
     const typ = kind === 'contest' ? 'przetarg' : 'zgłoszenie';
     return `/panel-zarzadcy/zgloszenia?podglad=${submissionId}&typ=${encodeURIComponent(typ)}&tab=selected-offer`;
+  };
+
+  const handleDownloadProtocol = async (): Promise<void> => {
+    if (protocolDownloading) return;
+    setProtocolDownloading(true);
+    try {
+      const response = await fetch(`/api/contests/${submissionId}/protocol`);
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        toast.error(body?.error ?? 'Nie udało się wygenerować protokołu');
+        return;
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition');
+      const filenameMatch = disposition?.match(/filename="([^"]+)"/);
+      const filename =
+        filenameMatch?.[1] ??
+        `protokol-wyboru-ofert-${submissionId.replace(/-/g, '').slice(0, 8)}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Nie udało się wygenerować protokołu');
+    } finally {
+      setProtocolDownloading(false);
+    }
   };
 
   const handleConfirmSelectOffer = async (): Promise<void> => {
@@ -553,16 +581,18 @@ export function ManagerOfferCompareClient({
           <h1 className="text-2xl font-bold">Porównanie ofert</h1>
           <div className="flex items-center gap-2 shrink-0">
             {contestMode && tenderStatus === 'awarded' ? (
-              <Button variant="default" asChild className="gap-2">
-                <a
-                  href={`/api/contests/${submissionId}/protocol`}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Download className="h-4 w-4" />
-                  Pobierz protokół z wyboru ofert
-                </a>
+              <Button
+                variant="default"
+                className="gap-2"
+                disabled={protocolDownloading}
+                onClick={() => void handleDownloadProtocol()}
+              >
+                {protocolDownloading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Download className="h-4 w-4" aria-hidden />
+                )}
+                {protocolDownloading ? 'Generowanie protokołu…' : 'Pobierz protokół z wyboru ofert'}
               </Button>
             ) : null}
             <Button variant="outline" onClick={() => router.push(backHref)} className="gap-2">
@@ -790,7 +820,6 @@ export function ManagerOfferCompareClient({
           if (!o) {
             setDetailApp(null);
             setDetailBid(null);
-            setShowContactDetails(false);
           }
         }}
       >
@@ -954,7 +983,7 @@ export function ManagerOfferCompareClient({
                 </div>
               )}
 
-              {isSelectedOffer && showContactDetails ? (
+              {isSelectedOffer ? (
                 <section className="rounded-xl border bg-muted/30 p-4">
                   <h4 className="mb-3 text-sm font-semibold">Kontakt do wykonawcy</h4>
                   {detailProfile ? (
@@ -976,22 +1005,11 @@ export function ManagerOfferCompareClient({
                 </section>
               ) : null}
 
-              {(showSelectInDetail || isSelectedOffer) ? (
+              {showSelectInDetail ? (
                 <div className="flex flex-col gap-2 sm:flex-row pt-2">
-                  {showSelectInDetail ? (
-                    <Button className="flex-1" onClick={openConfirmSelect}>
-                      Wybierz tę ofertę
-                    </Button>
-                  ) : null}
-                  {isSelectedOffer ? (
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setShowContactDetails((prev) => !prev)}
-                    >
-                      {showContactDetails ? 'Ukryj dane kontaktowe' : 'Zapytaj o szczegóły'}
-                    </Button>
-                  ) : null}
+                  <Button className="flex-1" onClick={openConfirmSelect}>
+                    Wybierz tę ofertę
+                  </Button>
                 </div>
               ) : null}
             </div>

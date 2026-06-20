@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_companies_last_active ON companies(last_active);
 CREATE INDEX IF NOT EXISTS idx_companies_profile_data ON companies USING GIN(profile_data);
 CREATE INDEX IF NOT EXISTS idx_companies_experience_data ON companies USING GIN(experience_data);
 
--- contractor_browse_view + get_contractors_for_browse removed 2026-06-11 (database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- contractor_browse_view + get_contractors_for_browse removed 2026-06-11 (supabase/migrations/20260611140000_drop_unused_schema.sql)
 
 -- Browse query indexes (app uses direct companies queries)
 CREATE INDEX IF NOT EXISTS idx_contractor_browse_city ON companies(city) WHERE type = 'contractor';

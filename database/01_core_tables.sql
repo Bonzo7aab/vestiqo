@@ -73,7 +73,7 @@ CREATE TABLE user_companies (
 );
 
 -- =============================================
--- SUBSCRIPTION MANAGEMENT — removed 2026-06-11 (see database/pending-prod/20260611140000_drop_unused_schema.sql)
+-- SUBSCRIPTION MANAGEMENT — removed 2026-06-11 (see supabase/migrations/20260611140000_drop_unused_schema.sql)
 -- =============================================
 
 -- =============================================
