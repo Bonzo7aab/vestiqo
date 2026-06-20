@@ -10,6 +10,7 @@ import {
   type JobApplicationSubmitPayload,
 } from '../components/JobApplicationModal';
 import CategoryIconBar from '../components/CategoryIconBar';
+import { HomeHeroSection } from '../components/HomeHeroSection';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '../contexts/AuthContext';
@@ -702,6 +703,7 @@ function HomePageContent() {
 
       {!isMapExpanded && (
         <div className="w-full">
+          {!user && <HomeHeroSection />}
           <CategoryIconBar jobs={loadedJobs} />
 
           <div className="max-w-7xl mx-auto sm:px-4 md:px-6 lg:px-8">
