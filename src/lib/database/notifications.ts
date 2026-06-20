@@ -4,6 +4,11 @@
 
 import { createClient } from '../supabase/client';
 import type { Database } from '../../types/database';
+import {
+  DEFAULT_IN_APP_NOTIFICATION_PREFERENCES,
+  mapInAppNotificationPreferences,
+  type InAppNotificationPreferences,
+} from '../notifications/opd41-preferences';
 
 type NotificationPreferences = Database['public']['Tables']['notification_preferences']['Row'];
 type NotificationPreferencesInsert = Database['public']['Tables']['notification_preferences']['Insert'];
@@ -45,6 +50,72 @@ export async function getNotificationPreferences(
 
   return data;
 }
+
+/**
+ * OPD-41: Save role-specific in-app notification toggles.
+ */
+export async function saveInAppNotificationPreferences(
+  userId: string,
+  preferences: InAppNotificationPreferences,
+): Promise<NotificationPreferences> {
+  const supabase = createClient();
+
+  const dbPreferences: NotificationPreferencesUpdate = {
+    manager_contest_question_notifications:
+      preferences.managerContestQuestionNotifications,
+    contractor_contest_resolution_notifications:
+      preferences.contractorContestResolutionNotifications,
+    contractor_contest_answer_notifications:
+      preferences.contractorContestAnswerNotifications,
+    updated_at: new Date().toISOString(),
+  };
+
+  const existing = await getNotificationPreferences(userId);
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .update(dbPreferences)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating in-app notification preferences:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  const insertData: NotificationPreferencesInsert = {
+    user_id: userId,
+    email_notifications: true,
+    push_notifications: true,
+    message_notifications: true,
+    marketing_notifications: false,
+    ...dbPreferences,
+  };
+
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .insert(insertData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error inserting in-app notification preferences:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export {
+  DEFAULT_IN_APP_NOTIFICATION_PREFERENCES,
+  mapInAppNotificationPreferences,
+  type InAppNotificationPreferences,
+};
 
 /**
  * Save notification preferences for a user

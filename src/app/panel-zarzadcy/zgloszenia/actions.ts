@@ -10,6 +10,7 @@ import {
   acceptManagerJobOffer,
   acceptManagerTenderOffer,
 } from '../../../lib/database/offer-selection';
+import { notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
 import { JOB_WORKFLOW_STATUSES } from '../../../lib/job-workflow-status';
 import { TENDER_WORKFLOW_STATUSES } from '../../../lib/tender-workflow-status';
 import { revalidatePath } from 'next/cache';
@@ -194,6 +195,11 @@ export async function acceptTenderOfferAction(
   });
 
   if (result.success) {
+    try {
+      await notifyContestOfferResolution(tenderId.trim(), bidId.trim());
+    } catch (notifyError) {
+      console.error('notifyContestOfferResolution:', notifyError);
+    }
     revalidatePath('/panel-zarzadcy/zgloszenia');
     revalidatePath('/panel-zarzadcy/konkursy');
     revalidatePath('/panel-zarzadcy/zamowienia');

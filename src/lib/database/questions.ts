@@ -629,7 +629,18 @@ export async function submitQuestion(
   jobId: string,
   askerId: string,
   question: string,
-): Promise<{ success: boolean; error: PostgrestError | Error | null; questionId?: string }> {
+): Promise<{
+  success: boolean;
+  error: PostgrestError | Error | null;
+  questionId?: string;
+  notifyManagerContestQuestion?: {
+    questionId: string;
+    contestId: string;
+    managerId: string;
+    contestTitle: string;
+    questionText: string;
+  };
+}> {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
@@ -695,9 +706,9 @@ export async function submitQuestion(
     }
 
     const questionId = questionRow?.id ?? '';
+    const isContestQa = !isJob && meta.isContest;
 
     if (meta.managerId && authenticatedUserId !== meta.managerId) {
-      const isContestQa = !isJob && meta.isContest;
       const actionUrl = isContestQa
         ? `/panel-zarzadcy/konkursy?contestId=${jobId}&tab=questions`
         : `/konkurs/${jobId}`;
@@ -708,28 +719,41 @@ export async function submitQuestion(
         : 'Nowe pytanie dotyczące ogłoszenia';
 
       try {
-        await createNotification(
-          supabase,
-          meta.managerId,
-          notificationType,
-          notificationTitle,
-          isContestQa
-            ? `Otrzymałeś nowe pytanie do konkursu: ${meta.title}`
-            : `Otrzymałeś nowe pytanie dotyczące ogłoszenia: ${meta.title}`,
-          {
-            questionId,
-            tenderId: isJob ? undefined : jobId,
-            jobId: isJob ? jobId : undefined,
-            title: meta.title,
-          },
-          actionUrl,
-        );
+        if (!isContestQa) {
+          await createNotification(
+            supabase,
+            meta.managerId,
+            notificationType,
+            notificationTitle,
+            `Otrzymałeś nowe pytanie dotyczące ogłoszenia: ${meta.title}`,
+            {
+              questionId,
+              jobId,
+              title: meta.title,
+            },
+            actionUrl,
+          );
+        }
       } catch (notifError) {
         console.warn('Error creating notification:', notifError);
       }
     }
 
-    return { success: true, error: null, questionId };
+    return {
+      success: true,
+      error: null,
+      questionId,
+      notifyManagerContestQuestion:
+        isContestQa && meta.managerId && authenticatedUserId !== meta.managerId
+          ? {
+              questionId,
+              contestId: jobId,
+              managerId: meta.managerId,
+              contestTitle: meta.title,
+              questionText: trimmedQuestion,
+            }
+          : undefined,
+    };
   } catch (err) {
     console.error('Error submitting question:', err);
     return { success: false, error: err instanceof Error ? err : new Error('Unknown error') };

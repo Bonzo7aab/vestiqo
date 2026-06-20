@@ -23,6 +23,7 @@ import {
 } from '../../lib/contest-questions/format-contest-question-label';
 import { ContestQuestionCommentsList } from '../contest-questions/ContestQuestionCommentsList';
 import { ManagerContestQuestionsPanel } from '../manager-dashboard/ManagerContestQuestionsPanel';
+import { notifyManagerContestQuestionAction } from '../../app/pytania-konkursu/actions';
 
 interface ContestQuestionsTabProps {
   tenderId: string;
@@ -152,6 +153,9 @@ function ContestQuestionsContractorTab({
           description: result.error instanceof Error ? result.error.message : undefined,
         });
         return;
+      }
+      if (result.notifyManagerContestQuestion) {
+        void notifyManagerContestQuestionAction(result.notifyManagerContestQuestion);
       }
       toast.success('Pytanie zostało wysłane', {
         description: 'Organizator odpowie publicznie, gdy opublikuje odpowiedź.',

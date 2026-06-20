@@ -91,7 +91,7 @@ export interface SystemNotification {
    * Subset of the system events the bell currently surfaces. Extend as more
    * platform-level notifications are wired in.
    */
-  type: 'verification_approved' | 'verification_rejected';
+  type: 'verification_approved' | 'verification_rejected' | 'system_announcement';
   title: string;
   message: string;
   actionUrl?: string;

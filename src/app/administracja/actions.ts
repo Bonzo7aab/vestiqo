@@ -919,6 +919,92 @@ async function adminDeleteUserAccountActionImpl(
   return { ok: true };
 }
 
+type SystemAnnouncementKind = 'legal' | 'maintenance';
+
+async function broadcastSystemAnnouncementActionImpl(params: {
+  kind: SystemAnnouncementKind;
+  effectiveDate: string;
+  fromTime?: string;
+  toTime?: string;
+}): Promise<{ ok: boolean; error?: string; sentCount?: number }> {
+  const { kind, effectiveDate, fromTime, toTime } = params;
+
+  if (!effectiveDate.trim()) {
+    return { ok: false, error: 'Podaj datę.' };
+  }
+
+  if (kind === 'maintenance' && (!fromTime?.trim() || !toTime?.trim())) {
+    return { ok: false, error: 'Podaj godziny rozpoczęcia i zakończenia przerwy.' };
+  }
+
+  const { supabase, userId: actorId } = await requirePlatformAdmin('/administracja/ustawienia');
+  const admin = createAdminClientOrNull();
+  if (!admin) {
+    return { ok: false, error: 'Brak uprawnień serwisowych do wysyłki powiadomień.' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: users, error: usersError } = await (admin as any)
+    .from('user_profiles')
+    .select('id');
+
+  if (usersError) {
+    return { ok: false, error: usersError.message };
+  }
+
+  const {
+    buildLegalAnnouncementMessage,
+    buildMaintenanceAnnouncementMessage,
+    createOpd41Notification,
+  } = await import('../../lib/notifications/opd41-server');
+
+  const title =
+    kind === 'legal' ? 'Aktualizacja regulaminu' : 'Przerwa techniczna';
+  const message =
+    kind === 'legal'
+      ? buildLegalAnnouncementMessage(effectiveDate.trim())
+      : buildMaintenanceAnnouncementMessage(
+          effectiveDate.trim(),
+          fromTime?.trim() ?? '',
+          toTime?.trim() ?? '',
+        );
+  const actionUrl = kind === 'legal' ? '/regulamin' : null;
+
+  let sentCount = 0;
+  for (const row of (users ?? []) as Array<{ id: string }>) {
+    const result = await createOpd41Notification({
+      supabase: admin,
+      userId: row.id,
+      kind: 'system_announcement',
+      type: 'system_announcement',
+      title,
+      message,
+      data: {
+        kind,
+        effectiveDate: effectiveDate.trim(),
+        fromTime: fromTime?.trim(),
+        toTime: toTime?.trim(),
+      },
+      actionUrl,
+      priority: 'high',
+    });
+    if (result.notificationId) {
+      sentCount += 1;
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await logAdminAction(supabase as any, actorId, 'broadcast_system_announcement', null, null, {
+    kind,
+    effectiveDate: effectiveDate.trim(),
+    fromTime: fromTime?.trim() ?? null,
+    toTime: toTime?.trim() ?? null,
+    sentCount,
+  });
+
+  return { ok: true, sentCount };
+}
+
 export const approveVerificationSubjectAction = instrumentServerAction(
   'approveVerificationSubjectAction',
   approveVerificationSubjectActionImpl
@@ -989,4 +1075,8 @@ export const updateRegistrationSettingsAction = instrumentServerAction(
 export const adminDeleteUserAccountAction = instrumentServerAction(
   'adminDeleteUserAccountAction',
   adminDeleteUserAccountActionImpl,
+);
+export const broadcastSystemAnnouncementAction = instrumentServerAction(
+  'broadcastSystemAnnouncementAction',
+  broadcastSystemAnnouncementActionImpl,
 );

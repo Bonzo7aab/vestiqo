@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '../../../lib/supabase/server';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection';
+import { notifyContestCancelledToContractors, notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
 import { deleteManagerContestDraft } from '../../../lib/database/manager-contests';
 import { canCancelContest } from '../../../lib/tender-workflow-status';
 
@@ -50,6 +51,11 @@ export async function acceptTenderOfferAction(
   });
 
   if (result.success) {
+    try {
+      await notifyContestOfferResolution(tenderId.trim(), bidId.trim());
+    } catch (notifyError) {
+      console.error('notifyContestOfferResolution:', notifyError);
+    }
     revalidateKonkursy(tenderId.trim());
     revalidatePath('/panel-zarzadcy/zgloszenia');
     revalidatePath('/panel-zarzadcy/zamowienia');
@@ -112,6 +118,12 @@ export async function cancelContestAction(
 
   if (updateErr) {
     return { success: false, error: updateErr.message || 'Nie udało się unieważnić konkursu' };
+  }
+
+  try {
+    await notifyContestCancelledToContractors(supabase, tenderId.trim());
+  } catch (notifyError) {
+    console.error('notifyContestCancelledToContractors:', notifyError);
   }
 
   revalidateKonkursy(tenderId.trim());

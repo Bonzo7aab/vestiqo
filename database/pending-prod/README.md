@@ -30,6 +30,8 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../supa
 | `20260611130000_push_subscriptions.sql` | Track `push_subscriptions` DDL + RLS | Applied | No*** |
 | `20260611140000_drop_unused_schema.sql` | Drop 14 unused tables + browse RPCs | Applied | No |
 | `20260612120000_rename_tenders_to_contests.sql` | Rename `tenders`→`contests`, `tender_bids`→`contest_offers`, columns, RLS, RPCs | Applied | No |
+| `20260620120000_opd41_in_app_notifications.sql` | OPD-41 in-app notification prefs (3 columns) | Applied | No |
+| `20260620120001_opd41_contest_end_cron.sql` | OPD-41 contest-end cron + manager critical notify | Applied | No |
 
 \*Prod may already have the resulting schema from manual/`database/*.sql` runs — migration history is still missing.  
 \*\*Prod has later OPD-70 migrations; base file may be redundant if schema already exists — verify before applying.  

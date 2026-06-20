@@ -14,7 +14,7 @@ import type {
   DocumentReviewMap,
   VerificationDocumentEntry,
 } from '../lib/database/admin-verification';
-import { ContractorNotificationsPanel } from './ContractorNotificationsPanel';
+import { InAppNotificationSettingsPanel } from './InAppNotificationSettingsPanel';
 import { UserAccountHeader } from './UserAccountHeader';
 import { Tabs, TabsContent } from './ui/tabs';
 import { cn } from './ui/utils';
@@ -220,7 +220,7 @@ export function UserAccountPageClient({
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
               )}
             >
-              Zgody na powiadomienia
+              Ustawienia powiadomień
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ export function UserAccountPageClient({
           </TabsContent>
 
           <TabsContent value={KONTO_TABS.powiadomienia} className="space-y-6">
-            <ContractorNotificationsPanel userId={user.id} />
+            <InAppNotificationSettingsPanel userId={user.id} userType={user.userType} />
           </TabsContent>
         </Tabs>
       </div>

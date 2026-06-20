@@ -6,6 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useUserProfile } from '../contexts/AuthContext';
 import { submitQuestion } from '../lib/database/questions';
+import { notifyManagerContestQuestionAction } from '../app/pytania-konkursu/actions';
 import { toast } from 'sonner';
 
 interface AskQuestionModalProps {
@@ -58,6 +59,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
           description: result.error?.message || 'Spróbuj ponownie później.'
         });
         return;
+      }
+
+      if (result.notifyManagerContestQuestion) {
+        void notifyManagerContestQuestionAction(result.notifyManagerContestQuestion);
       }
       
       toast.success('Pytanie zostało wysłane!', {

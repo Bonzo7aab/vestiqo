@@ -64,6 +64,8 @@ function getNotificationCategoryAndType(
       return { category: 'system', type: 'verification_approved' };
     case 'verification_rejected':
       return { category: 'system', type: 'verification_rejected' };
+    case 'system_announcement':
+      return { category: 'system', type: 'system_announcement' };
 
     case 'new_message':
       return { category: 'message', type: 'new_message' };
@@ -368,6 +370,9 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
       }
       case 'system': {
         const systemNotif = notification as SystemNotification;
+        if (!systemNotif.actionUrl) {
+          break;
+        }
         const verificationPath =
           user?.userType === 'manager' ? '/konto' : KONTO_DOKUMENTY_PATH;
         const target =
@@ -449,6 +454,8 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
             return <ShieldCheck className="h-4 w-4 text-green-600" />;
           case 'verification_rejected':
             return <ShieldX className="h-4 w-4 text-red-600" />;
+          case 'system_announcement':
+            return <Bell className="h-4 w-4 text-amber-600" />;
         }
         break;
       }
