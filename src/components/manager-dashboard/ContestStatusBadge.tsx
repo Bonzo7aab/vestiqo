@@ -38,6 +38,15 @@ export function ContestStatusBadge({ status }: ContestStatusBadgeProps): ReactEl
     );
   }
 
+  if (status === 'no_offers') {
+    return (
+      <Badge variant="outline" className={`gap-1 font-normal text-muted-foreground border-muted-foreground/40 ${BADGE_NOWRAP}`}>
+        <XCircle className="h-3 w-3" aria-hidden />
+        {label}
+      </Badge>
+    );
+  }
+
   if (status === 'awarded') {
     return (
       <Badge variant="outline" className={`gap-1 font-normal border-green-600 text-green-700 ${BADGE_NOWRAP}`}>

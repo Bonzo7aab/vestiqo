@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Lock, Phone, Mail } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Download, Lock, Phone, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '../../lib/supabase/client';
 import {
@@ -55,6 +55,12 @@ import {
   TableRow,
 } from '../ui/table';
 import { cn } from '../ui/utils';
+import { Textarea } from '../ui/textarea';
+import { Label } from '../ui/label';
+import {
+  SELECTION_JUSTIFICATION_MAX_LENGTH,
+  SELECTION_JUSTIFICATION_MIN_LENGTH,
+} from '../../lib/database/offer-selection';
 
 function grossFromVat(net: number, vatPercent: number): number {
   return Math.round(net * (1 + vatPercent / 100));
@@ -205,6 +211,21 @@ function SortableTh({ label, sortKey, sort, onSort }: SortableThProps): React.Re
   );
 }
 
+function OfferStatusBadge({ isWinner }: { isWinner: boolean }): React.ReactElement {
+  if (isWinner) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+        Wybrana
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+      Niewybrana
+    </span>
+  );
+}
+
 export function ManagerOfferCompareClient({
   submissionId,
   kind,
@@ -225,6 +246,7 @@ export function ManagerOfferCompareClient({
   const [confirmSelectOpen, setConfirmSelectOpen] = useState(false);
   const [pendingSelectBid, setPendingSelectBid] = useState<TenderBidLike | null>(null);
   const [selectingOffer, setSelectingOffer] = useState(false);
+  const [selectionJustification, setSelectionJustification] = useState('');
 
   const [sort, setSort] = useState<CompareSortState>({ key: 'net', dir: 'asc' });
 
@@ -431,13 +453,19 @@ export function ManagerOfferCompareClient({
   };
 
   const openConfirmSelect = (): void => {
+    setSelectionJustification('');
     setConfirmSelectOpen(true);
   };
 
   const openConfirmSelectBid = (bid: TenderBidLike): void => {
     setPendingSelectBid(bid);
+    setSelectionJustification('');
     setConfirmSelectOpen(true);
   };
+
+  const justificationValid =
+    selectionJustification.trim().length >= SELECTION_JUSTIFICATION_MIN_LENGTH &&
+    selectionJustification.trim().length <= SELECTION_JUSTIFICATION_MAX_LENGTH;
 
   const submissionRedirectUrl = (): string => {
     if (contestMode) {
@@ -465,7 +493,11 @@ export function ManagerOfferCompareClient({
           return;
         }
         const result = contestMode
-          ? await acceptContestOfferAction(submissionId, bidToSelect.id)
+          ? await acceptContestOfferAction(
+              submissionId,
+              bidToSelect.id,
+              selectionJustification.trim(),
+            )
           : await acceptTenderOfferAction(submissionId, bidToSelect.id);
         if (!result.success) {
           toast.error(result.error || 'Nie udało się wybrać oferty');
@@ -478,6 +510,7 @@ export function ManagerOfferCompareClient({
 
       setConfirmSelectOpen(false);
       setPendingSelectBid(null);
+      setSelectionJustification('');
       setDetailApp(null);
       setDetailBid(null);
       toast.success('Oferta została wybrana');
@@ -518,10 +551,25 @@ export function ManagerOfferCompareClient({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">Porównanie ofert</h1>
-          <Button variant="outline" onClick={() => router.push(backHref)} className="gap-2 shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-            {contestMode ? 'Powrót do konkursów' : 'Powrót do listy zgłoszeń'}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {contestMode && tenderStatus === 'awarded' ? (
+              <Button variant="default" asChild className="gap-2">
+                <a
+                  href={`/api/contests/${submissionId}/protocol`}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Download className="h-4 w-4" />
+                  Pobierz protokół z wyboru ofert
+                </a>
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => router.push(backHref)} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              {contestMode ? 'Powrót do konkursów' : 'Powrót do listy zgłoszeń'}
+            </Button>
+          </div>
         </div>
         <div>
           <p className="text-muted-foreground">{title}</p>
@@ -610,13 +658,17 @@ export function ManagerOfferCompareClient({
                   <SortableTh label="Termin rozpoczęcia" sortKey="start" sort={sort} onSort={toggleSort} />
                   <SortableTh label="Czas realizacji" sortKey="duration" sort={sort} onSort={toggleSort} />
                   <SortableTh label="Gwarancja" sortKey="guarantee" sort={sort} onSort={toggleSort} />
+                  {compareReadOnly ? <TableHead>Status oferty</TableHead> : null}
                   <TableHead className="text-right">Akcja</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tenderBids.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                    <TableCell
+                      colSpan={compareReadOnly ? 9 : 8}
+                      className="text-center text-muted-foreground py-10"
+                    >
                       Brak złożonych ofert do porównania.
                     </TableCell>
                   </TableRow>
@@ -650,6 +702,11 @@ export function ManagerOfferCompareClient({
                         <TableCell>
                           {warranty != null ? `${warranty} msc` : '—'}
                         </TableCell>
+                        {compareReadOnly ? (
+                          <TableCell>
+                            <OfferStatusBadge isWinner={isWinner} />
+                          </TableCell>
+                        ) : null}
                         <TableCell className="text-right space-x-2">
                           <Button size="sm" variant="outline" onClick={() => openDetailFromBid(bid)}>
                             Szczegóły
@@ -658,9 +715,6 @@ export function ManagerOfferCompareClient({
                             <Button size="sm" onClick={() => openConfirmSelectBid(bid)}>
                               Wybierz ofertę
                             </Button>
-                          ) : null}
-                          {isWinner ? (
-                            <span className="text-xs font-medium text-primary">Wybrana</span>
                           ) : null}
                         </TableCell>
                       </TableRow>
@@ -949,33 +1003,70 @@ export function ManagerOfferCompareClient({
         open={confirmSelectOpen}
         onOpenChange={(open) => {
           setConfirmSelectOpen(open);
-          if (!open) setPendingSelectBid(null);
+          if (!open) {
+            setPendingSelectBid(null);
+            setSelectionJustification('');
+          }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Czy na pewno chcesz wybrać tę ofertę?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingSelectBid || detailBid ? (
-                <>
-                  Wykonawca:{' '}
-                  <strong>
-                    {(pendingSelectBid ?? detailBid)?.contractorCompany}
-                  </strong>
-                  . Po potwierdzeniu pozostałe oferty zostaną odrzucone, a Ty zobaczysz pełne
-                  dane kontaktowe wykonawcy.
-                </>
-              ) : (
-                <>
-                  Po potwierdzeniu pozostałe oferty zostaną odrzucone, a Ty zobaczysz pełne dane
-                  kontaktowe wykonawcy na stronie zgłoszenia.
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-sm text-muted-foreground">
+                {pendingSelectBid || detailBid ? (
+                  <p>
+                    Wykonawca:{' '}
+                    <strong className="text-foreground">
+                      {(pendingSelectBid ?? detailBid)?.contractorCompany}
+                    </strong>
+                    . Po potwierdzeniu pozostałe oferty zostaną odrzucone, a konkurs zostanie
+                    rozstrzygnięty.
+                  </p>
+                ) : (
+                  <p>
+                    Po potwierdzeniu pozostałe oferty zostaną odrzucone, a konkurs zostanie
+                    rozstrzygnięty.
+                  </p>
+                )}
+                {contestMode ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="selection-justification" className="text-foreground">
+                      Uzasadnienie wyboru
+                    </Label>
+                    <Textarea
+                      id="selection-justification"
+                      value={selectionJustification}
+                      onChange={(e) => setSelectionJustification(e.target.value)}
+                      placeholder="Np. Wybrano ofertę firmy X, ponieważ zaoferowała najdłuższy okres gwarancji przy optymalnej cenie…"
+                      rows={4}
+                      maxLength={SELECTION_JUSTIFICATION_MAX_LENGTH}
+                      className="resize-none bg-background text-foreground"
+                    />
+                    <p className="text-xs">
+                      Min. {SELECTION_JUSTIFICATION_MIN_LENGTH} znaków. Notatka trafi do protokołu
+                      z wyboru ofert.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={selectingOffer}>Anuluj</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleConfirmSelectOffer()} disabled={selectingOffer}>
+            <AlertDialogAction
+              onClick={(e) => {
+                if (contestMode && !justificationValid) {
+                  e.preventDefault();
+                  toast.error(
+                    `Uzasadnienie wyboru musi mieć co najmniej ${SELECTION_JUSTIFICATION_MIN_LENGTH} znaków`,
+                  );
+                  return;
+                }
+                void handleConfirmSelectOffer();
+              }}
+              disabled={selectingOffer || (contestMode && !justificationValid)}
+            >
               {selectingOffer ? 'Zapisywanie…' : 'Potwierdzam wybór'}
             </AlertDialogAction>
           </AlertDialogFooter>

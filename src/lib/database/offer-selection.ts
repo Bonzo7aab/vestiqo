@@ -9,6 +9,28 @@ import {
 } from './jobs';
 import { resolveContestBidPricing } from './contractor-contest-offers';
 
+export const SELECTION_JUSTIFICATION_MIN_LENGTH = 10;
+export const SELECTION_JUSTIFICATION_MAX_LENGTH = 1000;
+
+export function validateSelectionJustification(
+  value: string,
+): { ok: true; trimmed: string } | { ok: false; error: string } {
+  const trimmed = value.trim();
+  if (trimmed.length < SELECTION_JUSTIFICATION_MIN_LENGTH) {
+    return {
+      ok: false,
+      error: `Uzasadnienie wyboru musi mieć co najmniej ${SELECTION_JUSTIFICATION_MIN_LENGTH} znaków`,
+    };
+  }
+  if (trimmed.length > SELECTION_JUSTIFICATION_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `Uzasadnienie wyboru może mieć maksymalnie ${SELECTION_JUSTIFICATION_MAX_LENGTH} znaków`,
+    };
+  }
+  return { ok: true, trimmed };
+}
+
 export interface AcceptOfferResult {
   success: boolean;
   error?: string;
@@ -184,10 +206,20 @@ export async function acceptManagerTenderOffer(
     bidId: string;
     managerId: string;
     companyId: string;
+    selectionJustification?: string;
   },
 ): Promise<AcceptOfferResult> {
   const tenderId = params.tenderId.trim();
   const bidId = params.bidId.trim();
+
+  let selectionJustification: string | null = null;
+  if (params.selectionJustification != null) {
+    const validation = validateSelectionJustification(params.selectionJustification);
+    if (validation.ok === false) {
+      return { success: false, error: validation.error };
+    }
+    selectionJustification = validation.trimmed;
+  }
 
   const ownership = await verifyTenderOwnership(
     supabase,
@@ -268,7 +300,14 @@ export async function acceptManagerTenderOffer(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: tenderErr } = await (supabase as any)
     .from('contests')
-    .update({ status: 'awarded', updated_at: now })
+    .update({
+      status: 'awarded',
+      updated_at: now,
+      awarded_at: now,
+      ...(selectionJustification != null
+        ? { selection_justification: selectionJustification }
+        : {}),
+    })
     .eq('id', tenderId)
     .eq('manager_id', params.managerId);
 

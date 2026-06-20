@@ -20,9 +20,14 @@ function revalidateKonkursy(tenderId?: string): void {
 export async function acceptTenderOfferAction(
   tenderId: string,
   bidId: string,
+  selectionJustification?: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (!tenderId?.trim() || !bidId?.trim()) {
     return { success: false, error: 'Nieprawidłowe dane' };
+  }
+
+  if (!selectionJustification?.trim()) {
+    return { success: false, error: 'Uzasadnienie wyboru jest wymagane' };
   }
 
   const supabase = await createClient();
@@ -48,6 +53,7 @@ export async function acceptTenderOfferAction(
     bidId: bidId.trim(),
     managerId: user.id,
     companyId: company.id,
+    selectionJustification,
   });
 
   if (result.success) {

@@ -71,21 +71,95 @@ export function formatContestLocationLabel(row: {
 }
 
 /**
- * Moves contests past submission deadline from active → evaluation.
+ * Counts submitted contest offers (excludes draft/cancelled and admin-suspended).
+ */
+async function fetchContestOfferCountsById(
+  supabase: SupabaseClient<Database>,
+  contestIds: string[],
+): Promise<Record<string, number>> {
+  if (contestIds.length === 0) return {};
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: bids } = await (supabase as any)
+    .from('contest_offers')
+    .select('contest_id, status, admin_moderation_status')
+    .in('contest_id', contestIds);
+
+  const counts: Record<string, number> = {};
+  for (const row of bids || []) {
+    const contestId = row.contest_id as string;
+    const status = row.status as string;
+    const moderationStatus = row.admin_moderation_status as string | null | undefined;
+    if (
+      countsTowardContestOfferCount(status) &&
+      moderationStatus !== 'suspended'
+    ) {
+      counts[contestId] = (counts[contestId] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+/**
+ * Moves contests past submission deadline:
+ * - active + offers → evaluation
+ * - active/evaluation + no offers → no_offers
  */
 export async function advanceContestsPastSubmissionDeadline(
   supabase: SupabaseClient<Database>,
   companyId: string,
 ): Promise<void> {
   const now = new Date().toISOString();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  const { data: activePast } = await (supabase as any)
     .from('contests')
-    .update({ status: 'evaluation', updated_at: now })
+    .select('id')
     .eq('company_id', companyId)
     .eq('status', 'active')
     .or(CONTEST_TENDERS_OR_FILTER)
     .lt('submission_deadline', now);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: evaluationPast } = await (supabase as any)
+    .from('contests')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('status', 'evaluation')
+    .or(CONTEST_TENDERS_OR_FILTER)
+    .lt('submission_deadline', now);
+
+  const activeIds = ((activePast || []) as { id: string }[]).map((r) => r.id);
+  const evaluationIds = ((evaluationPast || []) as { id: string }[]).map((r) => r.id);
+  const allIds = [...new Set([...activeIds, ...evaluationIds])];
+
+  if (allIds.length === 0) return;
+
+  const offerCounts = await fetchContestOfferCountsById(supabase, allIds);
+
+  const toEvaluation = activeIds.filter((id) => (offerCounts[id] ?? 0) > 0);
+  const toNoOffers = [
+    ...activeIds.filter((id) => (offerCounts[id] ?? 0) === 0),
+    ...evaluationIds.filter((id) => (offerCounts[id] ?? 0) === 0),
+  ];
+
+  if (toEvaluation.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('contests')
+      .update({ status: 'evaluation', updated_at: now })
+      .in('id', toEvaluation)
+      .eq('company_id', companyId);
+  }
+
+  if (toNoOffers.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('contests')
+      .update({ status: 'no_offers', updated_at: now })
+      .in('id', toNoOffers)
+      .eq('company_id', companyId);
+  }
 }
 
 /**

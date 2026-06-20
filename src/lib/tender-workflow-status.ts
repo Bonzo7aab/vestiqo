@@ -11,6 +11,7 @@ export const CONTEST_STATUS_FILTER_OPTIONS = [
   { value: 'draft', label: 'Szkic konkursu' },
   { value: 'active', label: 'Zbieranie ofert' },
   { value: 'evaluation', label: 'Wybór ofert' },
+  { value: 'no_offers', label: 'Brak ofert' },
   { value: 'awarded', label: 'Konkurs rozstrzygnięty' },
   { value: 'cancelled', label: 'Konkurs unieważniony' },
 ] as const;
@@ -24,6 +25,7 @@ const WORKFLOW_LABELS: Record<TenderWorkflowStatus, string> = {
 const EXTRA_LABELS: Record<string, string> = {
   draft: 'Szkic konkursu',
   paused: 'Wstrzymane',
+  no_offers: 'Brak ofert',
   cancelled: 'Konkurs unieważniony',
 };
 
@@ -130,7 +132,7 @@ export function isContestCompareReadOnly(status: string): boolean {
 }
 
 export function canCancelContest(status: string): boolean {
-  return status === 'active' || status === 'evaluation';
+  return status === 'active' || status === 'evaluation' || status === 'no_offers';
 }
 
 /** Manager may permanently delete an unpublished contest draft (no submitted offers). */

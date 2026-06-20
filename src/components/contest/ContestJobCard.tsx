@@ -97,10 +97,11 @@ function ListingStatusBadge({ status }: { status: string }): React.ReactElement 
         'inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide whitespace-nowrap',
         status === 'active' && 'bg-primary/10 text-primary',
         status === 'evaluation' && 'bg-primary/15 text-primary',
+        status === 'no_offers' && 'bg-muted text-muted-foreground',
         status === 'awarded' && 'bg-emerald-50 text-emerald-700',
         status === 'draft' && 'bg-muted text-muted-foreground',
         status === 'cancelled' && 'bg-destructive/10 text-destructive',
-        !['active', 'evaluation', 'awarded', 'draft', 'cancelled'].includes(status) &&
+        !['active', 'evaluation', 'no_offers', 'awarded', 'draft', 'cancelled'].includes(status) &&
           'bg-muted text-muted-foreground',
       )}
     >

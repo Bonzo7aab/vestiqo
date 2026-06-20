@@ -657,6 +657,7 @@ export type Database = {
         Row: {
           address: string | null
           allow_questions: boolean | null
+          awarded_at: string | null
           building_id: string | null
           category_id: string
           company_id: string
@@ -686,6 +687,7 @@ export type Database = {
           published_at: string | null
           requirements: string[] | null
           selection_criteria: Json | null
+          selection_justification: string | null
           site_visit_notes: string | null
           site_visit_type: string | null
           status: string | null
@@ -702,6 +704,7 @@ export type Database = {
         Insert: {
           address?: string | null
           allow_questions?: boolean | null
+          awarded_at?: string | null
           building_id?: string | null
           category_id: string
           company_id: string
@@ -731,6 +734,7 @@ export type Database = {
           published_at?: string | null
           requirements?: string[] | null
           selection_criteria?: Json | null
+          selection_justification?: string | null
           site_visit_notes?: string | null
           site_visit_type?: string | null
           status?: string | null
@@ -747,6 +751,7 @@ export type Database = {
         Update: {
           address?: string | null
           allow_questions?: boolean | null
+          awarded_at?: string | null
           building_id?: string | null
           category_id?: string
           company_id?: string
@@ -776,6 +781,7 @@ export type Database = {
           published_at?: string | null
           requirements?: string[] | null
           selection_criteria?: Json | null
+          selection_justification?: string | null
           site_visit_notes?: string | null
           site_visit_type?: string | null
           status?: string | null

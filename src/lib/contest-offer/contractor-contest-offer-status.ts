@@ -70,7 +70,7 @@ export function deriveContractorContestOfferStatus(
     return 'not_selected';
   }
 
-  if (tenderStatus === 'cancelled') {
+  if (tenderStatus === 'cancelled' || tenderStatus === 'no_offers') {
     return 'not_selected';
   }
 

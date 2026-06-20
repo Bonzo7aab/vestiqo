@@ -8,6 +8,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   CheckCircle2,
+  Eye,
   MoreVertical,
   Pencil,
   RotateCw,
@@ -22,7 +23,6 @@ import {
   CONTEST_STATUS_FILTER_OPTIONS,
   canAbandonManagerContestDraft,
   canCancelContest,
-  isContestCompareReadOnly,
 } from '../../lib/tender-workflow-status';
 import { formatSubmissionDeadlineDisplay, formatCompareLockedTooltip } from '../../lib/contest-submission-deadline';
 import {
@@ -367,8 +367,26 @@ export function ManagerKonkursyContent({
     );
   };
 
+  const renderViewResultAction = (row: ManagerContest): ReactElement | null => {
+    if (row.status !== 'awarded' || row.offersCount === 0) {
+      return null;
+    }
+
+    return (
+      <Button
+        variant="default"
+        size="sm"
+        className="h-8 shrink-0"
+        onClick={() => router.push(compareHref(row.id))}
+      >
+        <Eye className="h-4 w-4 mr-1.5" />
+        Zobacz wynik
+      </Button>
+    );
+  };
+
   const renderRepeatContestButton = (row: ManagerContest): ReactElement | null => {
-    if (row.status !== 'evaluation' || row.offersCount > 0) {
+    if (row.status !== 'no_offers') {
       return null;
     }
 
@@ -611,25 +629,12 @@ export function ManagerKonkursyContent({
                         <TableCell className="whitespace-nowrap">{renderStatusCell(row)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <span className="tabular-nums">{row.offersCount}</span>
-                          {row.hasSelectedOffer ? (
-                            <button
-                              type="button"
-                              className="ml-1 text-xs font-medium text-primary hover:underline"
-                              onClick={() => setWinnerDialogRow(row)}
-                              title={
-                                row.selectedContractorName
-                                  ? `Wygrana: ${row.selectedContractorName}`
-                                  : 'Zobacz zwycięską ofertę'
-                              }
-                            >
-                              (wygrana)
-                            </button>
-                          ) : null}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <div className="inline-flex flex-nowrap items-center justify-end gap-1.5">
                             {renderDraftContinueButton(row)}
                             {renderPrimaryEvaluationAction(row)}
+                            {renderViewResultAction(row)}
                             {renderCooperationReviewButton(row)}
                             {renderRepeatContestButton(row)}
                             {renderActionsMenu(row)}
