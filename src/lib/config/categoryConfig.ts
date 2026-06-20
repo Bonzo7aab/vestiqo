@@ -169,7 +169,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Przeglądy i Serwis',
     shortName: 'Przeglądy i Serwis',
     legacyNames: ['Przeglądy i Obsługa Techniczna', 'Przeglądy'],
-    color: '#374151',
+    color: '#0d9488',
     icon: ClipboardCheck,
     description: 'Przeglądy techniczne, inspekcje, serwis urządzeń',
     subcategories: [
@@ -197,7 +197,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     name: 'Inżynieria',
     shortName: 'Inżynieria',
     legacyNames: ['Ekspertyzy i Projekty', 'Ekspertyzy'],
-    color: '#64748b',
+    color: '#7c3aed',
     icon: DraftingCompass,
     description: 'Audyty energetyczne, projekty budowlane, nadzór inwestorski',
     subcategories: [
