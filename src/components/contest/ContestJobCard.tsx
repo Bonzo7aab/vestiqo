@@ -110,7 +110,6 @@ function ListingStatusBadge({ status }: { status: string }): React.ReactElement 
 }
 
 function ContestStatsSidebar({
-  viewCount,
   offerCount,
   isBookmarked,
   bookmarkTooltip,
@@ -124,7 +123,6 @@ function ContestStatsSidebar({
   isCheckingOffer,
   onApplyClick,
 }: {
-  viewCount: number;
   offerCount: number;
   isBookmarked: boolean;
   bookmarkTooltip: string;
@@ -141,11 +139,7 @@ function ContestStatsSidebar({
   return (
     <div className="flex min-h-full flex-col justify-between gap-4 p-4 md:w-40 lg:w-44">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 space-y-1.5 text-xs">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-muted-foreground">Wyświetlenia:</span>
-            <span className="shrink-0 font-semibold tabular-nums text-foreground">{viewCount}</span>
-          </div>
+        <div className="min-w-0 text-xs">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-muted-foreground">Złożone oferty:</span>
             <span className="shrink-0 font-semibold tabular-nums text-foreground">{offerCount}</span>
@@ -239,7 +233,6 @@ export function ContestJobCard({
     categoryLine;
 
   const offerCount = job.applications ?? job.metrics?.applications ?? 0;
-  const viewCount = job.metrics?.visits ?? job.visits_count ?? 0;
   const bookmarkTooltip = isBookmarked ? 'Usuń z zapisanych' : 'Dodaj do zapisanych';
   const showActions = !isManager && (onBookmark || onApplyClick);
 
@@ -341,7 +334,6 @@ export function ContestJobCard({
             onPointerDown={stopSidebarClick}
           >
             <ContestStatsSidebar
-              viewCount={viewCount}
               offerCount={offerCount}
               isBookmarked={isBookmarked}
               bookmarkTooltip={bookmarkTooltip}
