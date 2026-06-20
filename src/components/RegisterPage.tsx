@@ -367,6 +367,13 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
     const formData = new FormData(e.currentTarget);
     formData.set('phone', normalizePolishPhone(phone));
     formData.set('email', email.trim());
+    formData.set('companyName', companyName.trim());
+    formData.set('regon', regon.trim());
+    formData.set('address', gusAddress.trim());
+    formData.set('city', gusCity.trim());
+    formData.set('postalCode', postalCode.trim());
+    formData.set('bankAccountIban', bankAccountIban.trim());
+    formData.set('vatStatus', vatStatus.trim());
 
     startTransition(async () => {
       const result = await registerAction(formData);

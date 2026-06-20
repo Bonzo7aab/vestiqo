@@ -30,18 +30,6 @@ interface ProfileFormProps {
   includeBusinessData?: boolean;
 }
 
-const COMPANY_TYPE_LABELS: Record<string, string> = {
-  wspólnota: 'Wspólnota Mieszkaniowa',
-  spółdzielnia: 'Spółdzielnia Mieszkaniowa',
-  contractor: 'Firma Wykonawcza',
-  property_management: 'Zarząd Nieruchomości',
-  condo_management: 'Zarząd Wspólnoty',
-  housing_association: 'Stowarzyszenie Mieszkaniowe',
-  cooperative: 'Spółdzielnia',
-  construction_company: 'Firma Budowlana',
-  service_provider: 'Usługodawca',
-};
-
 function ReadOnlyValue({
   value,
   icon,
@@ -132,7 +120,6 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
 
   const [isLoadingBusiness, setIsLoadingBusiness] = useState(showBusinessData);
   const [companyName, setCompanyName] = useState('');
-  const [companyType, setCompanyType] = useState('');
   const [companyNip, setCompanyNip] = useState('');
   const [companyRegon, setCompanyRegon] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
@@ -250,7 +237,6 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
       const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
 
       setCompanyName(company?.name || '');
-      setCompanyType(company?.type || '');
       setCompanyNip((company?.nip || '').trim());
       setCompanyRegon((company?.regon || '').trim());
       setCompanyAddress(company?.address || '');
@@ -270,8 +256,6 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const vatLabel =
     VAT_STATUS_OPTIONS.find(option => option.value === vatStatus)?.label ??
     (vatStatus || '—');
-
-  const companyTypeLabel = COMPANY_TYPE_LABELS[companyType] || companyType || '—';
 
   return (
     <div className="space-y-4">
@@ -351,9 +335,6 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
               <ReadOnlyField label="Nazwa firmy" value={companyName} />
               <ReadOnlyField label="NIP" value={companyNip} />
               <ReadOnlyField label="REGON" value={companyRegon} />
-              {!isContractor ? (
-                <ReadOnlyField label="Typ organizacji" value={companyTypeLabel} />
-              ) : null}
               <ReadOnlyField label="Adres" value={companyAddress} emptyLabel="Nie podano" />
               <ReadOnlyField label="Miasto" value={companyCity} emptyLabel="Nie podano" />
               <ReadOnlyField label="Kod pocztowy" value={companyPostalCode} emptyLabel="Nie podano" />

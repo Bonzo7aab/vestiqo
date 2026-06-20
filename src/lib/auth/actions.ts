@@ -203,6 +203,32 @@ async function registerActionImpl(
     return { error: 'Podaj prawidłowy numer NIP' }
   }
 
+  let resolvedCompanyName = companyName
+  let resolvedRegon = regon
+  let resolvedAddress = gusAddress
+  let resolvedCity = gusCity
+  let resolvedPostalCode = postalCode
+
+  if (!resolvedRegon || !resolvedCompanyName) {
+    try {
+      const { lookupByNip } = await import('../gus/lookup-by-nip')
+      const gusData = await lookupByNip(normalizedNip)
+      if (gusData) {
+        resolvedRegon = resolvedRegon || gusData.regon
+        resolvedCompanyName = resolvedCompanyName || gusData.name
+        resolvedAddress = resolvedAddress || gusData.address
+        resolvedCity = resolvedCity || gusData.city
+        resolvedPostalCode = resolvedPostalCode || gusData.postalCode
+      }
+    } catch (error) {
+      console.error('[registerAction] GUS company backfill failed', error)
+    }
+  }
+
+  if (!resolvedCompanyName) {
+    redirect(`/rejestracja?error=${encodeURIComponent('Podaj prawidłowy NIP i poczekaj na pobranie nazwy firmy')}`)
+  }
+
   const { createAdminClient } = await import('../supabase/admin')
   const admin = createAdminClient()
 
@@ -272,13 +298,13 @@ async function registerActionImpl(
       : 'contractor'
 
   const companyPayload = {
-    name: companyName,
+    name: resolvedCompanyName,
     type: companyType,
     nip: normalizedNip || null,
-    regon,
-    address: gusAddress,
-    city: gusCity || (userType === 'manager' ? 'Warszawa' : null),
-    postal_code: postalCode,
+    regon: resolvedRegon,
+    address: resolvedAddress,
+    city: resolvedCity || (userType === 'manager' ? 'Warszawa' : null),
+    postal_code: resolvedPostalCode,
     country: 'PL',
     email: email,
     phone: normalizedPhone || null,
