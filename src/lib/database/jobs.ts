@@ -58,6 +58,19 @@ export interface JobFilters {
   tenderScope?: 'contest' | 'all';
 }
 
+type GeographicBounds = NonNullable<JobFilters['bounds']>;
+
+/** Include rows in viewport and rows without stored coords (client geocodes from city). */
+function applyGeographicBoundsFilter<T extends { or: (filters: string) => T }>(
+  query: T,
+  bounds: GeographicBounds,
+): T {
+  const { south, north, west, east } = bounds;
+  return query.or(
+    `and(latitude.gte.${south},latitude.lte.${north},longitude.gte.${west},longitude.lte.${east}),latitude.is.null`,
+  );
+}
+
 export interface JobLocation {
   city: string;
   sublocality_level_1?: string;
@@ -1012,11 +1025,7 @@ export async function fetchJobs(
 
     // Apply bounds filtering (geographic bounds)
     if (filters.bounds) {
-      query = query
-        .gte('latitude', filters.bounds.south)
-        .lte('latitude', filters.bounds.north)
-        .gte('longitude', filters.bounds.west)
-        .lte('longitude', filters.bounds.east);
+      query = applyGeographicBoundsFilter(query, filters.bounds);
     }
 
     // Apply sorting
@@ -1223,11 +1232,7 @@ export async function fetchTenders(
 
     // Apply bounds filtering (geographic bounds)
     if (filters.bounds) {
-      query = query
-        .gte('latitude', filters.bounds.south)
-        .lte('latitude', filters.bounds.north)
-        .gte('longitude', filters.bounds.west)
-        .lte('longitude', filters.bounds.east);
+      query = applyGeographicBoundsFilter(query, filters.bounds);
     }
 
     // Apply sorting
