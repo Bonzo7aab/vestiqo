@@ -16,7 +16,8 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 
 | File | Purpose | Test | Prod |
 |------|---------|------|------|
-| *(none)* | — | — | — |
+| `20260621120000_opd41_split_contractor_prefs.sql` | OPD-41 split win/lose contractor toggles | Applied | No |
+| `20260621120001_opd41_contest_end_emoji.sql` | OPD-41 contest-end notification emoji | Applied | No |
 
 ## Already on production
 

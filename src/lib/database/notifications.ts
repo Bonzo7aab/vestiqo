@@ -63,8 +63,10 @@ export async function saveInAppNotificationPreferences(
   const dbPreferences: NotificationPreferencesUpdate = {
     manager_contest_question_notifications:
       preferences.managerContestQuestionNotifications,
-    contractor_contest_resolution_notifications:
-      preferences.contractorContestResolutionNotifications,
+    contractor_contest_offer_accepted_notifications:
+      preferences.contractorContestOfferAcceptedNotifications,
+    contractor_contest_offer_rejected_notifications:
+      preferences.contractorContestOfferRejectedNotifications,
     contractor_contest_answer_notifications:
       preferences.contractorContestAnswerNotifications,
     updated_at: new Date().toISOString(),

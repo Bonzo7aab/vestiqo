@@ -51,9 +51,9 @@ export async function notifyContestOfferResolution(
       await createOpd41Notification({
         supabase: admin,
         userId: contractorId,
-        kind: 'contractor_contest_resolution',
+        kind: 'contractor_contest_offer_accepted',
         type: 'contest_awarded',
-        title: 'Wybrano Twoją ofertę',
+        title: 'Twoja oferta została wybrana',
         message: buildContractorOfferAcceptedMessage(contestTitle),
         data: {
           contestId: tenderId.trim(),
@@ -70,9 +70,9 @@ export async function notifyContestOfferResolution(
       await createOpd41Notification({
         supabase: admin,
         userId: contractorId,
-        kind: 'contractor_contest_resolution',
+        kind: 'contractor_contest_offer_rejected',
         type: 'bid_status_update',
-        title: 'Rozstrzygnięcie konkursu',
+        title: 'Twoja oferta nie została wybrana',
         message: buildContractorOfferRejectedMessage(contestTitle),
         data: {
           contestId: tenderId.trim(),
@@ -121,9 +121,9 @@ export async function notifyContestCancelledToContractors(
     await createOpd41Notification({
       supabase: admin,
       userId: contractorId,
-      kind: 'contractor_contest_resolution',
+      kind: 'contractor_contest_offer_rejected',
       type: 'bid_status_update',
-      title: 'Rozstrzygnięcie konkursu',
+      title: 'Twoja oferta nie została wybrana',
       message: buildContractorOfferRejectedMessage(contestTitle),
       data: {
         contestId: tenderId.trim(),

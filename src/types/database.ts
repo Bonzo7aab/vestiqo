@@ -1705,6 +1705,8 @@ export type Database = {
       notification_preferences: {
         Row: {
           contractor_contest_answer_notifications: boolean | null
+          contractor_contest_offer_accepted_notifications: boolean | null
+          contractor_contest_offer_rejected_notifications: boolean | null
           contractor_contest_resolution_notifications: boolean | null
           created_at: string | null
           email_notifications: boolean | null
@@ -1724,6 +1726,8 @@ export type Database = {
         }
         Insert: {
           contractor_contest_answer_notifications?: boolean | null
+          contractor_contest_offer_accepted_notifications?: boolean | null
+          contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null
@@ -1743,6 +1747,8 @@ export type Database = {
         }
         Update: {
           contractor_contest_answer_notifications?: boolean | null
+          contractor_contest_offer_accepted_notifications?: boolean | null
+          contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null

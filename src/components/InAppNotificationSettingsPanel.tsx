@@ -149,13 +149,24 @@ export function InAppNotificationSettingsPanel({
             ) : (
               <>
                 <NotificationToggleField
-                  label="Rozstrzygnięcie konkursu"
-                  description="Otrzymasz informację, gdy Zarządca zaakceptuje Twoją ofertę lub zakończy konkurs, wybierając inną firmę."
-                  checked={preferences.contractorContestResolutionNotifications}
+                  label="Twoja oferta została wybrana"
+                  description="Powiadomimy Cię, gdy Zarządca zaakceptuje Twoją ofertę w konkursie."
+                  checked={preferences.contractorContestOfferAcceptedNotifications}
                   onChange={(checked) =>
                     setPreferences((prev) => ({
                       ...prev,
-                      contractorContestResolutionNotifications: checked,
+                      contractorContestOfferAcceptedNotifications: checked,
+                    }))
+                  }
+                />
+                <NotificationToggleField
+                  label="Twoja oferta nie została wybrana"
+                  description="Otrzymasz informację, gdy Zarządca wybierze inną ofertę lub konkurs zostanie unieważniony."
+                  checked={preferences.contractorContestOfferRejectedNotifications}
+                  onChange={(checked) =>
+                    setPreferences((prev) => ({
+                      ...prev,
+                      contractorContestOfferRejectedNotifications: checked,
                     }))
                   }
                 />

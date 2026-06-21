@@ -9,7 +9,8 @@ type NotificationType = Database['public']['Tables']['notifications']['Row']['ty
 
 export type Opd41NotificationKind =
   | 'manager_contest_question'
-  | 'contractor_contest_resolution'
+  | 'contractor_contest_offer_accepted'
+  | 'contractor_contest_offer_rejected'
   | 'contractor_contest_answer'
   | 'manager_contest_ended'
   | 'system_announcement';
@@ -19,12 +20,14 @@ const PREFERENCE_COLUMN: Record<
   keyof Pick<
     Database['public']['Tables']['notification_preferences']['Row'],
     | 'manager_contest_question_notifications'
-    | 'contractor_contest_resolution_notifications'
+    | 'contractor_contest_offer_accepted_notifications'
+    | 'contractor_contest_offer_rejected_notifications'
     | 'contractor_contest_answer_notifications'
   >
 > = {
   manager_contest_question: 'manager_contest_question_notifications',
-  contractor_contest_resolution: 'contractor_contest_resolution_notifications',
+  contractor_contest_offer_accepted: 'contractor_contest_offer_accepted_notifications',
+  contractor_contest_offer_rejected: 'contractor_contest_offer_rejected_notifications',
   contractor_contest_answer: 'contractor_contest_answer_notifications',
 };
 
@@ -48,15 +51,15 @@ export function buildContractorContestAnswerMessage(contestTitle: string): strin
 }
 
 export function buildContractorOfferAcceptedMessage(contestTitle: string): string {
-  return `🎉 Gratulacje! Twoja oferta na zadanie ${contestTitle} została zaakceptowana przez Zarządcę. Kliknij, aby pobrać dane kontaktowe i ustalić szczegóły.`;
+  return `🎉 Gratulacje! Twoja oferta w konkursie ${contestTitle} została zaakceptowana przez Zarządcę. Kliknij, aby pobrać dane kontaktowe i ustalić szczegóły.`;
 }
 
 export function buildContractorOfferRejectedMessage(contestTitle: string): string {
-  return `Konkurs ${contestTitle} został rozstrzygnięty. Tym razem Zarządca wybrał inną ofertę lub anulował zapytanie. Dziękujemy za udział!`;
+  return `Konkurs ${contestTitle} został zakończony. Tym razem Zarządca wybrał inną ofertę lub konkurs został unieważniony. Dziękujemy za udział!`;
 }
 
 export function buildLegalAnnouncementMessage(effectiveDate: string): string {
-  return `Ważna aktualizacja platformy! Zmieniliśmy regulamin serwisu Vestiqo. Zmiany wchodzą w życie z dniem ${effectiveDate}. Sprawdź szczegóły.`;
+  return `Ważna aktualizacja platformy. Zmiany wchodzą w życie z dniem ${effectiveDate}. Sprawdź szczegóły.`;
 }
 
 export function buildMaintenanceAnnouncementMessage(
