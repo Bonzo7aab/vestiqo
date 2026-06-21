@@ -30,10 +30,22 @@ interface ContactFormProps {
 
 export function ContactForm({ className }: ContactFormProps) {
   const [role, setRole] = useState<ContactRole>('manager');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
   const [consent, setConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const isFormComplete =
+    name.trim() !== '' &&
+    email.trim() !== '' &&
+    subject.trim() !== '' &&
+    message.trim() !== '' &&
+    consent;
 
   if (success) {
     return (
@@ -73,7 +85,7 @@ export function ContactForm({ className }: ContactFormProps) {
     <form onSubmit={handleSubmit} className={className}>
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="role">Jestem</Label>
+          <Label htmlFor="role">Jestem *</Label>
           <Select value={role} onValueChange={(value) => setRole(value as ContactRole)}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Wybierz rolę" />
@@ -89,28 +101,63 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">Imię i nazwisko</Label>
-          <Input id="name" name="name" required autoComplete="name" />
+          <Label htmlFor="name">Imię i nazwisko *</Label>
+          <Input
+            id="name"
+            name="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+            autoComplete="name"
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Adres e-mail</Label>
-          <Input id="email" name="email" type="email" required autoComplete="email" />
+          <Label htmlFor="email">Adres e-mail *</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoComplete="email"
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="phone">Numer telefonu (opcjonalnie)</Label>
-          <Input id="phone" name="phone" type="tel" autoComplete="tel" />
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            autoComplete="tel"
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="subject">Temat wiadomości</Label>
-          <Input id="subject" name="subject" required />
+          <Label htmlFor="subject">Temat wiadomości *</Label>
+          <Input
+            id="subject"
+            name="subject"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="message">Treść wiadomości</Label>
-          <Textarea id="message" name="message" rows={6} required />
+          <Label htmlFor="message">Treść wiadomości *</Label>
+          <Textarea
+            id="message"
+            name="message"
+            rows={6}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            required
+          />
         </div>
 
         <label
@@ -126,6 +173,7 @@ export function ContactForm({ className }: ContactFormProps) {
             id="consent"
             checked={consent}
             onCheckedChange={(checked) => setConsent(checked === true)}
+            required
             className="mt-1 shrink-0"
           />
 
@@ -133,7 +181,7 @@ export function ContactForm({ className }: ContactFormProps) {
             <div className="flex items-center gap-2">
               <Shield className="size-4 shrink-0 text-primary" aria-hidden />
               <span className="text-sm font-semibold text-[hsl(var(--brand-navy))]">
-                Zgoda na przetwarzanie danych
+                Zgoda na przetwarzanie danych *
               </span>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -152,7 +200,11 @@ export function ContactForm({ className }: ContactFormProps) {
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          disabled={isSubmitting || !isFormComplete}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? 'Wysyłanie…' : 'Wyślij wiadomość'}
         </Button>
       </div>

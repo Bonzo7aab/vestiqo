@@ -10,14 +10,12 @@ export interface FooterColumn {
   links: FooterLink[];
 }
 
+export const footerBrandLinks: FooterLink[] = [
+  { label: 'O nas', href: routes.oNas },
+  { label: 'Kontakt', href: routes.kontakt },
+];
+
 export const footerColumns: FooterColumn[] = [
-  {
-    title: 'Vestiqo',
-    links: [
-      { label: 'O nas', href: routes.oNas },
-      { label: 'Kontakt', href: routes.kontakt },
-    ],
-  },
   {
     title: 'Dla użytkowników',
     links: [
@@ -48,4 +46,4 @@ export const footerColumns: FooterColumn[] = [
 ];
 
 export const footerTagline =
-  'Vestiqo – Profesjonalna platforma do zarządzania konkursami w nieruchomościach.';
+  'Profesjonalna platforma do zarządzania konkursami w nieruchomościach.';

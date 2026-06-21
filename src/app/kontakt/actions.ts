@@ -2,6 +2,10 @@
 
 import { companyLegal } from '../../lib/content/company-legal';
 import { contactRoleOptions, type ContactRole } from '../../lib/content/kontakt';
+import {
+  buildContactFormEmailHtml,
+  buildContactFormEmailSubject,
+} from '../../lib/email/contact-form-template';
 import { isValidEmail } from '../../lib/email/validate-email';
 
 interface ContactFormResult {
@@ -31,7 +35,7 @@ export async function submitContactForm(formData: FormData): Promise<ContactForm
 
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  const to = process.env.CONTACT_FORM_TO_EMAIL ?? companyLegal.emails.help;
+  const to = process.env.CONTACT_FORM_TO_EMAIL ?? companyLegal.emails.contact;
 
   if (!apiKey || !from) {
     console.info('Contact form submission (email not configured):', {
@@ -45,16 +49,14 @@ export async function submitContactForm(formData: FormData): Promise<ContactForm
     return { success: true };
   }
 
-  const html = `
-    <h2>Nowe zapytanie z formularza kontaktowego Vestiqo</h2>
-    <p><strong>Rola:</strong> ${getRoleLabel(role)}</p>
-    <p><strong>Imię i nazwisko:</strong> ${name}</p>
-    <p><strong>E-mail:</strong> ${email}</p>
-    ${phone ? `<p><strong>Telefon:</strong> ${phone}</p>` : ''}
-    <p><strong>Temat:</strong> ${subject}</p>
-    <p><strong>Wiadomość:</strong></p>
-    <p>${message.replace(/\n/g, '<br />')}</p>
-  `;
+  const html = buildContactFormEmailHtml({
+    roleLabel: getRoleLabel(role),
+    name,
+    email,
+    phone: phone || undefined,
+    subject,
+    message,
+  });
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -66,7 +68,7 @@ export async function submitContactForm(formData: FormData): Promise<ContactForm
       from,
       to,
       reply_to: email,
-      subject: `[Kontakt Vestiqo] ${subject}`,
+      subject: buildContactFormEmailSubject(subject),
       html,
     }),
   });
