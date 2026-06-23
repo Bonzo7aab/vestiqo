@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactElement } from 'react';
 import { Star } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent } from '../../../components/ui/card';
 import { Progress } from '../../../components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Button } from '../../../components/ui/button';
@@ -38,6 +38,72 @@ interface RatingsContentProps {
   writtenEmptyDescription?: string;
 }
 
+function RatingSummaryCard({ ratingSummary }: { ratingSummary: RatingSummary }): ReactElement {
+  const fullStars = Math.floor(ratingSummary.averageRating);
+  const hasHalfStar = ratingSummary.averageRating - fullStars >= 0.25;
+
+  return (
+    <Card className="overflow-hidden border-amber-100/80 bg-gradient-to-br from-amber-50/80 via-background to-background">
+      <CardContent className="p-6 sm:p-8">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left lg:min-w-[200px]">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Podsumowanie ocen</p>
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-bold tracking-tight text-foreground tabular-nums">
+                {ratingSummary.averageRating.toFixed(1)}
+              </span>
+              <span className="mb-2 text-lg text-muted-foreground">/ 5</span>
+            </div>
+            <div className="mt-3 flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-5 w-5 ${
+                    i < fullStars || (i === fullStars && hasHalfStar)
+                      ? 'text-amber-400 fill-amber-400'
+                      : 'text-muted-foreground/25'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Na podstawie{' '}
+              <span className="font-medium text-foreground">{ratingSummary.totalReviews}</span>{' '}
+              {ratingSummary.totalReviews === 1 ? 'opinii' : 'opinii'}
+            </p>
+          </div>
+
+          <div className="flex-1 w-full max-w-xl space-y-2.5">
+            <p className="text-sm font-medium text-muted-foreground mb-1">Rozkład ocen</p>
+            {[5, 4, 3, 2, 1].map((stars) => {
+              const count =
+                ratingSummary.ratingBreakdown[
+                  stars.toString() as keyof typeof ratingSummary.ratingBreakdown
+                ] || 0;
+              const percentage =
+                ratingSummary.totalReviews > 0
+                  ? (count / ratingSummary.totalReviews) * 100
+                  : 0;
+              return (
+                <div key={stars} className="flex items-center gap-3">
+                  <span className="flex w-10 items-center gap-1 text-sm text-muted-foreground tabular-nums">
+                    {stars}
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  </span>
+                  <Progress value={percentage} className="h-2 flex-1 bg-muted/60" />
+                  <span className="w-8 text-right text-sm tabular-nums text-muted-foreground">
+                    {count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RatingsContent({
   ratingSummary,
   reviews,
@@ -66,62 +132,7 @@ export function RatingsContent({
 
   return (
     <div className="space-y-6">
-      {ratingSummary && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-400" />
-              Podsumowanie ocen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-primary mb-2">
-                  {ratingSummary.averageRating.toFixed(1)}
-                </div>
-                <div className="flex justify-center mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-6 h-6 ${
-                        i < Math.floor(ratingSummary.averageRating)
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {ratingSummary.totalReviews}{' '}
-                  {ratingSummary.totalReviews === 1 ? 'opinia' : 'opinii'}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-semibold mb-3">Rozkład ocen</div>
-                {[5, 4, 3, 2, 1].map((stars) => {
-                  const count =
-                    ratingSummary.ratingBreakdown[
-                      stars.toString() as keyof typeof ratingSummary.ratingBreakdown
-                    ] || 0;
-                  const percentage =
-                    ratingSummary.totalReviews > 0
-                      ? (count / ratingSummary.totalReviews) * 100
-                      : 0;
-                  return (
-                    <div key={stars} className="flex items-center gap-2">
-                      <span className="text-sm w-8">{stars}★</span>
-                      <Progress value={percentage} className="flex-1 h-2" />
-                      <span className="text-sm text-gray-500 w-12 text-right">{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {ratingSummary ? <RatingSummaryCard ratingSummary={ratingSummary} /> : null}
 
       <Tabs defaultValue="received" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">

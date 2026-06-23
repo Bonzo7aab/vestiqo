@@ -64,6 +64,7 @@ export function InAppNotificationSettingsPanel({
     DEFAULT_IN_APP_NOTIFICATION_PREFERENCES,
   );
   const [notifications, setNotifications] = React.useState<NotificationListItem[]>([]);
+  const [visibleCount, setVisibleCount] = React.useState(3);
 
   React.useEffect(() => {
     const loadData = async () => {
@@ -74,13 +75,14 @@ export function InAppNotificationSettingsPanel({
         ]);
         setPreferences(mapInAppNotificationPreferences(prefsRow));
         setNotifications(
-          notificationRows.slice(0, 6).map((item) => ({
+          notificationRows.map((item) => ({
             id: item.id,
             title: item.title,
             message: item.message,
             createdAt: item.created_at ?? new Date().toISOString(),
           })),
         );
+        setVisibleCount(3);
       } catch (error) {
         console.error('Error loading in-app notification settings:', error);
         toast.error('Nie udało się załadować ustawień powiadomień');
@@ -199,17 +201,29 @@ export function InAppNotificationSettingsPanel({
           {notifications.length === 0 ? (
             <p className="text-sm text-muted-foreground">Brak powiadomień.</p>
           ) : (
-            notifications.map((notification) => (
-              <div key={notification.id} className="rounded-md border p-3">
-                <p className="text-sm font-medium">{notification.title}</p>
-                {notification.message ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
-                ) : null}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {new Date(notification.createdAt).toLocaleString('pl-PL')}
-                </p>
-              </div>
-            ))
+            <>
+              {notifications.slice(0, visibleCount).map((notification) => (
+                <div key={notification.id} className="rounded-md border p-3">
+                  <p className="text-sm font-medium">{notification.title}</p>
+                  {notification.message ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {new Date(notification.createdAt).toLocaleString('pl-PL')}
+                  </p>
+                </div>
+              ))}
+              {visibleCount < notifications.length ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisibleCount((prev) => Math.min(prev + 10, notifications.length))}
+                >
+                  Pokaż 10 więcej
+                </Button>
+              ) : null}
+            </>
           )}
         </CardContent>
       </Card>

@@ -58,7 +58,9 @@ export const routes = {
     `/panel-zarzadcy/konkursy/${id}/aplikacje` as const,
   panelZarzadcyZgloszenia: '/panel-zarzadcy/zgloszenia',
   panelZarzadcyZamowienia: '/panel-zarzadcy/zamowienia',
-  panelZarzadcyOcenaZgloszen: '/panel-zarzadcy/ocena-zgloszen',
+  panelZarzadcyOcena: '/panel-zarzadcy/ocena',
+  /** @deprecated Use panelZarzadcyOcena */
+  panelZarzadcyOcenaZgloszen: '/panel-zarzadcy/ocena',
   administracja: '/administracja',
   administracjaWeryfikacja: '/administracja/weryfikacja',
   administracjaWeryfikacjaUzytkownik: (userId: string) =>

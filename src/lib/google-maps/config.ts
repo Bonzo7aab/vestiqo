@@ -12,13 +12,20 @@ export const mapOptions = {
   streetViewControl: false,
   fullscreenControl: false,
   zoomControl: true,
+  clickableIcons: false,
   styles: [
-    {
-      featureType: 'poi',
-      elementType: 'labels',
-      stylers: [{ visibility: 'off' }]
-    }
-  ]
+    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.school', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.government', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.sports_complex', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.park', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
+  ],
 };
 
 // Utility function to lighten a hex color by 2 shades
@@ -237,11 +244,11 @@ export const createMarkerGlyph = (
   }
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '20');
-  svg.setAttribute('height', '20');
+  svg.setAttribute('width', '24');
+  svg.setAttribute('height', '24');
   svg.setAttribute('viewBox', '0 0 24 24');
-  svg.style.width = '18px';
-  svg.style.height = '18px';
+  svg.style.width = '22px';
+  svg.style.height = '22px';
   svg.style.display = 'block';
 
   if (categorySlug && isCategoryGlyphSlug(categorySlug)) {

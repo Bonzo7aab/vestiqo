@@ -7,7 +7,7 @@ import { cn } from '../ui/utils';
 const tabs = [
   { id: 'konkursy', label: 'Konkursy', href: '/panel-zarzadcy/konkursy' },
   { id: 'zamowienia', label: 'Zamówienia', href: '/panel-zarzadcy/zamowienia' },
-  { id: 'ocena', label: 'Ocena', href: '/panel-zarzadcy/ocena-zgloszen' },
+  { id: 'ocena', label: 'Ocena', href: '/panel-zarzadcy/ocena' },
 ];
 
 interface ManagerDashboardNavProps {
@@ -32,7 +32,9 @@ export function ManagerDashboardNav({ showOrders = false }: ManagerDashboardNavP
                   pathname.startsWith('/panel-zarzadcy/zgloszenia'))) ||
               (tab.id === 'zamowienia' &&
                 pathname.startsWith('/panel-zarzadcy/zamowienia')) ||
-              (tab.id === 'ocena' && pathname.startsWith('/panel-zarzadcy/ocena-zgloszen'));
+              (tab.id === 'ocena' &&
+                (pathname === '/panel-zarzadcy/ocena' ||
+                  pathname.startsWith('/panel-zarzadcy/ocena/')));
             return (
               <Link
                 key={tab.id}

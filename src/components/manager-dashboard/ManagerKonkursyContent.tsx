@@ -24,6 +24,7 @@ import {
   CONTEST_STATUS_FILTER_OPTIONS,
   canAbandonManagerContestDraft,
   canCancelContest,
+  getContestTableStatusSortPriority,
 } from '../../lib/tender-workflow-status';
 import { formatSubmissionDeadlineDisplay, formatCompareLockedTooltip } from '../../lib/contest-submission-deadline';
 import {
@@ -235,6 +236,13 @@ export function ManagerKonkursyContent({
 
     const mult = sortDir === 'asc' ? 1 : -1;
     return [...groups].sort((a, b) => {
+      const statusOrder =
+        getContestTableStatusSortPriority(a.head.status) -
+        getContestTableStatusSortPriority(b.head.status);
+      if (statusOrder !== 0) {
+        return statusOrder;
+      }
+
       const left = a.head;
       const right = b.head;
       switch (sortKey) {
@@ -407,12 +415,23 @@ export function ManagerKonkursyContent({
     );
   };
 
+  const getContestRowClassName = (status: string): string => {
+    switch (status) {
+      case 'awarded':
+        return 'bg-emerald-50/40 border-l-[3px] border-l-emerald-500/35 hover:bg-emerald-50/60';
+      case 'evaluation':
+        return 'bg-amber-50/35 border-l-[3px] border-l-amber-500/40 hover:bg-amber-50/55';
+      default:
+        return '';
+    }
+  };
+
   const renderContestDataCells = (
     row: ManagerContest,
     options?: { compact?: boolean },
   ): ReactElement => {
     const deadlineDisplay = formatSubmissionDeadlineDisplay(row.submissionDeadline);
-    const isPickedRow = row.hasSelectedOffer;
+    const isAwardedRow = row.status === 'awarded';
     const compact = options?.compact ?? false;
 
     return (
@@ -420,7 +439,7 @@ export function ManagerKonkursyContent({
         <TableCell
           className={cn(
             'max-w-0 truncate',
-            isPickedRow && 'text-primary',
+            isAwardedRow && 'text-emerald-800',
             compact && 'text-sm',
           )}
         >
@@ -431,8 +450,8 @@ export function ManagerKonkursyContent({
             title={row.title}
             className={cn(
               'font-medium truncate leading-snug hover:underline block',
-              isPickedRow
-                ? 'text-primary hover:text-primary/80'
+              isAwardedRow
+                ? 'text-emerald-800 hover:text-emerald-700'
                 : 'text-foreground hover:text-primary',
             )}
           >
@@ -588,13 +607,6 @@ export function ManagerKonkursyContent({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Konkursy</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Zarządzaj wyborem wykonawców i ofert w ramach konkursu.
-        </p>
-      </div>
-
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -676,16 +688,9 @@ export function ManagerKonkursyContent({
                   </TableRow>
                 ) : (
                   filteredGroups.map(({ head, predecessors }) => {
-                    const isPickedRow = head.hasSelectedOffer;
-
                     return (
                       <Fragment key={head.id}>
-                        <TableRow
-                          className={cn(
-                            isPickedRow &&
-                              'bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10',
-                          )}
-                        >
+                        <TableRow className={getContestRowClassName(head.status)}>
                           {renderContestDataCells(head)}
                         </TableRow>
                         {predecessors.length > 0 ? (

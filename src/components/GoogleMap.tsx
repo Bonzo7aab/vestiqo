@@ -4,6 +4,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { googleMapsConfig, mapOptions, markerColors, createMarkerGlyph, lightenColor } from '../lib/google-maps/config';
+import { suppressNonDomioMapFeatures } from '../lib/google-maps/map-features';
+import {
+  ensureDomioMarkerStyles,
+  getDomioMarkerPinElement,
+  MARKER_PIN_SCALE,
+  wrapDomioMarkerContent,
+} from '../lib/google-maps/marker-content';
 import { getCategoryColor } from '../lib/config/categoryConfig';
 import { generateInfoWindowContent, generateMobileDrawerContent, bindMapInfoWindowDetailsButton } from '../lib/google-maps/infoWindowContent';
 import { getListingDetailHref } from '../lib/listing/listing-detail-url';
@@ -111,7 +118,7 @@ class MarkerPool {
     }
 
     const postType = config.postType || 'job';
-    const baseScale = config.isHovered ? 1.18 : 1.08;
+    const baseScale = config.isHovered ? MARKER_PIN_SCALE.hovered : MARKER_PIN_SCALE.default;
 
     const glyph = createMarkerGlyph(postType, glyphColor, config.categorySlug);
     const pinElement = new google.maps.marker.PinElement({
@@ -125,17 +132,19 @@ class MarkerPool {
     // Update marker properties
     marker.position = config.position;
     marker.title = config.title;
-    
-    // Use the PinElement's element directly - don't clone to avoid losing background color
-    // The PinElement's background is applied internally by Google Maps
-    marker.content = pinElement.element;
+
+    const wrapper = wrapDomioMarkerContent({
+      pinElement: pinElement.element,
+      accentColor: borderColor,
+      markerId: config.id,
+      isHovered: config.isHovered,
+    });
+    marker.content = wrapper;
     marker.zIndex = config.isHovered ? 1001 : 100;
     marker.map = map;
 
-    // Set zIndex on element
     const element = marker.content as HTMLElement;
     element.style.zIndex = config.isHovered ? '1001' : '100';
-    element.setAttribute('data-marker-id', config.id);
   }
 
   update(id: string, config: Partial<MarkerConfig>, map: google.maps.Map): void {
@@ -271,6 +280,7 @@ const MapComponent: React.FC<{
 
   // Initialize marker pool
   useEffect(() => {
+    ensureDomioMarkerStyles();
     if (!markerPoolRef.current) {
       markerPoolRef.current = new MarkerPool();
     }
@@ -286,6 +296,7 @@ const MapComponent: React.FC<{
       });
       
       setMap(newMap);
+      suppressNonDomioMapFeatures(newMap);
 
       // Initialize info window
       const newInfoWindow = new google.maps.InfoWindow({
@@ -336,7 +347,8 @@ const MapComponent: React.FC<{
             transform: translateY(-10px);
           }
         }
-        .marker-bounce {
+        .marker-bounce,
+        .domio-map-marker__pin.marker-bounce {
           animation: markerBounce 1s ease-in-out infinite;
         }
       `;
@@ -516,9 +528,10 @@ const MapComponent: React.FC<{
 
       const element = marker.content as HTMLElement;
       element.style.zIndex = '1001';
+      const pinElement = getDomioMarkerPinElement(element);
       if (!isMobile) {
-        element.classList.add('marker-bounce');
-        bouncingMarkerRef.current = element;
+        pinElement.classList.add('marker-bounce');
+        bouncingMarkerRef.current = pinElement;
       }
 
       const content = generateInfoWindowContent(markerData.jobData, isSmallMap);

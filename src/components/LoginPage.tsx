@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Loader2, ArrowRight, MapPin, MessagesSquare, BadgeCheck, CircleAlert } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, MapPin, MessagesSquare, ClipboardList, CircleAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -84,24 +84,26 @@ export function LoginPage() {
       testId="login-page"
       title="Zaloguj się"
       subtitle="Wróć do konkursów i wiadomości na swoim koncie."
+      sideVariant="simple"
+      trustNote="Dane chronione zgodnie z RODO."
       side={{
-        heading: 'Platforma dla zarządców i wykonawców',
-        body: 'Przeglądaj konkursy na mapie, składaj oferty i zarządzaj współpracą w jednym miejscu.',
+        heading: 'Konkursy usług dla nieruchomości',
+        body: 'Jedna platforma dla zarządców publikujących konkursy i wykonawców składających oferty.',
         features: [
           {
             icon: MapPin,
-            title: 'Konkursy w Warszawie',
-            description: 'Filtruj po dzielnicy, kategorii i budżecie na mapie.',
+            title: 'Konkursy na mapie',
+            description: 'Przeglądaj ogłoszenia w wybranej lokalizacji i kategorii.',
           },
           {
             icon: MessagesSquare,
-            title: 'Bezpieczna komunikacja',
-            description: 'Wiadomości i oferty w jednym panelu konta.',
+            title: 'Wiadomości i oferty',
+            description: 'Komunikacja oraz status ofert w panelu konta.',
           },
           {
-            icon: BadgeCheck,
-            title: 'Profil i weryfikacja wykonawców',
-            description: 'Dokumenty i uprawnienia — przejrzysty status weryfikacji.',
+            icon: ClipboardList,
+            title: 'Panel zarządcy lub wykonawcy',
+            description: 'Zarządzaj konkursami, ofertami i współpracą w jednym miejscu.',
           },
         ],
       }}

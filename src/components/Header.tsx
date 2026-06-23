@@ -13,6 +13,7 @@ import {
   ClipboardList,
   ChevronDown,
   Package,
+  UserPlus,
 } from 'lucide-react';
 import { VerificationAttentionIcon } from './VerificationAttentionIcon';
 import { HeaderJobSearch } from './HeaderJobSearch';
@@ -49,6 +50,64 @@ import {
 } from '../lib/verification/needs-verification-attention';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../lib/verification/documents-route';
 import { BrandLogo } from './BrandLogo';
+import { BRAND } from '../lib/brand';
+
+function GuestAuthDropdown({
+  onLogin,
+  onRegister,
+  triggerClassName,
+}: {
+  onLogin: () => void;
+  onRegister: () => void;
+  triggerClassName?: string;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="default" size="sm" className={triggerClassName ?? 'text-sm'}>
+          Zaloguj się
+          <ChevronDown className="h-4 w-4 ml-1 opacity-80" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 p-0 overflow-hidden">
+        <div className="border-b bg-muted/40 px-4 py-3.5">
+          <p className="text-sm font-semibold text-foreground">Dołącz do {BRAND.name}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Zaloguj się lub załóż konto, aby składać oferty i zarządzać konkursami.
+          </p>
+        </div>
+        <div className="p-2">
+          <button
+            type="button"
+            onClick={onLogin}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <User className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-foreground">Zaloguj się</span>
+              <span className="block text-xs text-muted-foreground">Masz już konto</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={onRegister}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <UserPlus className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-foreground">Załóż konto</span>
+              <span className="block text-xs text-muted-foreground">Dla zarządcy lub wykonawcy</span>
+            </span>
+          </button>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 interface HeaderProps {
   initialUser?: AuthUser | null;
@@ -740,43 +799,17 @@ export function Header({
                   <Button variant="default" size="sm" onClick={handleCreateContestClick} className="shrink-0">
                     Utwórz konkurs
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="default" size="sm" className="text-sm">
-                        Zaloguj się
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={handleLoginClick}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Zaloguj się</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleRegisterClick}>
-                        <span className="text-sm text-muted-foreground">Załóż konto</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <GuestAuthDropdown
+                    onLogin={handleLoginClick}
+                    onRegister={handleRegisterClick}
+                  />
                 </div>
 
                 <div className="hidden md:block">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="default" size="sm" className="text-sm">
-                        Zaloguj się
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={handleLoginClick}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Zaloguj się</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleRegisterClick}>
-                        <span className="text-sm text-muted-foreground">Załóż konto</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <GuestAuthDropdown
+                    onLogin={handleLoginClick}
+                    onRegister={handleRegisterClick}
+                  />
                 </div>
               </>
             )}

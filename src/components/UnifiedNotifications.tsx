@@ -1,10 +1,10 @@
-import { Bell, Bookmark, Calendar, Check, CheckCircle, Clock, Eye, Gavel, HelpCircle, MessagesSquare, Search, ShieldCheck, ShieldX, Star, Trophy, UserCheck, X } from 'lucide-react';
+import { Bell, Bookmark, Calendar, Check, CheckCircle, ChevronDown, Clock, Eye, Gavel, HelpCircle, MessagesSquare, Search, ShieldCheck, ShieldX, Star, Trophy, UserCheck, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useUserProfile } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../lib/database/notifications';
 import { createClient } from '../lib/supabase/client';
-import { KONTO_DOKUMENTY_PATH } from '../lib/konto-tabs';
+import { KONTO_TABS, kontoHref } from '../lib/konto-tabs';
 import type { Database } from '../types/database';
 import type {
   ApplicationNotification,
@@ -284,6 +284,12 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
 
   const allNotifications = getAllNotifications();
   const unreadCount = allNotifications.filter(n => !n.read).length;
+  const POPUP_NOTIFICATION_LIMIT = 9;
+  const popupNotifications = allNotifications.slice(0, POPUP_NOTIFICATION_LIMIT);
+  const hasMoreNotifications = allNotifications.length > POPUP_NOTIFICATION_LIMIT;
+  const notificationsPageHref = kontoHref(KONTO_TABS.powiadomienia, {
+    userType: user?.userType,
+  });
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -374,7 +380,7 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
           break;
         }
         const verificationPath =
-          user?.userType === 'manager' ? '/konto' : KONTO_DOKUMENTY_PATH;
+          user?.userType === 'manager' ? '/konto' : kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor' });
         const target =
           systemNotif.actionUrl ||
           (systemNotif.type === 'verification_rejected' ? verificationPath : '/konto');
@@ -602,8 +608,8 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
         />
 
         {/* Notification Panel */}
-        <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-white">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-white flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div>
             <CardTitle className="flex items-center space-x-2">
               <Bell className="h-5 w-5" />
@@ -624,11 +630,12 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
+        <div className="border-b mx-6 -mt-1 mb-0" />
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex flex-col min-h-0">
           {/* Quick Actions */}
           {unreadCount > 0 && (
-            <div className="px-6 pb-4">
+            <div className="px-6 py-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -642,29 +649,57 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
           )}
 
           {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto">
-            {isLoading ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p>Ładowanie powiadomień...</p>
+          <div className="relative">
+            <div className="max-h-96 overflow-y-auto">
+              {isLoading ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p>Ładowanie powiadomień...</p>
+                </div>
+              ) : error ? (
+                <div className="p-6 text-center">
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </div>
+              ) : allNotifications.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Brak powiadomień</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {popupNotifications.map(renderNotification)}
+                </div>
+              )}
+            </div>
+
+            {popupNotifications.length > 0 &&
+            (hasMoreNotifications || popupNotifications.length >= 4) ? (
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-1 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent"
+                aria-hidden
+              >
+                <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
               </div>
-            ) : error ? (
-              <div className="p-6 text-center">
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </div>
-            ) : allNotifications.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Brak powiadomień</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {allNotifications.map(renderNotification)}
-              </div>
-            )}
+            ) : null}
           </div>
+
+          {hasMoreNotifications ? (
+            <div className="border-t px-4 py-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push(notificationsPageHref);
+                }}
+              >
+                Zobacz wszystkie powiadomienia ({allNotifications.length})
+              </Button>
+            </div>
+          ) : null}
 
         </CardContent>
         </Card>

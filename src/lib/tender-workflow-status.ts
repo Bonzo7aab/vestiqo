@@ -142,3 +142,18 @@ export function canAbandonManagerContestDraft(
 ): boolean {
   return status === 'draft' && offersCount === 0;
 }
+
+/** Table row ordering in manager Konkursy (evaluation first, terminal statuses last). */
+const CONTEST_TABLE_STATUS_SORT_PRIORITY: Record<string, number> = {
+  evaluation: 0,
+  draft: 10,
+  active: 20,
+  awarded: 30,
+  paused: 40,
+  no_offers: 90,
+  cancelled: 100,
+};
+
+export function getContestTableStatusSortPriority(status: string): number {
+  return CONTEST_TABLE_STATUS_SORT_PRIORITY[status] ?? 50;
+}
