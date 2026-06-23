@@ -86,7 +86,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
               </div>
               <CardTitle className="text-2xl">Email wysłany!</CardTitle>
               <CardDescription>
-                Jeśli konto o podanym adresie email istnieje, wyślemy na nie nowe hasło.
+                Jeśli konto o podanym adresie email istnieje, wyślemy link do ustawienia nowego hasła.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -95,7 +95,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
                 <AlertDescription>
                   <strong>Sprawdź swoją skrzynkę email</strong>
                   <br />
-                  Nowe hasło zostało wysłane na adres: <strong>{email}</strong>
+                  Link do resetu hasła został wysłany na adres: <strong>{email}</strong>
                 </AlertDescription>
               </Alert>
 
@@ -104,7 +104,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Sprawdź folder spam/junk</li>
                   <li>Upewnij się, że adres email jest prawidłowy</li>
-                  <li>Zaloguj się nowym hasłem i zmień je w ustawieniach konta</li>
+                  <li>Kliknij link w wiadomości i ustaw nowe hasło</li>
                   <li>Spróbuj ponownie za kilka minut</li>
                 </ul>
               </div>

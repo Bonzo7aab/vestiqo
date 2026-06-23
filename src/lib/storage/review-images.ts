@@ -2,8 +2,7 @@
 
 import { STORAGE_BUCKETS } from './buckets';
 import { requireAuthenticatedUser } from './auth';
-import { getStoragePublicUrl } from './public-url';
-import { uploadObject } from './r2/operations';
+import { uploadObject, createPresignedGetUrl } from './r2/operations';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -31,7 +30,7 @@ export async function uploadReviewImage(
     await uploadObject(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, file);
 
     return {
-      url: getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath),
+      url: await createPresignedGetUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, 3600),
       error: null,
     };
   } catch (err) {

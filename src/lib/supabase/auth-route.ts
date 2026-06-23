@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import type { Database } from '../../types/database';
+import { supabaseCookieOptions } from './cookie-options';
 
 /**
  * Supabase client for auth route handlers. Session cookies must be written onto the
@@ -14,6 +15,7 @@ export function createAuthRouteSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions: supabaseCookieOptions,
       cookies: {
         getAll() {
           return request.cookies.getAll();

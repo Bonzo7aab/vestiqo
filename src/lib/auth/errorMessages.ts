@@ -15,7 +15,7 @@ const AUTH_ERROR_TRANSLATIONS: Record<string, string> = {
   'A user with this email address has already been registered':
     REGISTRATION_ERRORS.emailAlreadyRegistered,
   'Password should be at least 6 characters': 'Hasło musi mieć co najmniej 6 znaków.',
-  'Signup requires a valid password': 'Hasło musi mieć co najmniej 6 znaków.',
+  'Signup requires a valid password': `Hasło musi mieć co najmniej ${8} znaków i zawierać literę oraz cyfrę.`,
   'email rate limit exceeded': REGISTRATION_ERRORS.emailRateLimitExceeded,
   'over_email_send_rate_limit': REGISTRATION_ERRORS.emailRateLimitExceeded,
 };

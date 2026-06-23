@@ -55,7 +55,11 @@ function isKnownAppRoute(pathname: string): boolean {
 
 function copyCookies(from: NextResponse, to: NextResponse): void {
   from.cookies.getAll().forEach((cookie) => {
-    to.cookies.set(cookie.name, cookie.value)
+    to.cookies.set(cookie.name, cookie.value, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    })
   })
 }
 

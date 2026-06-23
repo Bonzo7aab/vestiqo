@@ -1,6 +1,7 @@
 import { createClient } from '../supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ManagerProfile } from '../../types/manager';
+import { ilikePattern } from './escape-postgrest-filter';
 
 // Re-export ManagerProfile for convenience
 export type { ManagerProfile };
@@ -82,7 +83,8 @@ export async function fetchManagers(filters: ManagerFilters = {}): Promise<Brows
     }
 
     if (searchQuery) {
-      query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      const term = ilikePattern(searchQuery);
+      query = query.or(`name.ilike.${term},description.ilike.${term}`);
     }
 
     // Apply pagination

@@ -1,15 +1,14 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import {
   AlertTriangle,
   Calendar,
   CheckCircle,
-  Download,
   FileText,
   Star,
 } from 'lucide-react';
+import { StorageDocumentLink } from '../storage/StorageDocumentLink';
 import { Card, CardContent } from '../ui/card';
 import { TabsContent } from '../ui/tabs';
 import { Badge } from '../ui/badge';
@@ -96,19 +95,11 @@ export function TenderContestDetailTabs({
                       className="flex items-center gap-2 p-3 bg-muted/50 border border-border rounded-lg"
                     >
                       <FileText className="w-4 h-4 text-foreground shrink-0" />
-                      {doc.url ? (
-                        <Link
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
-                        >
-                          {doc.name}
-                          <Download className="w-3 h-3" />
-                        </Link>
-                      ) : (
-                        <span className="text-sm">{doc.name}</span>
-                      )}
+                      <StorageDocumentLink
+                        name={doc.name}
+                        path={doc.path}
+                        url={doc.url}
+                      />
                     </li>
                   ))}
                 </ul>

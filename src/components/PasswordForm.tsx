@@ -9,6 +9,7 @@ import { Label } from './ui/label'
 import { Alert, AlertDescription } from './ui/alert'
 import { createClient } from '../lib/supabase/client'
 import { requestPasswordResetEmailAction } from '../lib/auth/actions'
+import { validatePasswordStrength } from '../lib/auth/password-policy'
 
 interface PasswordFormProps {
   /** Logged-in user email (e.g. from account page) — required for „Zmień hasło” and reset email. */
@@ -57,8 +58,9 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
       return
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setError('Nowe hasło musi mieć co najmniej 6 znaków')
+    const strength = validatePasswordStrength(passwordData.newPassword)
+    if (!strength.valid) {
+      setError(strength.message ?? 'Nieprawidłowe hasło')
       setIsLoading(false)
       return
     }
@@ -123,7 +125,7 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
         setError(result.error)
         return
       }
-      setSuccess('Wysłano nowe hasło na Twój adres email. Sprawdź skrzynkę (również folder spam).')
+      setSuccess('Wysłano link do resetu hasła. Sprawdź skrzynkę (również folder spam).')
       setTimeout(() => setSuccess(''), 8000)
     } catch {
       setError('Nie udało się wysłać wiadomości resetującej')
@@ -157,11 +159,11 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
             <h4 className="font-medium">Reset hasła emailem</h4>
           </div>
           <Button variant="outline" size="sm" onClick={handleSendResetEmail} disabled={resetSending || !accountEmail}>
-            {resetSending ? 'Wysyłanie…' : 'Wyślij nowe hasło'}
+            {resetSending ? 'Wysyłanie…' : 'Wyślij link resetujący'}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Otrzymasz wiadomość z nowym, tymczasowym hasłem. Po zalogowaniu zmień je w ustawieniach konta.
+          Otrzymasz wiadomość z bezpiecznym linkiem do ustawienia nowego hasła.
         </p>
       </div>
 

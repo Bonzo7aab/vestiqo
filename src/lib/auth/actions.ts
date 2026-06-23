@@ -17,13 +17,7 @@ import { isValidNip, normalizeNip } from '../gus/nip'
 import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
-import { generateSecurePassword } from './generate-password'
-import { findAuthUserByEmail } from './find-user-by-email'
-import { createAdminClient } from '../supabase/admin'
-import {
-  isPasswordResetEmailConfigured,
-  sendPasswordResetEmail,
-} from '../email/send-password-reset-email'
+import { validatePasswordStrength } from './password-policy'
 import * as Sentry from '@sentry/nextjs'
 
 export interface LoginData {
@@ -182,8 +176,9 @@ async function registerActionImpl(
 
   const normalizedPhone = normalizePolishPhone(phone)
 
-  if (password.length < 6) {
-    redirect(`/rejestracja?error=${encodeURIComponent('Hasło musi mieć co najmniej 6 znaków')}`)
+  const passwordCheck = validatePasswordStrength(password)
+  if (!passwordCheck.valid) {
+    redirect(`/rejestracja?error=${encodeURIComponent(passwordCheck.message ?? 'Nieprawidłowe hasło')}`)
   }
 
   if (password !== confirmPassword) {
@@ -469,7 +464,7 @@ async function updateUserActionImpl(userData: UpdateUserData) {
 }
 
 /**
- * Generates a new random password, updates the user via admin API, and emails it via Resend.
+ * Sends a time-limited password recovery link via Supabase Auth.
  * Always returns success for valid emails (anti-enumeration).
  */
 async function requestPasswordResetEmailActionImpl(
@@ -480,69 +475,18 @@ async function requestPasswordResetEmailActionImpl(
     return { error: 'Podaj prawidłowy adres email' }
   }
 
-  if (!isPasswordResetEmailConfigured()) {
-    return {
-      error:
-        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
-    }
-  }
-
-  let admin;
-  try {
-    admin = createAdminClient()
-  } catch (error) {
-    console.error('requestPasswordResetEmailAction: admin client unavailable', error)
-    return {
-      error:
-        'Reset hasła nie jest skonfigurowany. Skontaktuj się z administratorem platformy.',
-    }
-  }
-
-  const user = await findAuthUserByEmail(admin, trimmed)
-  if (!user) {
-    return { success: true }
-  }
-
-  const newPassword = generateSecurePassword()
+  const supabase = await createClient()
   const origin = getPublicAppOrigin()
-  const loginUrl = `${origin}/logowanie`
+  const nextPath = encodeURIComponent('/auth/aktualizacja-hasla')
+  const redirectTo = `${origin}/auth/confirm?next=${nextPath}`
 
-  // Send email before updating password so a Resend failure does not lock the user out.
-  const emailResult = await sendPasswordResetEmail({
-    toEmail: trimmed,
-    password: newPassword,
-    loginUrl,
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    redirectTo,
   })
 
-  if (!emailResult.sent) {
-    console.error(
-      'requestPasswordResetEmailAction: email not sent',
-      emailResult.skippedReason ?? 'unknown',
-    )
-    Sentry.captureMessage('Password reset email failed to send', {
-      level: 'error',
-      extra: {
-        reason: emailResult.skippedReason ?? 'unknown',
-        userId: user.id,
-      },
-    })
-    return { success: true }
-  }
-
-  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
-    password: newPassword,
-  })
-
-  if (updateError) {
-    console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
-    Sentry.captureMessage('Password reset email sent but password update failed', {
-      level: 'fatal',
-      extra: {
-        userId: user.id,
-        error: updateError.message,
-      },
-    })
-    return { success: true }
+  if (error) {
+    console.error('requestPasswordResetEmailAction: resetPasswordForEmail failed', error.message)
+    Sentry.captureException(error, { extra: { email: trimmed } })
   }
 
   return { success: true }

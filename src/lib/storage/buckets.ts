@@ -7,9 +7,11 @@ export const STORAGE_BUCKETS = {
 
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
 
-/** Buckets served via public CDN / r2.dev base URL (not presigned). */
+/**
+ * Buckets served via public CDN / r2.dev base URL (not presigned).
+ * Job attachments (contest docs, bids metadata paths) are private per OPD-114.
+ */
 export const PUBLIC_STORAGE_BUCKETS: ReadonlySet<StorageBucket> = new Set([
-  STORAGE_BUCKETS.JOB_ATTACHMENTS,
   STORAGE_BUCKETS.BUILDING_IMAGES,
 ]);
 

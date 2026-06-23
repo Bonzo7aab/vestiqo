@@ -44,13 +44,24 @@ enable_signup = true
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
-# Disable email confirmations for local testing
+# Disable email confirmations for local testing (hosted projects configured via config push).
 enable_confirmations = false
+
+# Resend SMTP for hosted projects (push via `supabase config push --project-ref <ref>`).
+# Local dev uses Inbucket — keep enabled = false here so `supabase start` does not require SMTP.
+[auth.email.smtp]
+enabled = false
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@vestiqo.pl"
+sender_name = "Vestiqo"
 
 [auth.email.template.confirmation]
 subject = "Potwierdź rejestrację w Vestiqo"
 content_path = "./supabase/templates/confirmation.html"
-# Password reset emails are sent via Resend (see src/lib/email/send-password-reset-email.ts), not Supabase recovery template.
+# Password reset uses Supabase Auth recovery links (redirect to /auth/aktualizacja-hasla).
 
 [auth.external.apple]
 enabled = false

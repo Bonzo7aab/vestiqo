@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
+import { StorageDocumentLink } from '../storage/StorageDocumentLink';
 import {
   AlertTriangle,
   Calendar,
   CheckCircle,
-  Download,
   FileText,
   Star,
 } from 'lucide-react';
@@ -88,19 +87,7 @@ export function ManagerContestDetailSections({
                 className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm"
               >
                 <FileText className="h-4 w-4 shrink-0" />
-                {doc.url ? (
-                  <Link
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    {doc.name}
-                    <Download className="h-3 w-3" />
-                  </Link>
-                ) : (
-                  <span>{doc.name}</span>
-                )}
+                <StorageDocumentLink name={doc.name} path={doc.path} url={doc.url} />
               </li>
             ))}
           </ul>

@@ -13,6 +13,7 @@ import {
   TENDER_WORKFLOW_STATUSES,
   isTenderWorkflowStatusRegression,
 } from '../tender-workflow-status';
+import { ilikePattern } from './escape-postgrest-filter';
 import { mapTenderRowToContestDisplay } from '../contest/map-tender-contest-display';
 import {
   contestIdColumn,
@@ -963,9 +964,8 @@ export async function fetchJobs(
     }
 
     if (filters.searchQuery) {
-      query = query.or(
-        `title.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`
-      );
+      const term = ilikePattern(filters.searchQuery);
+      query = query.or(`title.ilike.${term},description.ilike.${term}`);
     }
 
     // Apply date added filtering (created_at)
@@ -1170,9 +1170,8 @@ export async function fetchTenders(
     }
 
     if (filters.searchQuery) {
-      query = query.or(
-        `title.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`
-      );
+      const term = ilikePattern(filters.searchQuery);
+      query = query.or(`title.ilike.${term},description.ilike.${term}`);
     }
 
     // Apply date added filtering (created_at)

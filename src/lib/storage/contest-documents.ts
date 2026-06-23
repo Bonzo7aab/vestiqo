@@ -3,9 +3,8 @@
 import type { TenderContestDocumentMeta } from '../../types/tender-contest';
 import { STORAGE_BUCKETS } from './buckets';
 import { requireAuthenticatedUser } from './auth';
-import { getStoragePublicUrl } from './public-url';
-import { objectExists, uploadObject } from './r2/operations';
 import { isStorageObjectNotFound } from './path-utils';
+import { objectExists, uploadObject, createPresignedGetUrl } from './r2/operations';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -130,11 +129,13 @@ export async function uploadContestDocument(
 
     await uploadObject(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, file);
 
+    const signedUrl = await createPresignedGetUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, 3600);
+
     return {
       data: {
         id: crypto.randomUUID(),
         name: file.name,
-        url: getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath),
+        url: signedUrl,
         path: filePath,
         type: inferDocumentType(file.name),
       },

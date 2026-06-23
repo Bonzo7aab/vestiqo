@@ -3,8 +3,7 @@
 import { STORAGE_BUCKETS } from './buckets';
 import { requireAuthenticatedUser } from './auth';
 import { normalizeStorageObjectPath } from './path-utils';
-import { getStoragePublicUrl } from './public-url';
-import { deleteObject, uploadObject } from './r2/operations';
+import { deleteObject, uploadObject, createPresignedGetUrl } from './r2/operations';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -63,9 +62,11 @@ export async function uploadJobAttachment(
 
     await uploadObject(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, file);
 
+    const signedUrl = await createPresignedGetUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath, 3600);
+
     return {
       data: {
-        url: getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath),
+        url: signedUrl,
         path: filePath,
         type: attachmentType,
       },

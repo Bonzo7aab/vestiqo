@@ -79,9 +79,8 @@ export async function getBidAttachmentSignedUrl(
   path: string,
   expiresIn = 3600,
 ): Promise<string | null> {
-  await requireAuthenticatedUser();
-  const { createSignedUrlSafe } = await import('./signed-url-actions');
-  return createSignedUrlSafe(path, expiresIn);
+  const { getAuthorizedViewUrl } = await import('./authorized-download');
+  return getAuthorizedViewUrl(path, expiresIn);
 }
 
 export async function getAttachmentDownloadUrl(
@@ -89,7 +88,6 @@ export async function getAttachmentDownloadUrl(
   filename: string,
   expiresIn = 3600,
 ): Promise<string | null> {
-  await requireAuthenticatedUser();
-  const { createDownloadUrlSafe } = await import('./r2/operations');
-  return createDownloadUrlSafe(path, filename, expiresIn);
+  const { getAuthorizedDownloadUrl } = await import('./authorized-download');
+  return getAuthorizedDownloadUrl(path, filename, expiresIn);
 }

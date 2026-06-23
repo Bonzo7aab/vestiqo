@@ -4,10 +4,9 @@ import { STORAGE_BUCKETS } from '../storage/buckets';
 import { requireAuthenticatedUser } from '../storage/auth';
 import {
   deleteObjects,
-  createPresignedGetUrl,
   uploadObject,
 } from '../storage/r2/operations';
-import { isStorageObjectNotFound, normalizeStorageObjectPath } from '../storage/path-utils';
+import { normalizeStorageObjectPath } from '../storage/path-utils';
 import {
   OC_POLICY_ALLOWED_EXTENSIONS,
   OC_POLICY_MAX_BYTES,
@@ -106,25 +105,8 @@ export async function removeVerificationDocumentsFromBucket(paths: string[]): Pr
 }
 
 export async function getVerificationDocumentSignedUrl(path: string): Promise<string | null> {
-  const objectPath = normalizeStorageObjectPath(path, STORAGE_BUCKETS.VERIFICATION_DOCUMENTS);
-  const userId = objectPath.split('/')[0];
-  await requireAuthenticatedUser(userId);
-
-  try {
-    return await createPresignedGetUrl(
-      STORAGE_BUCKETS.VERIFICATION_DOCUMENTS,
-      objectPath,
-      OC_POLICY_SIGNED_URL_TTL_SEC,
-    );
-  } catch (error) {
-    if (!isStorageObjectNotFound(error)) {
-      console.warn(
-        'getVerificationDocumentSignedUrl:',
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-    return null;
-  }
+  const { getAuthorizedViewUrl } = await import('../storage/authorized-download');
+  return getAuthorizedViewUrl(path, OC_POLICY_SIGNED_URL_TTL_SEC);
 }
 
 /** @deprecated Use getVerificationDocumentSignedUrl */

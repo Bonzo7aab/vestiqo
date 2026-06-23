@@ -1,9 +1,9 @@
 import { createClient } from '../supabase/client';
-import { getStoragePublicUrl } from '../storage/public-url';
-import { STORAGE_BUCKETS } from '../storage/buckets';
+import { resolvePortfolioImageUrls } from '../storage/portfolio-read';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import { ContractorProfile, ServicePricing } from '../../types/contractor';
+import { ilikePattern } from './escape-postgrest-filter';
 
 // Re-export ContractorProfile for convenience
 export type { ContractorProfile, ServicePricing };
@@ -198,7 +198,8 @@ export async function fetchContractors(
     }
 
     if (searchQuery) {
-      query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      const term = ilikePattern(searchQuery);
+      query = query.or(`name.ilike.${term},description.ilike.${term}`);
     }
 
     // Apply sorting (we'll sort after fetching ratings)
@@ -2066,20 +2067,12 @@ export async function fetchPortfolioProjectById(
       return null;
     }
 
-    // Convert file paths to public URLs
-    type PortfolioImage = {
-      file_uploads: { file_path: string } | null;
-    };
-    const imageUrls = ((data.portfolio_project_images || []) as PortfolioImage[]).map((img) => {
-      const filePath = img.file_uploads?.file_path;
-      if (!filePath) return null;
-      
-      if (typeof filePath === 'string' && filePath.startsWith('http')) {
-        return filePath;
-      }
-      
-      return getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, String(filePath));
-    }).filter(Boolean) as string[];
+    const imageUrls = await resolvePortfolioImageUrls(
+      supabase,
+      (data.portfolio_project_images || []) as Array<{
+        file_uploads: { file_path: string } | null;
+      }>,
+    );
 
     return {
       id: data.id,
@@ -2155,37 +2148,27 @@ export async function fetchContractorPortfolio(contractorId: string): Promise<Ar
       throw new Error('Failed to fetch contractor portfolio');
     }
 
-    return (data || []).map(project => {
-      // Convert file paths to public URLs
-      const imageUrls = (project.portfolio_project_images || []).map(img => {
-        const filePath = img.file_uploads?.file_path;
-        if (!filePath) return null;
-        
-        // If it's already a URL, return it
-        if (filePath.startsWith('http')) {
-          return filePath;
-        }
-        
-        // Otherwise, convert storage path to public URL
-        return getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath);
-      }).filter(Boolean) as string[];
+    return Promise.all(
+      (data || []).map(async (project) => {
+        const imageUrls = await resolvePortfolioImageUrls(supabase, project.portfolio_project_images);
 
-      return {
-        id: project.id,
-        title: project.title,
-        description: project.description || '',
-        images: imageUrls,
-        budget: project.budget_range || '',
-        duration: project.duration || '',
-        year: project.completion_date ? new Date(project.completion_date).getFullYear() : new Date().getFullYear(),
-        category: project.job_categories?.name || '',
-        location: project.location || '',
-        projectType: project.project_type || '',
-        clientName: project.client_name || '',
-        clientFeedback: project.client_feedback || '',
-        isFeatured: project.is_featured
-      };
-    });
+        return {
+          id: project.id,
+          title: project.title,
+          description: project.description || '',
+          images: imageUrls,
+          budget: project.budget_range || '',
+          duration: project.duration || '',
+          year: project.completion_date ? new Date(project.completion_date).getFullYear() : new Date().getFullYear(),
+          category: project.job_categories?.name || '',
+          location: project.location || '',
+          projectType: project.project_type || '',
+          clientName: project.client_name || '',
+          clientFeedback: project.client_feedback || '',
+          isFeatured: project.is_featured,
+        };
+      }),
+    );
   } catch (error) {
     console.error('Error in fetchContractorPortfolio:', error);
     throw error;
@@ -2246,37 +2229,27 @@ export async function fetchContractorFeaturedPortfolio(contractorId: string, lim
       throw new Error('Failed to fetch contractor featured portfolio');
     }
 
-    return (data || []).map(project => {
-      // Convert file paths to public URLs
-      const imageUrls = (project.portfolio_project_images || []).map(img => {
-        const filePath = img.file_uploads?.file_path;
-        if (!filePath) return null;
-        
-        // If it's already a URL, return it
-        if (filePath.startsWith('http')) {
-          return filePath;
-        }
-        
-        // Otherwise, convert storage path to public URL
-        return getStoragePublicUrl(STORAGE_BUCKETS.JOB_ATTACHMENTS, filePath);
-      }).filter(Boolean) as string[];
+    return Promise.all(
+      (data || []).map(async (project) => {
+        const imageUrls = await resolvePortfolioImageUrls(supabase, project.portfolio_project_images);
 
-      return {
-        id: project.id,
-        title: project.title,
-        description: project.description || '',
-        images: imageUrls,
-        budget: project.budget_range || '',
-        duration: project.duration || '',
-        year: project.completion_date ? new Date(project.completion_date).getFullYear() : new Date().getFullYear(),
-        category: project.job_categories?.name || '',
-        location: project.location || '',
-        projectType: project.project_type || '',
-        clientName: project.client_name || '',
-        clientFeedback: project.client_feedback || '',
-        isFeatured: project.is_featured
-      };
-    });
+        return {
+          id: project.id,
+          title: project.title,
+          description: project.description || '',
+          images: imageUrls,
+          budget: project.budget_range || '',
+          duration: project.duration || '',
+          year: project.completion_date ? new Date(project.completion_date).getFullYear() : new Date().getFullYear(),
+          category: project.job_categories?.name || '',
+          location: project.location || '',
+          projectType: project.project_type || '',
+          clientName: project.client_name || '',
+          clientFeedback: project.client_feedback || '',
+          isFeatured: project.is_featured,
+        };
+      }),
+    );
   } catch (error) {
     console.error('Error in fetchContractorFeaturedPortfolio:', error);
     throw error;

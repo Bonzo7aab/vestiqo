@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { StorageDocumentLink } from '../storage/StorageDocumentLink';
 import { ChevronDown, FileText, Info } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import type { ContestInfo } from '../../types/job';
@@ -122,18 +122,12 @@ function renderContextContent(
             {contestInfo.documents.map((doc) => (
               <li key={doc.id} className="flex items-center gap-2">
                 <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                {doc.url ? (
-                  <Link
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline truncate"
-                  >
-                    {doc.name}
-                  </Link>
-                ) : (
-                  <span className="truncate">{doc.name}</span>
-                )}
+                <StorageDocumentLink
+                  name={doc.name}
+                  path={doc.path}
+                  url={doc.url}
+                  className="text-primary hover:underline truncate text-left"
+                />
               </li>
             ))}
           </ul>

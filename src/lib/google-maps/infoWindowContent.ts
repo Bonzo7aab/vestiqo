@@ -11,6 +11,7 @@ import {
   getContestSubmissionDeadline,
 } from "../contest-display";
 import { getListingDetailHref } from "../listing/listing-detail-url";
+import { escapeHtml, escapeHtmlAttribute } from "../security/escape-html";
 import { getContestMarkerIconSvg } from "./config";
 
 const INFO_WINDOW_CACHE_VERSION = "v2";
@@ -40,15 +41,6 @@ function getCachedContent(jobId: string, isSmallMap: boolean, generator: () => s
   infoWindowContentCache.set(cacheKey, content);
 
   return content;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 interface ListingPreviewMeta {
@@ -119,7 +111,7 @@ function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string 
     <button
       type="button"
       data-map-details-btn
-      data-listing-href="${meta.detailHref}"
+      data-listing-href="${escapeHtmlAttribute(meta.detailHref)}"
       style="
         display:block;
         width:100%;
@@ -150,7 +142,7 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
   return `
     <div
       class="info-window-content map-info-window"
-      data-listing-id="${meta.id}"
+      data-listing-id="${escapeHtmlAttribute(meta.id)}"
       style="width:100%;max-width:${maxWidth};"
     >
       <div style="
