@@ -6,7 +6,8 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
-import { fetchContractorById, fetchContractorReviews, fetchContractorRatingSummary, fetchContractorPortfolio } from '../lib/database/contractors';
+import { fetchContractorById, fetchContractorReviews, fetchContractorRatingSummary } from '../lib/database/contractors';
+import { refreshContractorPortfolioAction } from '../lib/database/contractors-portfolio-actions';
 import { QuoteRequestModal } from './QuoteRequestModal';
 import { ServicePricing, ContractorProfile } from '../types/contractor';
 import { getCategoryLabel } from './contractor-dashboard/shared/utils';
@@ -223,7 +224,7 @@ export default function ContractorProfilePage({ contractorId, onBack }: Contract
       if (activeTab === 'portfolio' && contractorId && !portfolio.length) {
         setPortfolioLoading(true);
         try {
-          const portfolioData = await fetchContractorPortfolio(contractorId);
+          const portfolioData = await refreshContractorPortfolioAction(contractorId);
           setPortfolio(portfolioData);
         } catch (error) {
           console.error('Error loading portfolio:', error);

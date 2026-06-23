@@ -28,8 +28,6 @@ import {
   fetchContractorDashboardStats,
   fetchContractorApplications,
   fetchPlatformProjectHistory,
-  fetchContractorPortfolio,
-  fetchPortfolioProjectById,
   deletePortfolioProject,
   fetchContractorRatingSummary,
   fetchContractorRecentActivities,
@@ -41,6 +39,10 @@ import {
   type Certificate,
   type PlatformProject
 } from '../lib/database/contractors';
+import {
+  fetchPortfolioProjectByIdAction,
+  refreshContractorPortfolioAction,
+} from '../lib/database/contractors-portfolio-actions';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
 import MessagingSystem from './MessagingSystem';
 import MyApplications from './MyApplications';
@@ -335,7 +337,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
       // Fetch portfolio projects (external projects)
       setLoadingPortfolioProjects(true);
       try {
-        const portfolio = await fetchContractorPortfolio(companyId);
+        const portfolio = await refreshContractorPortfolioAction(companyId);
         setPortfolioProjects(portfolio || []);
       } catch (error) {
         console.error('Error fetching portfolio projects:', error);
@@ -750,7 +752,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
   }) => {
     // Fetch full project details for editing
     const supabase = createClient();
-    const fullProject = await fetchPortfolioProjectById(supabase, project.id);
+    const fullProject = await fetchPortfolioProjectByIdAction(project.id);
     
     if (fullProject) {
       setEditingProject({
@@ -793,7 +795,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
       toast.success('Projekt został usunięty');
       
       // Refresh portfolio list
-      const portfolio = await fetchContractorPortfolio(companyId);
+      const portfolio = await refreshContractorPortfolioAction(companyId);
       setPortfolioProjects(portfolio || []);
     } catch (error) {
       console.error('Error in confirmDeletePortfolioProject:', error);
@@ -807,7 +809,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
     if (!companyId) return;
     
     try {
-      const portfolio = await fetchContractorPortfolio(companyId);
+      const portfolio = await refreshContractorPortfolioAction(companyId);
       setPortfolioProjects(portfolio || []);
     } catch (error) {
       console.error('Error refreshing portfolio:', error);

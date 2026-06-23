@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { createClient } from '../../../lib/supabase/server';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
-import { fetchPlatformProjectHistory, fetchContractorPortfolio } from '../../../lib/database/contractors';
+import { fetchPlatformProjectHistory } from '../../../lib/database/contractors';
+import { fetchContractorPortfolio } from '../../../lib/database/contractors-portfolio.server';
 import { Card, CardContent } from '../../../components/ui/card';
 import { ProjectsContent } from './ProjectsContent';
 

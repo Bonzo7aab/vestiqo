@@ -5,7 +5,11 @@ import { SubmissionReviewDialog } from '../../../components/reviews/SubmissionRe
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/client';
-import { fetchContractorPortfolio, fetchPortfolioProjectById, deletePortfolioProject } from '../../../lib/database/contractors';
+import { deletePortfolioProject } from '../../../lib/database/contractors';
+import {
+  fetchPortfolioProjectByIdAction,
+  refreshContractorPortfolioAction,
+} from '../../../lib/database/contractors-portfolio-actions';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -53,8 +57,7 @@ export function ProjectsContent({ platformProjects: initialPlatformProjects, por
   };
 
   const handleEditPortfolioProject = async (project: PortfolioProject) => {
-    const supabase = createClient();
-    const fullProject = await fetchPortfolioProjectById(supabase, project.id);
+    const fullProject = await fetchPortfolioProjectByIdAction(project.id);
     
     if (fullProject) {
       setEditingProject(fullProject);
@@ -84,7 +87,7 @@ export function ProjectsContent({ platformProjects: initialPlatformProjects, por
       toast.success('Projekt został usunięty');
       
       // Refresh portfolio list
-      const portfolio = await fetchContractorPortfolio(companyId);
+      const portfolio = await refreshContractorPortfolioAction(companyId);
       setPortfolioProjects(portfolio || []);
     } catch (error) {
       console.error('Error in confirmDeletePortfolioProject:', error);
@@ -98,7 +101,7 @@ export function ProjectsContent({ platformProjects: initialPlatformProjects, por
     if (!companyId) return;
     
     try {
-      const portfolio = await fetchContractorPortfolio(companyId);
+      const portfolio = await refreshContractorPortfolioAction(companyId);
       setPortfolioProjects(portfolio || []);
     } catch (error) {
       console.error('Error refreshing portfolio:', error);
