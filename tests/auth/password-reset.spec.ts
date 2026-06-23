@@ -108,49 +108,15 @@ test.describe('Password Reset', () => {
     // Browser-specific timeout
     const timeout = browserName === 'webkit' ? 30000 : browserName === 'firefox' ? 20000 : 15000;
     
-    // The login "link" is actually a button with variant="link" in the form state
-    // Try multiple selectors to find the button reliably
-    let button = page.getByRole('button', { name: 'Zaloguj' });
-    
-    // Wait for the button to be visible - try role-based selector first
-    try {
-      await expect(button).toBeVisible({ timeout: 10000 });
-    } catch {
-      // Fallback: try text-based selector
-      button = page.locator('button:has-text("Zaloguj")').first();
-      await expect(button).toBeVisible({ timeout });
-    }
-    
-    // Ensure button is enabled
-    await expect(button).toBeEnabled({ timeout: 5000 });
-    
-    // Start navigation wait BEFORE clicking (Playwright best practice)
-    const navigationPromise = page.waitForURL((url) => {
-      const pathname = url.pathname;
-      return pathname.includes('/logowanie') || pathname.includes('/wybor-typu-konta');
-    }, { timeout });
-    
-    // Use JavaScript click to directly trigger React's onClick handler
-    // This bypasses overlay interception and ensures the handler fires
-    await button.evaluate((el: HTMLElement) => {
-      const button = el as HTMLButtonElement;
-      button.click();
-    });
-    
-    await navigationPromise;
-    
-    // Wait for the final redirect to /logowanie (user-type-selection redirects immediately)
-    // Add a small delay for Firefox to handle the redirect chain
-    if (browserName === 'firefox') {
-      await page.waitForTimeout(500);
-    }
-    
-    // Wait for network to be idle after redirect
+    const loginLink = page.getByRole('link', { name: /zaloguj/i });
+    await expect(loginLink).toBeVisible({ timeout });
+
+    await Promise.all([
+      page.waitForURL((url) => url.pathname.includes('/logowanie'), { timeout }),
+      loginLink.click(),
+    ]);
+
     await page.waitForLoadState('networkidle');
-    
-    // Verify we're on the login page (user-type-selection redirects to /logowanie)
-    // Use longer timeout for the final redirect check
-    await page.waitForURL((url) => url.pathname.includes('/logowanie'), { timeout: timeout });
     
     // Verify we navigated away from forgot-password
     const currentUrl = page.url();
@@ -205,7 +171,7 @@ test.describe('Password Reset', () => {
 
     // Check for instructions text - the component shows instructions in CardContent
     await expect(page.getByText('Sprawdź folder spam/junk')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/zmień je w ustawieniach konta/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/ustaw nowe hasło/i)).toBeVisible({ timeout: 5000 });
   });
 });
 

@@ -1,222 +1,195 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
-// import logoUrbi from 'figma:asset/03399e74201459d6cda917d74a1b9daa8e442e99.png';
+'use client';
+
+import React, { useState, useTransition } from 'react';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  CheckCircle,
+  CircleAlert,
+  ClipboardList,
+  Loader2,
+  Mail,
+  MapPin,
+  MessagesSquare,
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Alert, AlertDescription } from './ui/alert';
-import { useUserProfile } from '../contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { requestPasswordResetEmailAction } from '../lib/auth/actions';
-import { BrandLogo } from './BrandLogo';
+import { translateAuthErrorMessage } from '../lib/auth/errorMessages';
+import {
+  AuthFormPanel,
+  AuthPageLayout,
+  authFieldClassName,
+} from './auth/AuthPageLayout';
 
-interface ForgotPasswordPageProps {
-  onBack: () => void;
-  onLoginClick: () => void;
-}
+const authSide = {
+  heading: 'Konkursy usług dla nieruchomości',
+  body: 'Jedna platforma dla zarządców publikujących konkursy i wykonawców składających oferty.',
+  features: [
+    {
+      icon: MapPin,
+      title: 'Konkursy na mapie',
+      description: 'Przeglądaj ogłoszenia w wybranej lokalizacji i kategorii.',
+    },
+    {
+      icon: MessagesSquare,
+      title: 'Wiadomości i oferty',
+      description: 'Komunikacja oraz status ofert w panelu konta.',
+    },
+    {
+      icon: ClipboardList,
+      title: 'Panel zarządcy lub wykonawcy',
+      description: 'Zarządzaj konkursami, ofertami i współpracą w jednym miejscu.',
+    },
+  ],
+};
 
-export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ 
-  onBack, 
-  onLoginClick 
-}) => {
-  const { isLoading } = useUserProfile();
+export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError(null);
 
-    if (!email) {
-      setError('Proszę wprowadzić adres email');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Proszę wprowadzić prawidłowy adres email');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
+    startTransition(async () => {
       const result = await requestPasswordResetEmailAction(email);
       if ('error' in result) {
-        setError(result.error);
+        setError(translateAuthErrorMessage(result.error));
         return;
       }
       setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas resetowania hasła');
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6">
-          {/* Header with back button */}
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onBack}
-              className="hidden md:flex text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Powrót
-            </Button>
+      <AuthPageLayout
+        testId="forgot-password-page"
+        title="Email wysłany!"
+        subtitle="Jeśli konto o podanym adresie email istnieje, wyślemy link do ustawienia nowego hasła."
+        sideVariant="simple"
+        trustNote="Dane chronione zgodnie z RODO."
+        side={authSide}
+        footer={
+          <>
+            Pamiętasz hasło?{' '}
+            <Link href="/logowanie" className="font-medium text-primary hover:underline">
+              Zaloguj się
+            </Link>
+          </>
+        }
+      >
+        <AuthFormPanel>
+          <div className="mb-6 flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+              <CheckCircle className="h-7 w-7 text-emerald-600" />
+            </span>
           </div>
 
-          {/* Logo and title */}
-          <div className="text-center space-y-2">
-            <div className="flex justify-center">
-              <BrandLogo variant="full" className="h-16 w-auto" />
-            </div>
+          <Alert className="mb-5 border-emerald-500/30 bg-emerald-500/5">
+            <Mail className="h-4 w-4 text-emerald-600" />
+            <AlertDescription className="text-sm">
+              <strong>Sprawdź swoją skrzynkę email</strong>
+              <br />
+              Link do resetu hasła został wysłany na adres: <strong>{email}</strong>
+            </AlertDescription>
+          </Alert>
+
+          <div className="mb-6 space-y-2 text-sm text-muted-foreground">
+            <p>Jeśli nie widzisz wiadomości:</p>
+            <ul className="ml-4 list-inside list-disc space-y-1">
+              <li>Sprawdź folder spam/junk</li>
+              <li>Upewnij się, że adres email jest prawidłowy</li>
+              <li>Kliknij link w wiadomości i ustaw nowe hasło</li>
+              <li>Spróbuj ponownie za kilka minut</li>
+            </ul>
           </div>
 
-          {/* Success message */}
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-6 w-6 text-success" />
-              </div>
-              <CardTitle className="text-2xl">Email wysłany!</CardTitle>
-              <CardDescription>
-                Jeśli konto o podanym adresie email istnieje, wyślemy link do ustawienia nowego hasła.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Mail className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Sprawdź swoją skrzynkę email</strong>
-                  <br />
-                  Link do resetu hasła został wysłany na adres: <strong>{email}</strong>
-                </AlertDescription>
-              </Alert>
-
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>Jeśli nie widzisz wiadomości:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>Sprawdź folder spam/junk</li>
-                  <li>Upewnij się, że adres email jest prawidłowy</li>
-                  <li>Kliknij link w wiadomości i ustaw nowe hasło</li>
-                  <li>Spróbuj ponownie za kilka minut</li>
-                </ul>
-              </div>
-
-              <Button 
-                onClick={onLoginClick}
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                Powrót do logowania
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          <Button asChild className="h-11 w-full">
+            <Link href="/logowanie">
+              Powrót do logowania
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </AuthFormPanel>
+      </AuthPageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Header with back button */}
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onBack}
-            className="text-muted-foreground hover:text-foreground"
+    <AuthPageLayout
+      testId="forgot-password-page"
+      title="Zapomniałeś hasła?"
+      subtitle="Podaj adres email powiązany z kontem — wyślemy link do ustawienia nowego hasła."
+      sideVariant="simple"
+      trustNote="Dane chronione zgodnie z RODO."
+      side={authSide}
+      footer={
+        <>
+          Pamiętasz hasło?{' '}
+          <Link href="/logowanie" className="font-medium text-primary hover:underline">
+            Zaloguj się
+          </Link>
+        </>
+      }
+    >
+      <AuthFormPanel>
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mb-5 border-destructive bg-destructive/15 shadow-sm"
+            data-testid="forgot-password-error"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Powrót
-          </Button>
-        </div>
+            <CircleAlert className="h-5 w-5" />
+            <AlertTitle className="text-destructive">Nie udało się wysłać linku</AlertTitle>
+            <AlertDescription className="text-sm font-medium text-destructive">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-        {/* Logo and title */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <BrandLogo variant="full" className="h-16 w-auto" />
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="email">Adres email</Label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="twoj@email.pl"
+                className={`pl-10 ${authFieldClassName}`}
+                required
+                disabled={isPending}
+                autoComplete="email"
+              />
+            </div>
           </div>
-          <p className="text-muted-foreground">
-            Resetowanie hasła
-          </p>
-        </div>
 
-        {/* Reset password form */}
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Zapomniałeś hasła?</CardTitle>
-            <CardDescription>
-              Wprowadź swój adres email, a wyślemy Ci nowe hasło
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Adres email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="twoj@email.pl"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90"
-                disabled={isLoading || isSubmitting}
-              >
-                {isLoading || isSubmitting ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Wysyłanie...</span>
-                  </div>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Wyślij nowe hasło
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Login link */}
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Pamiętasz hasło?{' '}
-            <Button
-              variant="link"
-              size="sm"
-              onClick={onLoginClick}
-              className="px-0 text-primary hover:text-primary/80"
-            >
-              Zaloguj
-            </Button>
-          </p>
-        </div>
-      </div>
-    </div>
+          <Button type="submit" className="h-11 w-full" disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Wysyłanie...
+              </>
+            ) : (
+              <>
+                Wyślij link resetujący
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </form>
+      </AuthFormPanel>
+    </AuthPageLayout>
   );
-};
+}
+
+export default ForgotPasswordPage;
