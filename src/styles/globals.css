@@ -322,9 +322,9 @@ body.scrolling::-webkit-scrollbar-thumb:hover {
 .gm-style .gm-style-iw-c {
   padding: 0 !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-  max-width: 320px !important;
-  /* overflow: visible !important; */
+  box-shadow: none !important;
+  max-width: 332px !important;
+  background: transparent !important;
   overflow-x: hidden !important;
   overflow-y: hidden !important;
 }
@@ -332,24 +332,14 @@ body.scrolling::-webkit-scrollbar-thumb:hover {
 .gm-style .gm-style-iw-d {
   overflow-x: hidden !important;
   overflow-y: hidden !important;
-  max-height: 400px !important;
-  scrollbar-width: thin;
-  scrollbar-color: hsl(214 32% 91%) transparent;
+  max-height: none !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  padding: 0 !important;
 }
 
-.gm-style .gm-style-iw-d::-webkit-scrollbar {
-  width: 6px;
-}
-
-.gm-style .gm-style-iw-d::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.gm-style .gm-style-iw-d::-webkit-scrollbar-thumb {
-  background: hsl(214 32% 91%);
-  border-radius: 3px;
+.gm-style .gm-style-iw-chr {
+  display: none !important;
 }
 
 /* Info window pointer/tail */
@@ -368,11 +358,15 @@ body.scrolling::-webkit-scrollbar-thumb:hover {
   z-index: 1001 !important;
 }
 
-/* Ensure clickability throughout the info window */
+/* Ensure clickability for info window controls */
 .gm-style .gm-style-iw-d,
 .info-window-content,
 .info-window-content * {
   pointer-events: auto !important;
+}
+
+.map-info-window [data-map-details-btn]:hover {
+  filter: brightness(0.95);
 }
 
 /* Prevent horizontal overflow in info window content */

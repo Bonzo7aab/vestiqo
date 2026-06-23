@@ -247,11 +247,13 @@ export function ContestJobCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-4 bg-muted/25 shadow-md shadow-black/10 transition-shadow w-full max-w-full',
-        isExpired ? 'bg-muted/40 opacity-70' : 'hover:shadow-lg hover:shadow-black/15',
+        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-muted/25 shadow-sm shadow-black/5 transition-shadow w-full max-w-full',
+        isExpired ? 'bg-muted/40 opacity-70' : 'hover:shadow-md hover:shadow-black/8',
         isHighlighted && 'border-primary shadow-md ring-1 ring-primary/20',
       )}
-      style={{ borderLeftColor: categoryColor }}
+      style={{
+        borderLeftColor: `color-mix(in srgb, ${categoryColor} 38%, transparent)`,
+      }}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

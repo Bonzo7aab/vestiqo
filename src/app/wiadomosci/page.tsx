@@ -7,11 +7,20 @@ import { useUserProfile } from '../../contexts/AuthContext';
 import { createClient } from '../../lib/supabase/client';
 import { markMessagesAsRead } from '../../lib/database/messaging';
 import { sendConversationMessageAction } from './actions';
+import { shouldUseMockData } from '../../lib/config/data-source';
 import { getConversations, getMessages } from '../../lib/data';
+import { isDatabaseUuid } from '../../lib/validation/uuid';
 import { Conversation, Message } from '../../types/messaging';
 import { mockConversations } from '../../mocks';
 import { toast } from 'sonner';
 import type { PostgrestError } from '@supabase/supabase-js';
+
+function resolveConversationList(fetchedConversations: Conversation[]): Conversation[] {
+  if (fetchedConversations.length > 0) {
+    return fetchedConversations;
+  }
+  return shouldUseMockData() ? mockConversations : [];
+}
 
 function logPostgrestError(context: string, err: unknown, extra?: Record<string, unknown>) {
   if (err && typeof err === 'object') {
@@ -73,6 +82,9 @@ function MessagesPageContent() {
   const markConversationOpened = useCallback(
     async (selectedConversationId: string) => {
       if (!user) return;
+      if (!shouldUseMockData() && !isDatabaseUuid(selectedConversationId)) {
+        return;
+      }
 
       const supabase = createClient();
 
@@ -111,6 +123,9 @@ function MessagesPageContent() {
   const refreshConversationMessages = useCallback(
     async (selectedConversationId: string) => {
       if (!user) return;
+      if (!shouldUseMockData() && !isDatabaseUuid(selectedConversationId)) {
+        return;
+      }
 
       const refreshed = await getMessages(selectedConversationId, user.id);
       if (refreshed.error) {
@@ -140,8 +155,7 @@ function MessagesPageContent() {
       }
 
       const fetchedConversations = conversationsResult.data || [];
-      const conversationList =
-        fetchedConversations.length === 0 ? mockConversations : fetchedConversations;
+      const conversationList = resolveConversationList(fetchedConversations);
       setConversations(conversationList);
 
       const activeId = conversationId ?? null;
@@ -189,10 +203,9 @@ function MessagesPageContent() {
         }
 
         const fetchedConversations = conversationsResult.data || [];
-        const conversationList =
-          fetchedConversations.length === 0 ? mockConversations : fetchedConversations;
+        const conversationList = resolveConversationList(fetchedConversations);
 
-        if (fetchedConversations.length === 0) {
+        if (fetchedConversations.length === 0 && shouldUseMockData()) {
           console.log('No conversations found in database, using mock data for testing');
         }
 

@@ -1,722 +1,282 @@
-import { Job } from "../../types";
+import type { Job } from "../../types";
+import {
+  formatContestCategoryLine,
+  getCategoryColor,
+  getCategoryDisplayName,
+  resolveCategorySlugFromJob,
+} from "../config/categoryConfig";
+import {
+  formatContestLocation,
+  formatContestSubmissionDeadline,
+  getContestSubmissionDeadline,
+} from "../contest-display";
+import { getListingDetailHref } from "../listing/listing-detail-url";
 import { getContestMarkerIconSvg } from "./config";
 
-// Cache for InfoWindow content to avoid regenerating for the same job
+const INFO_WINDOW_CACHE_VERSION = "v2";
 const infoWindowContentCache = new Map<string, string>();
-const CACHE_MAX_SIZE = 100; // Limit cache size to prevent memory issues
+const CACHE_MAX_SIZE = 100;
 
-/**
- * Clear InfoWindow content cache (useful for memory management)
- */
 export function clearInfoWindowCache(): void {
   infoWindowContentCache.clear();
 }
 
-/**
- * Get cached InfoWindow content or generate new content
- */
 function getCachedContent(jobId: string, isSmallMap: boolean, generator: () => string): string {
-  const cacheKey = `${jobId}-${isSmallMap ? 'small' : 'large'}`;
-  
-  // Check cache first
+  const cacheKey = `${INFO_WINDOW_CACHE_VERSION}-${jobId}-${isSmallMap ? "small" : "large"}`;
+
   const cached = infoWindowContentCache.get(cacheKey);
   if (cached) {
     return cached;
   }
-  
-  // Generate new content
+
   const content = generator();
-  
-  // Cache it (with size limit)
+
   if (infoWindowContentCache.size >= CACHE_MAX_SIZE) {
-    // Remove oldest entry (first key in Map)
     const firstKey = infoWindowContentCache.keys().next().value;
     if (firstKey) {
       infoWindowContentCache.delete(firstKey);
     }
   }
   infoWindowContentCache.set(cacheKey, content);
-  
+
   return content;
 }
 
-/**
- * Generates rich HTML content for Google Maps info windows
- * Styled with project's color palette and design system
- * Uses caching to avoid regenerating content for the same job
- */
-export function generateInfoWindowContent(jobData?: Job, isSmallMap: boolean = false): string {
-  if (!jobData) {
-    return '<div class="p-3 text-sm text-gray-600">Brak danych</div>';
-  }
-  
-  // Use cached content if available
-  return getCachedContent(jobData.id, isSmallMap, () => {
-    return generateInfoWindowContentInternal(jobData, isSmallMap);
-  });
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-/**
- * Internal function that actually generates the content
- */
-function generateInfoWindowContentInternal(jobData: Job, isSmallMap: boolean): string {
+interface ListingPreviewMeta {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  categoryLabel: string;
+  categoryColor: string;
+  accentBorder: string;
+  deadlineLabel: string | null;
+  offerCount: number;
+  detailHref: string;
+  urgent: boolean;
+  verified: boolean;
+}
 
-  const {
-    id,
-    title,
-    company,
-    location,
-    salary,
-    description,
-    skills = [],
-    applications,
-    postedTime,
-    urgent,
-    verified,
-    category,
-    companyInfo,
-    postType,
-  } = jobData;
-  
-  const companyLogo = companyInfo?.logo_url || undefined;
-  
-  // Rating is not part of Job type, so we'll skip it
-  const rating = undefined;
+function buildListingPreviewMeta(job: Job): ListingPreviewMeta {
+  const categorySlug = resolveCategorySlugFromJob({ category: job.category });
+  const categoryColor = categorySlug ? getCategoryColor(categorySlug) : "hsl(221 83% 40%)";
+  const categoryLabel =
+    formatContestCategoryLine({
+      category: job.category,
+      subcategory: job.subcategory,
+    }) ||
+    getCategoryDisplayName({
+      slug: categorySlug,
+      name: typeof job.category === "string" ? job.category : job.category?.name,
+    }) ||
+    "Inne";
 
-  const displaySkills = skills.slice(0, 3);
-  const hasMoreSkills = skills.length > 3;
+  const submissionDeadline = getContestSubmissionDeadline(job);
+  const deadlineLabel = submissionDeadline
+    ? formatContestSubmissionDeadline(submissionDeadline)
+    : null;
 
-  // Escape HTML to prevent XSS
-  const escapeHtml = (text: string) => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company,
+    location: formatContestLocation(job.location),
+    categoryLabel,
+    categoryColor,
+    accentBorder: `color-mix(in srgb, ${categoryColor} 38%, transparent)`,
+    deadlineLabel,
+    offerCount: job.applications ?? job.metrics?.applications ?? 0,
+    detailHref: getListingDetailHref(job),
+    urgent: Boolean(job.urgent),
+    verified: Boolean(job.verified),
   };
+}
 
-  // Convert location to string if it's an object
-  const locationString = typeof location === 'string' 
-    ? location 
-    : location && typeof location === 'object' && 'city' in location
-      ? location.city + (location.sublocality_level_1 ? `, ${location.sublocality_level_1}` : '')
-      : '';
-  
-  const safeTitle = escapeHtml(title);
-  const safeCompany = escapeHtml(company);
-  const safeLocation = escapeHtml(locationString);
-  const safeDescription = escapeHtml(description);
-  const safeCategory = typeof category === 'string' ? escapeHtml(category) : escapeHtml(category?.name || 'Inne');
+function renderMetaRow(label: string, value: string, compact = false): string {
+  const fontSize = compact ? "11px" : "12px";
+  return `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:${fontSize};line-height:1.4;">
+      <span style="color:hsl(215 16% 47%);flex-shrink:0;">${label}</span>
+      <span style="color:hsl(215 25% 17%);font-weight:500;text-align:right;">${value}</span>
+    </div>
+  `;
+}
 
-  // If small map, show compact version
-  if (isSmallMap) {
-    return generateCompactInfoWindow(jobData, escapeHtml);
-  }
+function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string {
+  const padding = compact ? "8px 12px" : "9px 14px";
+  const fontSize = compact ? "12px" : "13px";
 
   return `
-    <div class="info-window-content" data-job-id="${id}" style="cursor: pointer; width: 100%; max-width: ${isSmallMap ? '240px' : '360px'};">
+    <button
+      type="button"
+      data-map-details-btn
+      data-listing-href="${meta.detailHref}"
+      style="
+        display:block;
+        width:100%;
+        margin-top:${compact ? "10px" : "12px"};
+        padding:${padding};
+        border:none;
+        border-radius:8px;
+        background:hsl(221 83% 40%);
+        color:white;
+        font-size:${fontSize};
+        font-weight:600;
+        cursor:pointer;
+        font-family:inherit;
+      "
+    >Szczegóły</button>
+  `;
+}
+
+function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, includeDetailsButton = true): string {
+  const safeTitle = escapeHtml(meta.title);
+  const safeCompany = escapeHtml(meta.company);
+  const safeLocation = escapeHtml(meta.location);
+  const safeCategory = escapeHtml(meta.categoryLabel);
+  const maxWidth = compact ? "248px" : "320px";
+  const padding = compact ? "12px" : "14px";
+  const titleSize = compact ? "13px" : "14px";
+
+  return `
+    <div
+      class="info-window-content map-info-window"
+      data-listing-id="${meta.id}"
+      style="width:100%;max-width:${maxWidth};"
+    >
       <div style="
-        padding: 16px;
-        background: white;
-        // border-radius: 12px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding:${padding};
+        background:hsl(210 40% 98%);
+        border:1px solid hsl(214 32% 91%);
+        border-left:3px solid ${meta.accentBorder};
+        border-radius:12px;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        box-shadow:0 2px 10px rgba(15,23,42,0.08);
       ">
-        <!-- Header Section -->
-        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-          ${companyLogo ? `
-            <div style="flex-shrink: 0;">
-              <img 
-                src="${companyLogo}" 
-                alt="${safeCompany} logo"
-                style="
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 8px;
-                  object-fit: cover;
-                  background: hsl(210 40% 98%);
-                "
-                onerror="this.style.display='none'"
-              />
-            </div>
-          ` : ''}
-          
-          <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
-              ${getContestMarkerIconSvg('hsl(221 83% 40%)', 14)}
-              ${urgent ? `
-                <span style="
-                  display: inline-flex;
-                  padding: 2px 8px;
-                  font-size: 10px;
-                  font-weight: 600;
-                  border-radius: 6px;
-                  background: hsl(0 72% 51%);
-                  color: white;
-                  text-transform: uppercase;
-                  letter-spacing: 0.025em;
-                ">Pilne</span>
-              ` : ''}
-              ${verified ? `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="hsl(221 83% 40%)" style="flex-shrink: 0;">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              ` : ''}
-            </div>
-            
-            <h3 style="
-              font-size: 14px;
-              font-weight: 600;
-              color: hsl(215 25% 17%);
-              margin: 0 0 8px 0;
-              line-height: 1.4;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-            ">${safeTitle}</h3>
-          </div>
-        </div>
-
-        <!-- Meta Information -->
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 10px;
-          font-size: 12px;
-          color: hsl(215 16% 47%);
-        ">
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span>${safeLocation}</span>
-          </div>
-          
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          ${getContestMarkerIconSvg(meta.categoryColor, compact ? 12 : 14)}
           <span style="
-            padding: 2px 8px;
-            font-size: 11px;
-            font-weight: 500;
-            border-radius: 6px;
-            background: hsl(210 40% 96%);
-            color: hsl(221 83% 40%);
-            border: 1px solid hsl(214 32% 91%);
+            display:inline-flex;
+            padding:2px 8px;
+            font-size:${compact ? "10px" : "11px"};
+            font-weight:600;
+            border-radius:999px;
+            background:white;
+            color:${meta.categoryColor};
+            border:1px solid hsl(214 32% 91%);
           ">${safeCategory}</span>
+          ${meta.urgent ? `
+            <span style="
+              display:inline-flex;
+              padding:2px 8px;
+              font-size:10px;
+              font-weight:700;
+              border-radius:999px;
+              background:hsl(0 72% 51%);
+              color:white;
+              text-transform:uppercase;
+            ">Pilne</span>
+          ` : ""}
+          ${meta.verified ? `
+            <span style="display:inline-flex;color:hsl(221 83% 40%);" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </span>
+          ` : ""}
         </div>
 
-        <!-- Company -->
-        <div style="
-          font-size: 12px;
-          color: hsl(215 16% 47%);
-          margin-bottom: 10px;
-          font-weight: 500;
-        ">${safeCompany}</div>
+        <h3 style="
+          margin:0 0 6px;
+          font-size:${titleSize};
+          font-weight:700;
+          line-height:1.35;
+          color:hsl(215 25% 17%);
+          display:-webkit-box;
+          -webkit-line-clamp:2;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
+        ">${safeTitle}</h3>
 
-        <!-- Description -->
         <p style="
-          font-size: 13px;
-          color: hsl(215 25% 27%);
-          margin: 0 0 12px 0;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        ">${safeDescription}</p>
+          margin:0 0 10px;
+          font-size:${compact ? "11px" : "12px"};
+          color:hsl(215 16% 47%);
+          line-height:1.4;
+          display:-webkit-box;
+          -webkit-line-clamp:1;
+          -webkit-box-orient:vertical;
+          overflow:hidden;
+        ">${safeCompany}</p>
 
-        <!-- Skills -->
-        ${displaySkills.length > 0 ? `
-          <div style="
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-          ">
-            ${displaySkills.map(skill => `
-              <span style="
-                padding: 4px 8px;
-                font-size: 11px;
-                border-radius: 6px;
-                background: white;
-                color: hsl(215 25% 27%);
-                border: 1px solid hsl(214 32% 91%);
-              ">${escapeHtml(skill)}</span>
-            `).join('')}
-            ${hasMoreSkills ? `
-              <span style="
-                padding: 4px 8px;
-                font-size: 11px;
-                border-radius: 6px;
-                background: white;
-                color: hsl(215 16% 47%);
-                border: 1px solid hsl(214 32% 91%);
-              ">+${skills.length - 3} więcej</span>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <!-- Footer Stats -->
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 12px;
-          padding-top: 12px;
-          border-top: 1px solid hsl(214 32% 91%);
-          font-size: 12px;
-        ">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="
-              font-weight: 600;
-              color: hsl(160 84% 39%);
-              font-size: 13px;
-            ">${salary}</div>
-            
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              color: hsl(215 16% 47%);
-            ">
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 010 7.75"/>
-                </svg>
-                <span>${applications}</span>
-              </div>
-              
-              ${rating ? `
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  <span style="color: hsl(32 95% 44%);">★</span>
-                  <span>${rating.toFixed(1)}</span>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-          
-          <div style="
-            font-size: 11px;
-            color: hsl(215 16% 47%);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          ">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>${postedTime}</span>
-          </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${renderMetaRow("Lokalizacja", safeLocation, compact)}
+          ${meta.deadlineLabel ? renderMetaRow("Termin składania", escapeHtml(meta.deadlineLabel), compact) : ""}
+          ${renderMetaRow("Oferty", String(meta.offerCount), compact)}
         </div>
 
-        <!-- Click hint -->
-        <div style="
-          margin-top: 10px;
-          padding-top: 10px;
-          border-top: 1px solid hsl(214 32% 91%);
-          text-align: center;
-          font-size: 11px;
-          color: hsl(221 83% 40%);
-          font-weight: 500;
-        ">Kliknij, aby zobaczyć szczegóły</div>
+        ${includeDetailsButton ? renderDetailsButton(meta, compact) : ""}
       </div>
     </div>
   `;
 }
 
-/**
- * Mobile drawer content - optimized for mobile with larger text and more spacing
- */
+export function generateInfoWindowContent(jobData?: Job, isSmallMap = false): string {
+  if (!jobData) {
+    return '<div class="p-3 text-sm text-gray-600">Brak danych</div>';
+  }
+
+  return getCachedContent(jobData.id, isSmallMap, () => {
+    const meta = buildListingPreviewMeta(jobData);
+    return renderListingPreviewCard(meta, isSmallMap);
+  });
+}
+
 export function generateMobileDrawerContent(jobData: Job): string {
   if (!jobData) {
     return '<div class="p-6 text-base text-gray-600">Brak danych</div>';
   }
 
-  const {
-    id,
-    title,
-    company,
-    location,
-    salary,
-    description,
-    skills = [],
-    applications,
-    postedTime,
-    urgent,
-    verified,
-    category,
-    companyInfo,
-    postType,
-  } = jobData;
-  
-  const companyLogo = companyInfo?.logo_url || undefined;
-  
-  const displaySkills = skills.slice(0, 3);
-  const hasMoreSkills = skills.length > 3;
-
-  // Escape HTML to prevent XSS
-  const escapeHtml = (text: string) => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  };
-
-  // Convert location to string if it's an object
-  const locationString = typeof location === 'string' 
-    ? location 
-    : location && typeof location === 'object' && 'city' in location
-      ? location.city + (location.sublocality_level_1 ? `, ${location.sublocality_level_1}` : '')
-      : '';
-  
-  const safeTitle = escapeHtml(title);
-  const safeCompany = escapeHtml(company);
-  const safeLocation = escapeHtml(locationString);
-  const safeDescription = escapeHtml(description);
-  const safeCategory = typeof category === 'string' ? escapeHtml(category) : escapeHtml(category?.name || 'Inne');
-
-  return `
-    <div class="info-window-content" data-job-id="${id}" style="cursor: pointer; width: 100%;">
-      <div style="
-        padding: 0;
-        background: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      ">
-        <!-- Header Section -->
-        <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px;">
-          ${companyLogo ? `
-            <div style="flex-shrink: 0;">
-              <img 
-                src="${companyLogo}" 
-                alt="${safeCompany} logo"
-                style="
-                  width: 56px;
-                  height: 56px;
-                  border-radius: 12px;
-                  object-fit: cover;
-                  background: hsl(210 40% 98%);
-                "
-                onerror="this.style.display='none'"
-              />
-            </div>
-          ` : ''}
-          
-          <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-              <h3 style="
-                font-size: 22px;
-                font-weight: 700;
-                color: hsl(215 25% 17%);
-                margin: 0;
-                line-height: 1.4;
-                flex: 1;
-                min-width: 0;
-              ">${safeTitle}</h3>
-              
-              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                ${getContestMarkerIconSvg('hsl(221 83% 40%)', 20)}
-                ${urgent ? `
-                  <span style="
-                    display: inline-flex;
-                    padding: 4px 12px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    border-radius: 8px;
-                    background: hsl(0 72% 51%);
-                    color: white;
-                    text-transform: uppercase;
-                    letter-spacing: 0.025em;
-                  ">Pilne</span>
-                ` : ''}
-                ${verified ? `
-                  <div style="
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: hsl(142 76% 36%);
-                    flex-shrink: 0;
-                  ">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="flex-shrink: 0;">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Meta Information -->
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-bottom: 20px;
-          font-size: 15px;
-          color: hsl(215 16% 47%);
-        ">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span>${safeLocation}</span>
-          </div>
-          
-          <span style="
-            padding: 4px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 8px;
-            background: hsl(210 40% 96%);
-            color: hsl(221 83% 40%);
-            border: 1px solid hsl(214 32% 91%);
-          ">${safeCategory}</span>
-        </div>
-
-        <!-- Company -->
-        <div style="
-          font-size: 16px;
-          color: hsl(215 16% 47%);
-          margin-bottom: 20px;
-          font-weight: 600;
-        ">${safeCompany}</div>
-
-        <!-- Description -->
-        ${description ? `
-          <p style="
-            font-size: 15px;
-            color: hsl(215 25% 27%);
-            margin: 0 0 20px 0;
-            line-height: 1.6;
-          ">${safeDescription}</p>
-        ` : ''}
-
-        <!-- Skills -->
-        ${displaySkills.length > 0 ? `
-          <div style="
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-          ">
-            ${displaySkills.map(skill => `
-              <span style="
-                padding: 6px 14px;
-                font-size: 13px;
-                border-radius: 8px;
-                background: white;
-                color: hsl(215 25% 27%);
-                border: 1px solid hsl(214 32% 91%);
-              ">${escapeHtml(skill)}</span>
-            `).join('')}
-            ${hasMoreSkills ? `
-              <span style="
-                padding: 6px 14px;
-                font-size: 13px;
-                border-radius: 8px;
-                background: white;
-                color: hsl(215 16% 47%);
-                border: 1px solid hsl(214 32% 91%);
-              ">+${skills.length - 3} więcej</span>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <!-- Footer Stats -->
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 16px;
-          padding-top: 20px;
-          border-top: 1px solid hsl(214 32% 91%);
-          font-size: 15px;
-        ">
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <div style="
-              font-weight: 700;
-              color: hsl(160 84% 39%);
-              font-size: 18px;
-            ">${salary}</div>
-            
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              color: hsl(215 16% 47%);
-            ">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 010 7.75"/>
-                </svg>
-                <span>Oferty: ${applications}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div style="
-            font-size: 14px;
-            color: hsl(215 16% 47%);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>${postedTime}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+  const meta = buildListingPreviewMeta(jobData);
+  return renderListingPreviewCard(meta, false, false);
 }
 
-/**
- * Compact info window for small map - shows only essential information
- */
-function generateCompactInfoWindow(jobData: Job, escapeHtml: (text: string) => string): string {
-  const {
-    id,
-    title,
-    company,
-    location,
-    salary,
-    urgent,
-    verified,
-    postType,
-  } = jobData;
+/** Binds Szczegóły button inside the open Google Maps info window. */
+export function bindMapInfoWindowDetailsButton(
+  listingId: string,
+  onOpenDetails: (id: string) => void,
+): void {
+  const infoWindowRoot = document.querySelector(".gm-style-iw-d");
+  const card = infoWindowRoot?.querySelector(`[data-listing-id="${listingId}"]`);
+  const button = card?.querySelector("[data-map-details-btn]") as HTMLButtonElement | null;
 
-  // Convert location to string if it's an object
-  const locationString = typeof location === 'string' 
-    ? location 
-    : location && typeof location === 'object' && 'city' in location
-      ? location.city + (location.sublocality_level_1 ? `, ${location.sublocality_level_1}` : '')
-      : '';
+  if (!button || button.dataset.bound === "true") {
+    return;
+  }
 
-  const safeTitle = escapeHtml(title);
-  const safeCompany = escapeHtml(company);
-  const safeLocation = escapeHtml(locationString);
+  button.dataset.bound = "true";
+  button.addEventListener(
+    "click",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-  return `
-    <div class="info-window-content" data-job-id="${id}" style="cursor: pointer; width: 100%; max-width: 240px;">
-      <div style="
-        padding: 12px;
-        background: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      ">
-        <!-- Header with badges -->
-        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-          ${getContestMarkerIconSvg('hsl(221 83% 40%)', 12)}
-          ${urgent ? `
-            <span style="
-              display: inline-flex;
-              padding: 2px 6px;
-              font-size: 9px;
-              font-weight: 700;
-              border-radius: 4px;
-              background: hsl(0 72% 51%);
-              color: white;
-              text-transform: uppercase;
-              letter-spacing: 0.03em;
-            ">Pilne</span>
-          ` : ''}
-          ${verified ? `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="hsl(221 83% 40%)">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          ` : ''}
-        </div>
+      const href = button.getAttribute("data-listing-href");
+      const id =
+        card?.getAttribute("data-listing-id") ||
+        (href ? href.split("/").pop() ?? listingId : listingId);
 
-        <!-- Title (truncated) -->
-        <h3 style="
-          font-size: 13px;
-          font-weight: 600;
-          color: hsl(215 25% 17%);
-          margin: 0 0 6px 0;
-          line-height: 1.3;
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        ">${safeTitle}</h3>
-
-        <!-- Company (truncated) -->
-        <div style="
-          font-size: 11px;
-          color: hsl(215 16% 47%);
-          margin-bottom: 6px;
-          font-weight: 500;
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        ">${safeCompany}</div>
-
-        <!-- Location -->
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 3px;
-          margin-bottom: 8px;
-          font-size: 11px;
-          color: hsl(215 16% 47%);
-        ">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span style="
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          ">${safeLocation}</span>
-        </div>
-
-        <!-- Salary highlighted -->
-        <div style="
-          padding: 6px 8px;
-          border-radius: 6px;
-          background: hsl(160 100% 97%);
-          border: 1px solid hsl(160 84% 39% / 0.2);
-          margin-bottom: 8px;
-        ">
-          <div style="
-            font-weight: 700;
-            color: hsl(160 84% 30%);
-            font-size: 13px;
-          ">${salary}</div>
-        </div>
-
-        <!-- Click hint -->
-        <div style="
-          text-align: center;
-          font-size: 10px;
-          color: hsl(221 83% 40%);
-          font-weight: 600;
-        ">Kliknij aby zobaczyć więcej</div>
-      </div>
-    </div>
-  `;
+      onOpenDetails(id);
+    },
+    { once: true },
+  );
 }
-

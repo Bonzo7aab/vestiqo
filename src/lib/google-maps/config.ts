@@ -237,11 +237,11 @@ export const createMarkerGlyph = (
   }
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '24');
-  svg.setAttribute('height', '24');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
   svg.setAttribute('viewBox', '0 0 24 24');
-  svg.style.width = '28px';
-  svg.style.height = '28px';
+  svg.style.width = '18px';
+  svg.style.height = '18px';
   svg.style.display = 'block';
 
   if (categorySlug && isCategoryGlyphSlug(categorySlug)) {

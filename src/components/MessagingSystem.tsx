@@ -15,6 +15,8 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useUserProfile } from '../contexts/AuthContext';
+import { shouldUseMockData } from '../lib/config/data-source';
+import { isDatabaseUuid } from '../lib/validation/uuid';
 import { mockConversations, mockMessages } from '../mocks';
 import {
   Conversation,
@@ -30,7 +32,6 @@ import { ScrollArea } from './ui/scroll-area';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { getJobById, getTenderById } from '../lib/data';
-import { shouldUseMockData } from '../lib/config/data-source';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from './ui/use-mobile';
 import { cn } from './ui/utils';
@@ -242,6 +243,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
   // Poll read receipts so sender sees green checks when recipient reads
   useEffect(() => {
     if (!selectedConversation || !onRefreshMessages) return;
+    if (!shouldUseMockData() && !isDatabaseUuid(selectedConversation)) return;
 
     const refresh = () => {
       void onRefreshMessages(selectedConversation);
