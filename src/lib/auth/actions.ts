@@ -377,7 +377,7 @@ async function registerActionImpl(
     const redirectTo =
       userType === 'contractor'
         ? `/rejestracja/wybor-weryfikacji?message=${successMessage}`
-        : `/konto?message=${successMessage}`
+        : `/panel-zarzadcy/konkursy?message=${successMessage}`
     return { success: true, redirectTo }
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -19,6 +19,7 @@ import {
   type ManagerContest,
   getContestStatusLabel,
 } from '../../lib/database/manager-contests';
+import { groupManagerContestsByRenewal } from '../../lib/contest/manager-contest-renewal-groups';
 import {
   CONTEST_STATUS_FILTER_OPTIONS,
   canAbandonManagerContestDraft,
@@ -76,6 +77,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
 
 interface ManagerKonkursyContentProps {
   contests: ManagerContest[];
@@ -157,6 +164,19 @@ export function ManagerKonkursyContent({
   }, [initialContests]);
 
   useEffect(() => {
+    const registrationMessage = searchParams.get('message');
+    if (registrationMessage) {
+      toast.success(registrationMessage);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('message');
+      const query = params.toString();
+      router.replace(query ? `/panel-zarzadcy/konkursy?${query}` : '/panel-zarzadcy/konkursy', {
+        scroll: false,
+      });
+    }
+  }, [searchParams, router]);
+
+  useEffect(() => {
     const openId = searchParams.get('contestId') ?? searchParams.get('podglad');
     if (!openId) return;
 
@@ -198,14 +218,14 @@ export function ManagerKonkursyContent({
     }
   };
 
-  const filtered = useMemo(() => {
-    const rows = contests.filter((row) => {
-      if (statusFilter !== 'all' && row.status !== statusFilter) return false;
+  const filteredGroups = useMemo(() => {
+    const groups = groupManagerContestsByRenewal(contests).filter(({ head }) => {
+      if (statusFilter !== 'all' && head.status !== statusFilter) return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         if (
-          !row.title.toLowerCase().includes(q) &&
-          !row.locationLabel.toLowerCase().includes(q)
+          !head.title.toLowerCase().includes(q) &&
+          !head.locationLabel.toLowerCase().includes(q)
         ) {
           return false;
         }
@@ -214,25 +234,27 @@ export function ManagerKonkursyContent({
     });
 
     const mult = sortDir === 'asc' ? 1 : -1;
-    return [...rows].sort((a, b) => {
+    return [...groups].sort((a, b) => {
+      const left = a.head;
+      const right = b.head;
       switch (sortKey) {
         case 'title':
-          return mult * a.title.localeCompare(b.title, 'pl');
+          return mult * left.title.localeCompare(right.title, 'pl');
         case 'location':
-          return mult * a.locationLabel.localeCompare(b.locationLabel, 'pl');
+          return mult * left.locationLabel.localeCompare(right.locationLabel, 'pl');
         case 'deadline':
           return (
             mult *
-            (new Date(a.submissionDeadline).getTime() -
-              new Date(b.submissionDeadline).getTime())
+            (new Date(left.submissionDeadline).getTime() -
+              new Date(right.submissionDeadline).getTime())
           );
         case 'status':
-          return mult * getContestStatusLabel(a.status).localeCompare(
-            getContestStatusLabel(b.status),
+          return mult * getContestStatusLabel(left.status).localeCompare(
+            getContestStatusLabel(right.status),
             'pl',
           );
         case 'offersCount':
-          return mult * (a.offersCount - b.offersCount);
+          return mult * (left.offersCount - right.offersCount);
         default:
           return 0;
       }
@@ -382,6 +404,87 @@ export function ManagerKonkursyContent({
         <RotateCw className="h-4 w-4 mr-1.5" />
         Ponów
       </Button>
+    );
+  };
+
+  const renderContestDataCells = (
+    row: ManagerContest,
+    options?: { compact?: boolean },
+  ): ReactElement => {
+    const deadlineDisplay = formatSubmissionDeadlineDisplay(row.submissionDeadline);
+    const isPickedRow = row.hasSelectedOffer;
+    const compact = options?.compact ?? false;
+
+    return (
+      <>
+        <TableCell
+          className={cn(
+            'max-w-0 truncate',
+            isPickedRow && 'text-primary',
+            compact && 'text-sm',
+          )}
+        >
+          <Link
+            href={`/konkurs/${row.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={row.title}
+            className={cn(
+              'font-medium truncate leading-snug hover:underline block',
+              isPickedRow
+                ? 'text-primary hover:text-primary/80'
+                : 'text-foreground hover:text-primary',
+            )}
+          >
+            {row.title}
+          </Link>
+        </TableCell>
+        <TableCell
+          className={cn(
+            'text-sm text-muted-foreground max-w-0 truncate',
+            compact && 'text-xs',
+          )}
+          title={row.locationLabel}
+        >
+          {row.locationLabel}
+        </TableCell>
+        <TableCell className={cn('text-sm whitespace-nowrap', compact && 'text-xs')}>
+          {deadlineDisplay ? (
+            <span>
+              <span className="font-medium">{deadlineDisplay.formatted}</span>
+              {deadlineDisplay.hint ? (
+                <span className="text-muted-foreground block text-xs">
+                  ({deadlineDisplay.hint})
+                </span>
+              ) : null}
+            </span>
+          ) : (
+            '—'
+          )}
+        </TableCell>
+        <TableCell className="whitespace-nowrap">{renderStatusCell(row)}</TableCell>
+        <TableCell className="whitespace-nowrap">
+          <span className="tabular-nums">{row.offersCount}</span>
+        </TableCell>
+        <TableCell className="text-right whitespace-nowrap">
+          {!compact ? (
+            <div className="inline-flex flex-nowrap items-center justify-end gap-1.5">
+              {renderDraftContinueButton(row)}
+              {renderPrimaryEvaluationAction(row)}
+              {renderCooperationReviewButton(row)}
+              {renderRepeatContestButton(row)}
+              {renderActionsMenu(row)}
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" className="h-8 shrink-0" asChild>
+              <Link href={`/konkurs/${row.id}`} target="_blank" rel="noopener noreferrer">
+                <Eye className="h-4 w-4 mr-1.5" />
+                Podgląd
+              </Link>
+            </Button>
+          )}
+        </TableCell>
+      </>
     );
   };
 
@@ -565,77 +668,63 @@ export function ManagerKonkursyContent({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {filteredGroups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       Brak konkursów spełniających kryteria.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((row) => {
-                    const deadlineDisplay = formatSubmissionDeadlineDisplay(
-                      row.submissionDeadline,
-                    );
-                    const isPickedRow = row.hasSelectedOffer;
+                  filteredGroups.map(({ head, predecessors }) => {
+                    const isPickedRow = head.hasSelectedOffer;
 
                     return (
-                      <TableRow
-                        key={row.id}
-                        className={cn(
-                          isPickedRow &&
-                            'bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10',
-                        )}
-                      >
-                        <TableCell className={cn('max-w-0 truncate', isPickedRow && 'text-primary')}>
-                          <Link
-                            href={`/konkurs/${row.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={row.title}
-                            className={cn(
-                              'font-medium truncate leading-snug hover:underline block',
-                              isPickedRow
-                                ? 'text-primary hover:text-primary/80'
-                                : 'text-foreground hover:text-primary',
-                            )}
-                          >
-                            {row.title}
-                          </Link>
-                        </TableCell>
-                        <TableCell
-                          className="text-sm text-muted-foreground max-w-0 truncate"
-                          title={row.locationLabel}
-                        >
-                          {row.locationLabel}
-                        </TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {deadlineDisplay ? (
-                            <span>
-                              <span className="font-medium">{deadlineDisplay.formatted}</span>
-                              {deadlineDisplay.hint ? (
-                                <span className="text-muted-foreground block text-xs">
-                                  ({deadlineDisplay.hint})
-                                </span>
-                              ) : null}
-                            </span>
-                          ) : (
-                            '—'
+                      <Fragment key={head.id}>
+                        <TableRow
+                          className={cn(
+                            isPickedRow &&
+                              'bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10',
                           )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{renderStatusCell(row)}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <span className="tabular-nums">{row.offersCount}</span>
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          <div className="inline-flex flex-nowrap items-center justify-end gap-1.5">
-                            {renderDraftContinueButton(row)}
-                            {renderPrimaryEvaluationAction(row)}
-                            {renderCooperationReviewButton(row)}
-                            {renderRepeatContestButton(row)}
-                            {renderActionsMenu(row)}
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                        >
+                          {renderContestDataCells(head)}
+                        </TableRow>
+                        {predecessors.length > 0 ? (
+                          <TableRow className="bg-muted/20 hover:bg-muted/20">
+                            <TableCell colSpan={6} className="py-0 px-4">
+                              <Accordion type="single" collapsible className="w-full">
+                                <AccordionItem value="history" className="border-0">
+                                  <AccordionTrigger className="py-3 text-sm text-muted-foreground hover:no-underline">
+                                    Poprzednie edycje konkursu ({predecessors.length})
+                                  </AccordionTrigger>
+                                  <AccordionContent className="pb-4">
+                                    <div className="rounded-md border overflow-x-auto bg-background">
+                                      <Table className="table-fixed w-full min-w-[880px]">
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead className="w-[22%]">Tytuł konkursu</TableHead>
+                                            <TableHead className="w-[14%]">Lokalizacja</TableHead>
+                                            <TableHead className="w-[13%]">Termin składania</TableHead>
+                                            <TableHead className="w-[18%]">Status konkursu</TableHead>
+                                            <TableHead className="w-[9%]">Złożone oferty</TableHead>
+                                            <TableHead className="text-right w-[24%]">Akcje</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {predecessors.map((row) => (
+                                            <TableRow key={row.id} className="text-muted-foreground">
+                                              {renderContestDataCells(row, { compact: true })}
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              </Accordion>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </Fragment>
                     );
                   })
                 )}

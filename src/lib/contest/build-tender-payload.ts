@@ -43,6 +43,7 @@ export interface TenderContestCreatePayload {
   status?: 'draft' | 'active';
   managerId: string;
   companyId: string;
+  renewedFromContestId?: string | null;
   address?: string;
   latitude?: number;
   longitude?: number;

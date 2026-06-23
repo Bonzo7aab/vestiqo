@@ -22,6 +22,40 @@ const ALLOWED_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
+const ALLOWED_EXTENSIONS = [
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'gif',
+  'pdf',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+] as const;
+
+function getFileExtension(fileName: string): string | null {
+  const parts = fileName.split('.');
+  if (parts.length < 2) return null;
+  return parts.pop()?.toLowerCase() ?? null;
+}
+
+function isAllowedContestFile(file: File): boolean {
+  const fileType = file.type.toLowerCase();
+  const allowed = ALLOWED_TYPES.map((t) => t.toLowerCase());
+  if (allowed.includes(fileType)) {
+    return true;
+  }
+
+  const extension = getFileExtension(file.name);
+  if (extension && (ALLOWED_EXTENSIONS as readonly string[]).includes(extension)) {
+    return true;
+  }
+
+  return false;
+}
+
 function inferDocumentType(fileName: string): TenderContestDocumentMeta['type'] {
   const lower = fileName.toLowerCase();
   if (lower.includes('rysun') || lower.includes('drawing')) return 'drawings';
@@ -72,15 +106,17 @@ export async function uploadContestDocument(
   try {
     await requireAuthenticatedUser(userId);
 
-    const fileType = file.type.toLowerCase();
-    const allowed = ALLOWED_TYPES.map((t) => t.toLowerCase());
-    if (!allowed.includes(fileType) && fileType !== 'image/jpeg') {
+    if (!isAllowedContestFile(file)) {
       return {
         data: null,
         error: new Error(
           'Nieprawidłowy typ pliku. Dozwolone: JPG, PNG, WEBP, GIF, PDF, DOC, DOCX, XLS, XLSX',
         ),
       };
+    }
+
+    if (file.size <= 0) {
+      return { data: null, error: new Error('Plik jest pusty lub uszkodzony') };
     }
 
     if (file.size > MAX_FILE_SIZE) {

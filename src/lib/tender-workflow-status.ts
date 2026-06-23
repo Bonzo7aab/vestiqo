@@ -11,7 +11,7 @@ export const CONTEST_STATUS_FILTER_OPTIONS = [
   { value: 'draft', label: 'Szkic konkursu' },
   { value: 'active', label: 'Zbieranie ofert' },
   { value: 'evaluation', label: 'Wybór ofert' },
-  { value: 'no_offers', label: 'Brak ofert' },
+  { value: 'no_offers', label: 'Konkurs nierozstrzygnięty' },
   { value: 'awarded', label: 'Konkurs rozstrzygnięty' },
   { value: 'cancelled', label: 'Konkurs unieważniony' },
 ] as const;
@@ -25,7 +25,7 @@ const WORKFLOW_LABELS: Record<TenderWorkflowStatus, string> = {
 const EXTRA_LABELS: Record<string, string> = {
   draft: 'Szkic konkursu',
   paused: 'Wstrzymane',
-  no_offers: 'Brak ofert',
+  no_offers: 'Konkurs nierozstrzygnięty',
   cancelled: 'Konkurs unieważniony',
 };
 

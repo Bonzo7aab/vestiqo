@@ -116,6 +116,7 @@ export interface TenderUpsertData {
   depositInstructions?: string | null;
   paymentTerms?: Record<string, unknown> | null;
   wadium?: number | null;
+  renewedFromContestId?: string | null;
 }
 
 function tenderLocationJsonb(location: JobLocation | string): JobLocation {
@@ -184,6 +185,7 @@ function tenderDbRowFromUpsert(
     payment_terms: tenderData.paymentTerms ?? null,
     wadium: tenderData.wadium ?? null,
     published_at: tenderData.status === 'active' ? new Date().toISOString() : null,
+    renewed_from_contest_id: tenderData.renewedFromContestId ?? null,
   };
 }
 

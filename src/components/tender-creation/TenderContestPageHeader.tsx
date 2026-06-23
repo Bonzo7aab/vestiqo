@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ArrowLeft, Gavel } from 'lucide-react';
-import { Badge } from '../ui/badge';
 
 interface TenderContestPageHeaderProps {
   onBack: () => void;
@@ -39,14 +38,9 @@ export function TenderContestPageHeader({
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    {title}
-                  </h1>
-                  <Badge variant="outline" className="font-normal text-xs">
-                    Formalny konkurs
-                  </Badge>
-                </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  {title}
+                </h1>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
               </div>
             </div>
