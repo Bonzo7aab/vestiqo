@@ -9,6 +9,7 @@ export const companyLegal = {
   siteUrl: '[Adres URL]',
   emails: {
     contact: 'kontakt@vestiqo.pl',
+    noreply: 'noreply@vestiqo.pl',
     help: 'pomoc@vestiqo.pl',
     business: 'biznes@vestiqo.pl',
     dsa: 'dsa@vestiqo.pl',
