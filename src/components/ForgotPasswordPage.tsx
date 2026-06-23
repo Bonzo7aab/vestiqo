@@ -71,7 +71,7 @@ export function ForgotPasswordPage() {
       <AuthPageLayout
         testId="forgot-password-page"
         title="Email wysłany!"
-        subtitle="Jeśli konto o podanym adresie email istnieje, wyślemy link do ustawienia nowego hasła."
+        subtitle="Jeśli konto o podanym adresie email istnieje, wyślemy nowe, tymczasowe hasło."
         sideVariant="simple"
         trustNote="Dane chronione zgodnie z RODO."
         side={authSide}
@@ -96,7 +96,7 @@ export function ForgotPasswordPage() {
             <AlertDescription className="text-sm">
               <strong>Sprawdź swoją skrzynkę email</strong>
               <br />
-              Link do resetu hasła został wysłany na adres: <strong>{email}</strong>
+              Nowe hasło zostało wysłane na adres: <strong>{email}</strong>
             </AlertDescription>
           </Alert>
 
@@ -105,7 +105,7 @@ export function ForgotPasswordPage() {
             <ul className="ml-4 list-inside list-disc space-y-1">
               <li>Sprawdź folder spam/junk</li>
               <li>Upewnij się, że adres email jest prawidłowy</li>
-              <li>Kliknij link w wiadomości i ustaw nowe hasło</li>
+              <li>Zaloguj się nowym hasłem i zmień je w ustawieniach konta</li>
               <li>Spróbuj ponownie za kilka minut</li>
             </ul>
           </div>
@@ -125,7 +125,7 @@ export function ForgotPasswordPage() {
     <AuthPageLayout
       testId="forgot-password-page"
       title="Zapomniałeś hasła?"
-      subtitle="Podaj adres email powiązany z kontem — wyślemy link do ustawienia nowego hasła."
+      subtitle="Podaj adres email powiązany z kontem — wyślemy nowe, tymczasowe hasło."
       sideVariant="simple"
       trustNote="Dane chronione zgodnie z RODO."
       side={authSide}
@@ -181,7 +181,7 @@ export function ForgotPasswordPage() {
               </>
             ) : (
               <>
-                Wyślij link resetujący
+                Wyślij nowe hasło
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}

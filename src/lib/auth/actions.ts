@@ -17,7 +17,11 @@ import { isValidNip, normalizeNip } from '../gus/nip'
 import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
+import { findAuthUserByEmail } from './find-user-by-email'
+import { generateSecurePassword } from './generate-password'
 import { validatePasswordStrength } from './password-policy'
+import { sendPasswordResetEmail } from '../email/send-password-reset-email'
+import { createAdminClientOrNull } from '../supabase/admin'
 import * as Sentry from '@sentry/nextjs'
 
 export interface LoginData {
@@ -464,7 +468,7 @@ async function updateUserActionImpl(userData: UpdateUserData) {
 }
 
 /**
- * Sends a time-limited password recovery link via Supabase Auth.
+ * Generates a new temporary password, updates auth via admin API, and emails it via Resend.
  * Always returns success for valid emails (anti-enumeration).
  */
 async function requestPasswordResetEmailActionImpl(
@@ -475,17 +479,47 @@ async function requestPasswordResetEmailActionImpl(
     return { error: 'Podaj prawidłowy adres email' }
   }
 
-  const supabase = await createClient()
-  const origin = getPublicAppOrigin()
-  const nextPath = encodeURIComponent('/auth/aktualizacja-hasla')
-  const redirectTo = `${origin}/auth/confirm?next=${nextPath}`
+  try {
+    const admin = createAdminClientOrNull()
+    if (!admin) {
+      console.error('requestPasswordResetEmailAction: missing elevated Supabase key')
+      return { success: true }
+    }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-    redirectTo,
-  })
+    const user = await findAuthUserByEmail(admin, trimmed)
+    if (!user) {
+      return { success: true }
+    }
 
-  if (error) {
-    console.error('requestPasswordResetEmailAction: resetPasswordForEmail failed', error.message)
+    const newPassword = generateSecurePassword()
+    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+      password: newPassword,
+    })
+
+    if (updateError) {
+      console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
+      Sentry.captureException(updateError, { extra: { email: trimmed } })
+      return { success: true }
+    }
+
+    const origin = getPublicAppOrigin()
+    const sendResult = await sendPasswordResetEmail({
+      toEmail: trimmed,
+      password: newPassword,
+      loginUrl: `${origin}/logowanie`,
+    })
+
+    if (!sendResult.sent) {
+      console.error(
+        'requestPasswordResetEmailAction: Resend failed',
+        sendResult.skippedReason ?? 'unknown',
+      )
+      Sentry.captureMessage('Password reset email not sent', {
+        extra: { email: trimmed, reason: sendResult.skippedReason },
+      })
+    }
+  } catch (error) {
+    console.error('requestPasswordResetEmailAction:', error)
     Sentry.captureException(error, { extra: { email: trimmed } })
   }
 

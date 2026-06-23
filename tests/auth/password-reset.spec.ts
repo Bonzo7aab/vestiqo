@@ -171,7 +171,7 @@ test.describe('Password Reset', () => {
 
     // Check for instructions text - the component shows instructions in CardContent
     await expect(page.getByText('Sprawdź folder spam/junk')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/ustaw nowe hasło/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/zaloguj się nowym hasłem/i)).toBeVisible({ timeout: 5000 });
   });
 });
 

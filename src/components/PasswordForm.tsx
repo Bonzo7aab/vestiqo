@@ -125,7 +125,7 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
         setError(result.error)
         return
       }
-      setSuccess('Wysłano link do resetu hasła. Sprawdź skrzynkę (również folder spam).')
+      setSuccess('Wysłano nowe hasło. Sprawdź skrzynkę (również folder spam).')
       setTimeout(() => setSuccess(''), 8000)
     } catch {
       setError('Nie udało się wysłać wiadomości resetującej')
@@ -159,11 +159,11 @@ export function PasswordForm({ accountEmail }: PasswordFormProps) {
             <h4 className="font-medium">Reset hasła emailem</h4>
           </div>
           <Button variant="outline" size="sm" onClick={handleSendResetEmail} disabled={resetSending || !accountEmail}>
-            {resetSending ? 'Wysyłanie…' : 'Wyślij link resetujący'}
+            {resetSending ? 'Wysyłanie…' : 'Wyślij nowe hasło'}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Otrzymasz wiadomość z bezpiecznym linkiem do ustawienia nowego hasła.
+          Otrzymasz wiadomość z nowym, tymczasowym hasłem do logowania.
         </p>
       </div>
 
