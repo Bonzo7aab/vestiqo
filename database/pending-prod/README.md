@@ -2,7 +2,7 @@
 
 Queue for SQL that is **not yet** in production Supabase migration history (`vestiqo`, `fabbgaqxsetnsppxegnx`).
 
-**Status (2026-06-20):** Queue empty — all former files were applied to prod and moved to [`supabase/migrations/`](../../supabase/migrations/).
+**Status (2026-06-24):** Queue empty — security hardening applied to prod and moved to [`supabase/migrations/`](../../supabase/migrations/).
 
 ## Workflow
 
@@ -16,12 +16,28 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 
 | File | Purpose | Test | Prod |
 |------|---------|------|------|
-| `20260621120000_opd41_split_contractor_prefs.sql` | OPD-41 split win/lose contractor toggles | Applied | No |
-| `20260621120001_opd41_contest_end_emoji.sql` | OPD-41 contest-end notification emoji | Applied | No |
+| _(none)_ | | | |
 
-## Already on production
+## Recently applied to production (2026-06-24)
 
-All migrations through OPD-105, OPD-41, OPD-106, and `no_offers` contest status are recorded in prod history. See [`supabase/migrations/`](../../supabase/migrations/) and [`../SCHEMA_INVENTORY.md`](../SCHEMA_INVENTORY.md).
+| File | Purpose |
+|------|---------|
+| `20260624120000_prod_security_rls_hardening.sql` | Re-enable RLS on 6 tables, drop broad companies policy, harden notifications INSERT, tighten SELECT policies, lock down cron/contest RPCs, fix `budget_data_view` security invoker |
+
+## Manual Auth dashboard follow-up (production + test)
+
+These cannot be changed via SQL migration. Enable in Supabase Dashboard → **Authentication** for both `vestiqo` and `vestiqo-test`:
+
+1. **Leaked password protection** — [Password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection): enable HaveIBeenPwned check.
+2. **MFA options** — [Auth MFA](https://supabase.com/docs/guides/auth/auth-mfa): enable TOTP and any additional factors you want to offer.
+
+## Recently applied to production (2026-06-21)
+
+| File | Purpose |
+|------|---------|
+| `20260621120000_opd41_split_contractor_prefs.sql` | OPD-41 split win/lose contractor notification toggles |
+| `20260621120001_opd41_contest_end_emoji.sql` | OPD-41 contest-end notification emoji in cron function |
+| `20260621130000_contest_renewed_from.sql` | OPD-111 contest renewal chain (`renewed_from_contest_id`) |
 
 ## Safety
 

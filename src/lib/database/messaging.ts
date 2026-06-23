@@ -1,6 +1,7 @@
 import { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import type { Conversation, Message } from '../../types/messaging';
+import { createAdminClientOrNull } from '../supabase/admin';
 import { isDatabaseUuid } from '../validation/uuid';
 
 function logMessagingQueryError(context: string, error: unknown, extra?: Record<string, unknown>): void {
@@ -375,9 +376,11 @@ export async function createNotification(
   actionUrl?: string
 ): Promise<{ data: string | null; error: PostgrestError | null }> {
   try {
+    const insertClient = createAdminClientOrNull() ?? supabase;
+
     // Insert notification without select first (RLS might block select for other users)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await (supabase as any)
+        const { error: insertError } = await (insertClient as any)
       .from('notifications')
       .insert({
         user_id: userId,

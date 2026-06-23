@@ -64,7 +64,7 @@ For current auth/administracja flows, also apply these later migrations:
 - **52_user_read_own_verification_decisions.sql**
 - **53_verification_document_reviews.sql**
 - **58_platform_registration_settings.sql**
-- **60_harden_system_write_policies.sql** 🔒
+- **60_harden_system_write_policies.sql** 🔒 — superseded by `supabase/migrations/20260624120000_prod_security_rls_hardening.sql` (applied prod 2026-06-24)
 - **61_rename_job_bookmarks_to_bookmarks.sql** — polymorphic `bookmarks` table
 - **62_fix_bookmarks_count_triggers.sql** — drop legacy bookmark count triggers
 - **Supabase migrations:** [`supabase/migrations/`](../supabase/migrations/) — includes drop-unused schema, tenders→contests rename, OPD-41/105/106, VAT whitelist
