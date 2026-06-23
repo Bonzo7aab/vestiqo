@@ -1,6 +1,22 @@
 import { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import type { Conversation, Message } from '../../types/messaging';
+import { isDatabaseUuid } from '../validation/uuid';
+
+function logMessagingQueryError(context: string, error: unknown, extra?: Record<string, unknown>): void {
+  if (error && typeof error === 'object') {
+    const e = error as PostgrestError;
+    console.error(context, error, {
+      message: e.message,
+      code: e.code,
+      details: e.details,
+      hint: e.hint,
+      ...extra,
+    });
+    return;
+  }
+  console.error(context, error, extra);
+}
 
 // Helper types for tables not yet in Database type
 interface ConversationRow {
@@ -950,6 +966,10 @@ export async function fetchConversationMessages(
   conversationId: string,
   currentUserId: string,
 ): Promise<{ data: Message[] | null; error: PostgrestError | null }> {
+  if (!isDatabaseUuid(conversationId)) {
+    return { data: [], error: null };
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error } = await (supabase as any)
@@ -959,13 +979,7 @@ export async function fetchConversationMessages(
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching messages:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        conversationId,
-      });
+      logMessagingQueryError('Error fetching messages:', error, { conversationId });
       return { data: null, error };
     }
 
@@ -1052,7 +1066,7 @@ export async function fetchConversationMessages(
 
     return { data: transformedMessages, error: null };
   } catch (err) {
-    console.error('Error fetching messages:', err);
+    logMessagingQueryError('Error fetching messages:', err, { conversationId });
     return { data: null, error: err as PostgrestError };
   }
 }
@@ -1065,6 +1079,10 @@ export async function markMessagesAsRead(
   conversationId: string,
   userId: string
 ): Promise<{ data: boolean; error: PostgrestError | null }> {
+  if (!isDatabaseUuid(conversationId)) {
+    return { data: true, error: null };
+  }
+
   try {
     // First, get all unread messages in this conversation
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

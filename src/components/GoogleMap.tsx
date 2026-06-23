@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { googleMapsConfig, mapOptions, markerColors, createMarkerGlyph, lightenColor } from '../lib/google-maps/config';
 import { getCategoryColor } from '../lib/config/categoryConfig';
-import { generateInfoWindowContent, generateMobileDrawerContent } from '../lib/google-maps/infoWindowContent';
+import { generateInfoWindowContent, generateMobileDrawerContent, bindMapInfoWindowDetailsButton } from '../lib/google-maps/infoWindowContent';
+import { getListingDetailHref } from '../lib/listing/listing-detail-url';
 import { Job } from '../types/job';
 import {
   Drawer,
@@ -69,7 +71,7 @@ class MarkerPool {
         map,
         position: config.position,
         title: config.title,
-        zIndex: config.isSelected ? 1000 : config.isHovered ? 1001 : 100,
+        zIndex: config.isHovered ? 1001 : 100,
       });
     }
 
@@ -93,11 +95,7 @@ class MarkerPool {
     let glyphColor: string;
     let borderColor: string;
 
-    if (config.isSelected) {
-      backgroundColor = markerColors.selected.background;
-      glyphColor = markerColors.selected.glyphColor;
-      borderColor = markerColors.selected.borderColor;
-    } else if (config.postType === 'contest' && config.categorySlug) {
+    if (config.postType === 'contest' && config.categorySlug) {
       const categoryColor = getCategoryColor(config.categorySlug);
       backgroundColor = '#ffffff';
       glyphColor = categoryColor;
@@ -113,7 +111,7 @@ class MarkerPool {
     }
 
     const postType = config.postType || 'job';
-    const baseScale = config.isSelected ? 1.6 : (config.isHovered ? 1.35 : 1.3);
+    const baseScale = config.isHovered ? 1.18 : 1.08;
 
     const glyph = createMarkerGlyph(postType, glyphColor, config.categorySlug);
     const pinElement = new google.maps.marker.PinElement({
@@ -131,7 +129,7 @@ class MarkerPool {
     // Use the PinElement's element directly - don't clone to avoid losing background color
     // The PinElement's background is applied internally by Google Maps
     marker.content = pinElement.element;
-    marker.zIndex = config.isSelected ? 1000 : config.isHovered ? 1001 : 100;
+    marker.zIndex = config.isHovered ? 1001 : 100;
     marker.map = map;
 
     // Set zIndex on element
@@ -151,10 +149,10 @@ class MarkerPool {
     const needsReconfig = 
       currentConfig.position?.lat !== newConfig.position?.lat ||
       currentConfig.position?.lng !== newConfig.position?.lng ||
-      currentConfig.isSelected !== newConfig.isSelected ||
       currentConfig.isHovered !== newConfig.isHovered ||
       currentConfig.urgency !== newConfig.urgency ||
-      currentConfig.postType !== newConfig.postType;
+      currentConfig.postType !== newConfig.postType ||
+      currentConfig.categorySlug !== newConfig.categorySlug;
 
     if (needsReconfig) {
       this.configureMarker(marker, newConfig, map);
@@ -218,6 +216,7 @@ const MapComponent: React.FC<{
   isMapExpanded?: boolean;
   isSmallMap?: boolean;
 }> = ({ markers, center, zoom, onMapClick, onMarkerClick: _onMarkerClick, onBoundsChanged, isMapExpanded = false, isSmallMap = false }) => {
+  const router = useRouter();
   const { user } = useUserProfile();
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
@@ -235,7 +234,40 @@ const MapComponent: React.FC<{
   const currentBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   // const loadingChunkRef = useRef<number>(0); // Unused variable
   const activeInfoWindowMarkerIdRef = useRef<string | null>(null);
+  const markerDomListenerControllersRef = useRef(
+    new WeakMap<google.maps.marker.AdvancedMarkerElement, AbortController>(),
+  );
   const isMobile = useIsMobile();
+
+  const openListingDetails = useCallback((listingId: string) => {
+    router.push(getListingDetailHref({ id: listingId }));
+  }, [router]);
+
+  const bindInfoWindowInteractions = useCallback(
+    (listingId: string) => {
+      setTimeout(() => {
+        bindMapInfoWindowDetailsButton(listingId, openListingDetails);
+
+        const infoWindowElement = document.querySelector(
+          `.gm-style-iw-d [data-listing-id="${listingId}"]`,
+        );
+        if (!infoWindowElement) return;
+
+        infoWindowElement.addEventListener('mouseenter', () => {
+          isHoveringInfoWindowRef.current = true;
+          if (infoWindowTimeoutRef.current) {
+            clearTimeout(infoWindowTimeoutRef.current);
+            infoWindowTimeoutRef.current = null;
+          }
+        });
+
+        infoWindowElement.addEventListener('mouseleave', () => {
+          isHoveringInfoWindowRef.current = false;
+        });
+      }, 100);
+    },
+    [openListingDetails],
+  );
 
   // Initialize marker pool
   useEffect(() => {
@@ -496,28 +528,7 @@ const MapComponent: React.FC<{
       // Track the active marker
       activeInfoWindowMarkerIdRef.current = markerData.id;
 
-      setTimeout(() => {
-        const infoWindowElement = document.querySelector(`[data-job-id="${markerData.id}"]`);
-        if (infoWindowElement) {
-          infoWindowElement.addEventListener('click', () => {
-            if (markerData.onClick) {
-              markerData.onClick();
-            }
-          });
-
-          infoWindowElement.addEventListener('mouseenter', () => {
-            isHoveringInfoWindowRef.current = true;
-            if (infoWindowTimeoutRef.current) {
-              clearTimeout(infoWindowTimeoutRef.current);
-              infoWindowTimeoutRef.current = null;
-            }
-          });
-
-          infoWindowElement.addEventListener('mouseleave', () => {
-            isHoveringInfoWindowRef.current = false;
-          });
-        }
-      }, 100);
+      bindInfoWindowInteractions(markerData.id);
     };
 
     // Click listener - always allow clicks to switch
@@ -528,16 +539,29 @@ const MapComponent: React.FC<{
     // Hover listeners (desktop only)
     if (!isMobile) {
       const element = marker.content as HTMLElement;
-      element.addEventListener('mouseenter', () => {
-        openInfoWindow(false); // false indicates this is from hover
-      });
+      const previousController = markerDomListenerControllersRef.current.get(marker);
+      previousController?.abort();
 
-      element.addEventListener('mouseleave', () => {
-        const element = marker.content as HTMLElement;
-        element.style.zIndex = '100';
-      });
+      const controller = new AbortController();
+      markerDomListenerControllersRef.current.set(marker, controller);
+
+      element.addEventListener(
+        'mouseenter',
+        () => {
+          openInfoWindow(false);
+        },
+        { signal: controller.signal },
+      );
+
+      element.addEventListener(
+        'mouseleave',
+        () => {
+          element.style.zIndex = '100';
+        },
+        { signal: controller.signal },
+      );
     }
-  }, [isMobile, isSmallMap]);
+  }, [isMobile, isSmallMap, bindInfoWindowInteractions]);
 
   // Update markers with pooling, viewport culling, and incremental loading
   useEffect(() => {
@@ -694,31 +718,10 @@ const MapComponent: React.FC<{
         // Track the active marker
         activeInfoWindowMarkerIdRef.current = hoveredMarkerData.id;
 
-        setTimeout(() => {
-          const infoWindowElement = document.querySelector(`[data-job-id="${hoveredMarkerData.id}"]`);
-          if (infoWindowElement) {
-            infoWindowElement.addEventListener('click', () => {
-              if (hoveredMarkerData.onClick) {
-                hoveredMarkerData.onClick();
-              }
-            });
-
-            infoWindowElement.addEventListener('mouseenter', () => {
-              isHoveringInfoWindowRef.current = true;
-              if (infoWindowTimeoutRef.current) {
-                clearTimeout(infoWindowTimeoutRef.current);
-                infoWindowTimeoutRef.current = null;
-              }
-            });
-
-            infoWindowElement.addEventListener('mouseleave', () => {
-              isHoveringInfoWindowRef.current = false;
-            });
-          }
-        }, 100);
+        bindInfoWindowInteractions(hoveredMarkerData.id);
       }
     }
-  }, [map, infoWindow, markers, isSmallMap, isMapExpanded]);
+  }, [map, infoWindow, markers, isSmallMap, isMapExpanded, bindInfoWindowInteractions]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -754,26 +757,16 @@ const MapComponent: React.FC<{
               <DrawerTitle className="sr-only">Szczegóły zgłoszenia</DrawerTitle>
             </DrawerHeader>
             
-            <div 
-              className="flex-1 px-6 pb-4 overflow-y-auto"
-              onClick={() => {
-                if (selectedJobForMobile) {
-                  const marker = markers.find(m => m.id === selectedJobForMobile.id);
-                  if (marker?.onClick) {
-                    marker.onClick();
-                  }
-                }
-              }}
-            >
+            <div className="flex-1 px-6 pb-4 overflow-y-auto">
               {selectedJobForMobile && (
-                <div 
-                  dangerouslySetInnerHTML={{ 
-                    __html: generateMobileDrawerContent(selectedJobForMobile) 
-                  }} 
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: generateMobileDrawerContent(selectedJobForMobile),
+                  }}
                 />
               )}
             </div>
-            
+
             <div className="sticky bottom-0 bg-background p-4 pt-4 pb-4">
               <div className="flex gap-3">
                 <button
@@ -783,6 +776,19 @@ const MapComponent: React.FC<{
                 >
                   Zamknij
                 </button>
+                {selectedJobForMobile ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openListingDetails(selectedJobForMobile.id);
+                      setSelectedJobForMobile(null);
+                    }}
+                    className="flex-1 py-4 px-6 bg-white text-primary border border-primary rounded-lg font-semibold text-base hover:bg-primary/5 transition-colors"
+                    aria-label="Szczegóły konkursu"
+                  >
+                    Szczegóły
+                  </button>
+                ) : null}
                 {user ? (
                   <button
                     type="button"

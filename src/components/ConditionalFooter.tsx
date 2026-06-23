@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { Footer } from './Footer';
 
 interface LayoutContextType {
@@ -24,11 +25,14 @@ interface LayoutProviderProps {
 
 export function LayoutProvider({ children }: LayoutProviderProps) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const pathname = usePathname();
+  const hideFooter =
+    pathname.startsWith('/dodaj-konkurs') || pathname.startsWith('/dodaj-zlecenie');
 
   return (
     <LayoutContext.Provider value={{ isMapExpanded, setIsMapExpanded }}>
       {children}
-      {!isMapExpanded && (
+      {!isMapExpanded && !hideFooter && (
         <div className="hidden md:block">
           <Footer />
         </div>

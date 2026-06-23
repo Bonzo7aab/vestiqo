@@ -321,7 +321,7 @@ export function TenderContestForm({
   return (
     <form
       noValidate
-      className="space-y-6 pb-28"
+      className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit('active');
@@ -651,7 +651,7 @@ export function TenderContestForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Wymogi (opcjonalne)</CardTitle>
+          <CardTitle>Wymogi</CardTitle>
           <p className="text-sm text-muted-foreground">
             Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty.
           </p>
@@ -805,7 +805,7 @@ export function TenderContestForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Warunki (opcjonalne)</CardTitle>
+          <CardTitle>Warunki</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div id="contest-selection-criteria">
@@ -1053,8 +1053,8 @@ export function TenderContestForm({
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
+      <div className="sticky bottom-0 z-10 -mx-4 mt-2 border-t bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-0 sm:px-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"

@@ -180,14 +180,30 @@ export default function TenderCreationPage({
         return;
       }
 
-      const { data: uploaded, errors: uploadErrors } = await uploadContestDocuments(
-        newFiles,
-        user.id,
-        'draft',
-      );
+      const uploadFolder = isEditMode && tenderId ? tenderId : 'draft';
+      let uploaded: TenderContestDocumentMeta[] = [];
 
-      if (uploadErrors.length > 0) {
-        toast.error('Część plików nie została wgrana');
+      if (newFiles.length > 0) {
+        const uploadResult = await uploadContestDocuments(newFiles, user.id, uploadFolder);
+        uploaded = uploadResult.data;
+
+        if (uploadResult.errors.length > 0) {
+          if (uploadResult.data.length === 0 && keptDocuments.length === 0) {
+            toast.error(
+              'Nie udało się wgrać dokumentów. Sprawdź format plików (PDF, DOC, DOCX, XLS, XLSX, obrazy) i spróbuj ponownie.',
+            );
+            return;
+          }
+          if (uploadResult.data.length > 0 && uploadResult.data.length < newFiles.length) {
+            toast.warning(
+              `Wgrano ${uploadResult.data.length} z ${newFiles.length} plików.`,
+            );
+          } else if (uploadResult.data.length === 0 && keptDocuments.length > 0) {
+            toast.warning(
+              'Nie udało się wgrać nowych plików. Zapisano z istniejącą dokumentacją.',
+            );
+          }
+        }
       }
 
       const allDocs = [...keptDocuments, ...uploaded];
@@ -222,7 +238,13 @@ export default function TenderCreationPage({
           return;
         }
       } else {
-        const { error: saveError } = await createTender(supabase, payload);
+        const createPayload = {
+          ...payload,
+          ...(isDuplicateMode && duplicateFromId
+            ? { renewedFromContestId: duplicateFromId }
+            : {}),
+        };
+        const { error: saveError } = await createTender(supabase, createPayload);
 
         if (saveError) {
           toast.error(
@@ -298,7 +320,7 @@ export default function TenderCreationPage({
         }
       />
 
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 pb-24 lg:pb-8">
         <TenderContestForm
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}

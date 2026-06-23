@@ -33,6 +33,8 @@ export interface ManagerContest {
   commentsCount: number;
   /** Manager already submitted cooperation review for selected offer */
   hasCooperationReview: boolean;
+  /** Set when contest was created via Ponów from a previous edition */
+  renewedFromContestId: string | null;
 }
 
 interface TenderContestRow {
@@ -44,6 +46,7 @@ interface TenderContestRow {
   building_id: string | null;
   selection_criteria: unknown;
   formal_requirements: unknown;
+  renewed_from_contest_id?: string | null;
   address?: string | null;
   building?: {
     name?: string | null;
@@ -185,6 +188,7 @@ export async function fetchManagerContests(
       building_id,
       selection_criteria,
       formal_requirements,
+      renewed_from_contest_id,
       address,
       building:buildings!tenders_building_id_fkey (
         name,
@@ -274,6 +278,7 @@ export async function fetchManagerContests(
     questionsCount: questionCounts[t.id] ?? 0,
     commentsCount: commentCounts[t.id] ?? 0,
     hasCooperationReview: reviewedTenderIds.has(t.id),
+    renewedFromContestId: t.renewed_from_contest_id ?? null,
   }));
 }
 

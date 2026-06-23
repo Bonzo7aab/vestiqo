@@ -141,16 +141,16 @@ test.describe('Registration Page', () => {
 
     await page.click('button[type="submit"]');
 
-    // Wait for redirect to account (auto-login) or login (email confirm)
+    // Wait for redirect to contests list (auto-login) or login (email confirm)
     await page.waitForURL(
       (url) =>
-        url.pathname.includes('/konto') ||
+        url.pathname.includes('/panel-zarzadcy/konkursy') ||
         url.pathname.includes('/logowanie'),
       { timeout: 15000 }
     );
 
-    if (page.url().includes('/konto')) {
-      expect(page.url()).toContain('/konto');
+    if (page.url().includes('/panel-zarzadcy/konkursy')) {
+      expect(page.url()).toContain('/panel-zarzadcy/konkursy');
     }
 
     // Cleanup: delete the created user
