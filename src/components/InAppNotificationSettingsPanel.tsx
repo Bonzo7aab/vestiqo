@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, Info } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DEFAULT_IN_APP_NOTIFICATION_PREFERENCES,
@@ -16,7 +16,6 @@ import {
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Switch } from './ui/switch';
-import { Alert, AlertDescription } from './ui/alert';
 
 interface InAppNotificationSettingsPanelProps {
   userId: string;
@@ -127,14 +126,6 @@ export function InAppNotificationSettingsPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              Powiadomienia krytyczne (np. zakończenie konkursu, komunikaty prawne) są zawsze
-              wyświetlane w aplikacji i nie mają przełącznika ON/OFF.
-            </AlertDescription>
-          </Alert>
-
           <div className="space-y-3">
             {userType === 'manager' ? (
               <NotificationToggleField

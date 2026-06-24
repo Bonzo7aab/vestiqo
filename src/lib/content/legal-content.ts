@@ -54,7 +54,7 @@ export const regulaminSections: LegalSection[] = [
     list: [
       'Użytkownik ponosi pełną odpowiedzialność za wszelkie treści wprowadzane do Serwisu.',
       'Zabrania się publikowania treści o charakterze bezprawnym, naruszających dobra osobiste osób trzecich, nieuczciwych ofert lub spamu.',
-      `Operator wyznacza punkt kontaktowy ds. zgłaszania nielegalnych treści pod adresem: ${c.emails.dsa}.`,
+      `Operator wyznacza punkt kontaktowy ds. zgłaszania nielegalnych treści pod adresem: ${c.emails.contact}.`,
       'W przypadku otrzymania zgłoszenia Operator ma prawo do usunięcia treści, zablokowania dostępu lub zablokowania Konta Użytkownika.',
     ],
   },
@@ -75,7 +75,7 @@ export const regulaminSections: LegalSection[] = [
   {
     title: '§ 7. Postępowanie reklamacyjne i kontakt',
     list: [
-      `Reklamacje dotyczące funkcjonowania Serwisu: ${c.emails.complaints}.`,
+      `Reklamacje dotyczące funkcjonowania Serwisu: ${c.emails.contact}.`,
       'Operator rozpatruje reklamację w terminie 14 dni od dnia ich otrzymania.',
       `Oficjalny kanał kontaktu: ${c.emails.contact}.`,
     ],

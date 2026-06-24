@@ -28,6 +28,13 @@ interface ContactFormProps {
   className?: string;
 }
 
+const RequiredMark = () => (
+  <span className="text-destructive" aria-hidden="true">
+    {' '}
+    *
+  </span>
+);
+
 export function ContactForm({ className }: ContactFormProps) {
   const [role, setRole] = useState<ContactRole>('manager');
   const [name, setName] = useState('');
@@ -85,7 +92,10 @@ export function ContactForm({ className }: ContactFormProps) {
     <form onSubmit={handleSubmit} className={className}>
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="role">Jestem *</Label>
+          <Label htmlFor="role">
+            Jestem
+            <RequiredMark />
+          </Label>
           <Select value={role} onValueChange={(value) => setRole(value as ContactRole)}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Wybierz rolę" />
@@ -101,7 +111,10 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">Imię i nazwisko *</Label>
+          <Label htmlFor="name">
+            Imię i nazwisko
+            <RequiredMark />
+          </Label>
           <Input
             id="name"
             name="name"
@@ -113,7 +126,10 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Adres e-mail *</Label>
+          <Label htmlFor="email">
+            Adres e-mail
+            <RequiredMark />
+          </Label>
           <Input
             id="email"
             name="email"
@@ -126,7 +142,7 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="phone">Numer telefonu (opcjonalnie)</Label>
+          <Label htmlFor="phone">Numer telefonu</Label>
           <Input
             id="phone"
             name="phone"
@@ -138,7 +154,10 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="subject">Temat wiadomości *</Label>
+          <Label htmlFor="subject">
+            Temat wiadomości
+            <RequiredMark />
+          </Label>
           <Input
             id="subject"
             name="subject"
@@ -149,7 +168,10 @@ export function ContactForm({ className }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="message">Treść wiadomości *</Label>
+          <Label htmlFor="message">
+            Treść wiadomości
+            <RequiredMark />
+          </Label>
           <Textarea
             id="message"
             name="message"
@@ -181,7 +203,8 @@ export function ContactForm({ className }: ContactFormProps) {
             <div className="flex items-center gap-2">
               <Shield className="size-4 shrink-0 text-primary" aria-hidden />
               <span className="text-sm font-semibold text-[hsl(var(--brand-navy))]">
-                Zgoda na przetwarzanie danych *
+                Zgoda na przetwarzanie danych
+                <RequiredMark />
               </span>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
