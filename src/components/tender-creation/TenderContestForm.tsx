@@ -17,13 +17,9 @@ import { createClient } from '../../lib/supabase/client';
 import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { fetchAllCategoriesWithSubcategories } from '../../lib/database/categories';
 import type { CategoryWithSubcategories } from '../../lib/database/categories';
-import { fetchCompanyBuildings } from '../../lib/database/buildings';
-import type { Building } from '../../types/building';
-import {
-  formatGroupedBuildingLabel,
-  groupBuildingsForSelection,
-  resolvePrimaryBuildingId,
-} from '../../lib/buildings/grouping';
+import { fetchManagerHousingEntities } from '../../lib/database/managed-housing-entities';
+import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
+import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housing-entity';
 import type {
   SelectionCriterionItem,
   TenderContestDocumentMeta,
@@ -104,7 +100,7 @@ export function TenderContestForm({
   const [form, setForm] = useState<TenderContestFormData>(
     initialForm ?? createEmptyTenderContestForm(),
   );
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [managedEntities, setManagedEntities] = useState<ManagedHousingEntity[]>([]);
   const [categoriesFromDb, setCategoriesFromDb] = useState<CategoryWithSubcategories[]>([]);
   const [isLoadingMeta, setIsLoadingMeta] = useState(true);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -114,9 +110,15 @@ export function TenderContestForm({
   const [fieldErrors, setFieldErrors] = useState<TenderContestFormFieldErrors>({});
   const [showFieldErrors, setShowFieldErrors] = useState(false);
 
-  const groupedBuildingOptions = useMemo(
-    () => groupBuildingsForSelection(buildings),
-    [buildings],
+  const sortedManagedEntities = useMemo(
+    () =>
+      [...managedEntities].sort((a, b) =>
+        formatManagedHousingEntitySelectLabel(a).localeCompare(
+          formatManagedHousingEntitySelectLabel(b),
+          'pl',
+        ),
+      ),
+    [managedEntities],
   );
 
   const filterCategoryTree = useMemo(
@@ -162,8 +164,8 @@ export function TenderContestForm({
       try {
         const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
         if (company?.id) {
-          const { data: bld } = await fetchCompanyBuildings(supabase, company.id);
-          if (bld?.length) setBuildings(bld);
+          const { data: entities } = await fetchManagerHousingEntities(supabase, company.id);
+          if (entities?.length) setManagedEntities(entities);
         }
         const { data: cats } = await fetchAllCategoriesWithSubcategories(supabase);
         if (cats) setCategoriesFromDb(cats);
@@ -207,7 +209,7 @@ export function TenderContestForm({
       form,
       pendingFiles,
       keptDocuments,
-      buildings.length > 0,
+      managedEntities.length > 0,
       status,
     );
     if (hasTenderContestFormFieldErrors(errors)) {
@@ -365,37 +367,35 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label>Nazwa nieruchomości *</Label>
+            <Label>Wspólnota / Spółdzielnia *</Label>
             {isLoadingMeta ? (
               <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
-            ) : buildings.length === 0 ? (
+            ) : managedEntities.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-1">
-                Brak zapisanych nieruchomości. Użyty zostanie adres firmy z profilu.
+                Brak zapisanych wspólnot lub spółdzielni. Użyty zostanie adres firmy z profilu.
               </p>
             ) : (
               <Select
-                value={form.buildingId || undefined}
-                onValueChange={(v) =>
-                  patchForm({ buildingId: resolvePrimaryBuildingId(v, buildings) })
-                }
+                value={form.managedEntityId || undefined}
+                onValueChange={(v) => patchForm({ managedEntityId: v })}
               >
                 <SelectTrigger
-                  id="contest-building"
-                  className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.buildingId)))}
-                  aria-invalid={Boolean(displayedErrors.buildingId)}
+                  id="contest-managed-entity"
+                  className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.managedEntityId)))}
+                  aria-invalid={Boolean(displayedErrors.managedEntityId)}
                 >
-                  <SelectValue placeholder="Wybierz nieruchomość" />
+                  <SelectValue placeholder="Wybierz wspólnotę lub spółdzielnię" />
                 </SelectTrigger>
                 <SelectContent>
-                  {groupedBuildingOptions.map((group) => (
-                    <SelectItem key={group.key} value={group.primaryBuildingId}>
-                      {formatGroupedBuildingLabel(group)}
+                  {sortedManagedEntities.map((entity) => (
+                    <SelectItem key={entity.id} value={entity.id}>
+                      {formatManagedHousingEntitySelectLabel(entity)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
-            <ContestOfferFieldError message={displayedErrors.buildingId} />
+            <ContestOfferFieldError message={displayedErrors.managedEntityId} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

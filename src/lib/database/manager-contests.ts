@@ -43,33 +43,35 @@ interface TenderContestRow {
   status: string;
   created_at: string;
   submission_deadline: string;
-  building_id: string | null;
+  managed_entity_id: string | null;
   selection_criteria: unknown;
   formal_requirements: unknown;
   renewed_from_contest_id?: string | null;
   address?: string | null;
-  building?: {
+  managed_entity?: {
     name?: string | null;
-    street_address?: string | null;
+    address?: string | null;
     city?: string | null;
+    entity_type?: string | null;
+    nip?: string | null;
   } | null;
 }
 
 export function formatContestLocationLabel(row: {
   address?: string | null;
-  building?: {
+  managed_entity?: {
     name?: string | null;
-    street_address?: string | null;
+    address?: string | null;
     city?: string | null;
   } | null;
 }): string {
-  const building = row.building;
-  if (building?.street_address || building?.city) {
-    const parts = [building.street_address, building.city].filter(Boolean);
+  const entity = row.managed_entity;
+  if (entity?.address || entity?.city) {
+    const parts = [entity.address, entity.city].filter(Boolean);
     return parts.join(', ');
   }
   if (row.address?.trim()) return row.address.trim();
-  if (building?.name?.trim()) return building.name.trim();
+  if (entity?.name?.trim()) return entity.name.trim();
   return '—';
 }
 
@@ -185,15 +187,17 @@ export async function fetchManagerContests(
       status,
       created_at,
       submission_deadline,
-      building_id,
+      managed_entity_id,
       selection_criteria,
       formal_requirements,
       renewed_from_contest_id,
       address,
-      building:buildings!tenders_building_id_fkey (
+      managed_entity:managed_housing_entities!contests_managed_entity_id_fkey (
         name,
-        street_address,
-        city
+        address,
+        city,
+        entity_type,
+        nip
       )
     `,
     )

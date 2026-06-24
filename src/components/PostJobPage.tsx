@@ -18,13 +18,9 @@ import { fetchUserPrimaryCompany } from "../lib/database/companies";
 import { kontoCompanyDataHref } from "../lib/konto-tabs";
 import { fetchAllCategoriesWithSubcategories } from "../lib/database/categories";
 import type { CategoryWithSubcategories } from "../lib/database/categories";
-import { fetchCompanyBuildings } from "../lib/database/buildings";
-import type { Building } from "../types/building";
-import {
-  formatGroupedBuildingLabel,
-  groupBuildingsForSelection,
-  resolvePrimaryBuildingId,
-} from "../lib/buildings/grouping";
+import { fetchManagerHousingEntities } from "../lib/database/managed-housing-entities";
+import type { ManagedHousingEntity } from "../types/managed-housing-entity";
+import { formatManagedHousingEntitySelectLabel } from "../types/managed-housing-entity";
 import Link from "next/link";
 import type { BudgetInput } from "../types/budget";
 import { uploadJobAttachments, deleteJobAttachments } from "../lib/storage/job-attachments";
@@ -92,8 +88,8 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCompany, setHasCompany] = useState<boolean | null>(null);
   const [isCheckingCompany, setIsCheckingCompany] = useState(true);
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [buildingId, setBuildingId] = useState<string>("");
+  const [managedEntities, setManagedEntities] = useState<ManagedHousingEntity[]>([]);
+  const [managedEntityId, setManagedEntityId] = useState<string>("");
   const [timingPreset, setTimingPreset] = useState<TimingPreset>("flex");
   const [budgetMode, setBudgetMode] = useState<BudgetMode>("amount");
   const [budgetAmount, setBudgetAmount] = useState("");
@@ -113,18 +109,16 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
   const [categoriesFromDb, setCategoriesFromDb] = useState<CategoryWithSubcategories[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-  const groupedBuildingOptions = useMemo(
-    () => groupBuildingsForSelection(buildings),
-    [buildings],
+  const sortedManagedEntities = useMemo(
+    () =>
+      [...managedEntities].sort((a, b) =>
+        formatManagedHousingEntitySelectLabel(a).localeCompare(
+          formatManagedHousingEntitySelectLabel(b),
+          "pl",
+        ),
+      ),
+    [managedEntities],
   );
-
-  useEffect(() => {
-    if (!buildingId || buildings.length === 0) return;
-    const primaryId = resolvePrimaryBuildingId(buildingId, buildings);
-    if (primaryId !== buildingId) {
-      setBuildingId(primaryId);
-    }
-  }, [buildingId, buildings]);
 
   useEffect(() => {
     const checkCompany = async () => {
@@ -136,9 +130,9 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
         const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
         setHasCompany(!!company);
         if (company?.id) {
-          const { data: bld } = await fetchCompanyBuildings(supabase, company.id);
-          if (bld?.length) {
-            setBuildings(bld);
+          const { data: entities } = await fetchManagerHousingEntities(supabase, company.id);
+          if (entities?.length) {
+            setManagedEntities(entities);
           }
         }
       } catch (error) {
@@ -212,9 +206,9 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
       } else {
         setBudgetAmount("");
       }
-      const bid = (job as unknown as { building_id?: string | null }).building_id;
-      if (bid) {
-        setBuildingId(bid);
+      const entityId = (job as unknown as { managed_entity_id?: string | null }).managed_entity_id;
+      if (entityId) {
+        setManagedEntityId(entityId);
       }
       setExistingImageUrls(Array.isArray(job.images) ? [...job.images] : []);
       setLoadingJob(false);
@@ -313,8 +307,8 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
       toast.error("Proszę wypełnić tytuł i opis");
       return;
     }
-    if (buildings.length > 0 && !buildingId) {
-      toast.error("Wybierz nazwę nieruchomości");
+    if (managedEntities.length > 0 && !managedEntityId) {
+      toast.error("Wybierz wspólnotę lub spółdzielnię");
       return;
     }
     if (budgetMode === "amount") {
@@ -411,7 +405,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
           description: formData.description.trim(),
           category: formData.category,
           subcategory: formData.subcategory,
-          buildingId: buildingId || null,
+          managedEntityId: managedEntityId || null,
           budgetMin: budgetInput.min ?? null,
           budgetMax: budgetInput.max ?? null,
           budgetType: budgetInput.type || "fixed",
@@ -438,7 +432,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
           description: formData.description.trim(),
           category: formData.category,
           subcategory: formData.subcategory,
-          buildingId: buildingId || null,
+          managedEntityId: managedEntityId || null,
           budgetMin: budgetInput.min,
           budgetMax: budgetInput.max,
           budgetType: budgetInput.type || "fixed",
@@ -570,20 +564,20 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
               </div>
 
               <div>
-                <Label>Nazwa nieruchomości *</Label>
-                {buildings.length === 0 ? (
+                <Label>Wspólnota / Spółdzielnia *</Label>
+                {managedEntities.length === 0 ? (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Brak zapisanych nieruchomości. Do czasu dodania używany będzie adres siedziby firmy z profilu.
+                    Brak zapisanych wspólnot lub spółdzielni. Do czasu dodania używany będzie adres siedziby firmy z profilu.
                   </p>
                 ) : (
-                  <Select value={buildingId} onValueChange={setBuildingId}>
+                  <Select value={managedEntityId} onValueChange={setManagedEntityId}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="np. Wspólnota Przykładowa 1" />
+                      <SelectValue placeholder="Wybierz wspólnotę lub spółdzielnię" />
                     </SelectTrigger>
                     <SelectContent>
-                      {groupedBuildingOptions.map((group) => (
-                        <SelectItem key={group.key} value={group.primaryBuildingId}>
-                          {formatGroupedBuildingLabel(group)}
+                      {sortedManagedEntities.map((entity) => (
+                        <SelectItem key={entity.id} value={entity.id}>
+                          {formatManagedHousingEntitySelectLabel(entity)}
                         </SelectItem>
                       ))}
                     </SelectContent>

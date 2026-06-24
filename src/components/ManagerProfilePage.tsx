@@ -392,7 +392,7 @@ export default function ManagerProfilePage({ managerId, onBack }: ManagerProfile
                     {/* Buildings Stat */}
                     <Card className="hover:shadow-md transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs sm:text-sm font-medium">Zarządzanych budynków</CardTitle>
+                        <CardTitle className="text-xs sm:text-sm font-medium">Zarządzanych podmiotów</CardTitle>
                         <Building className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
@@ -735,8 +735,8 @@ export default function ManagerProfilePage({ managerId, onBack }: ManagerProfile
               <Card>
                 <CardContent className="pt-6 text-center">
                   <Building className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium mb-2">Brak zarejestrowanych nieruchomości</h3>
-                  <p className="text-sm sm:text-base text-gray-600">Ten zarządca nie posiada jeszcze zarejestrowanych nieruchomości w portfolio.</p>
+                  <h3 className="text-base sm:text-lg font-medium mb-2">Brak zarejestrowanych podmiotów</h3>
+                  <p className="text-sm sm:text-base text-gray-600">Ten zarządca nie posiada jeszcze zarejestrowanych wspólnot ani spółdzielni.</p>
                 </CardContent>
               </Card>
             )}

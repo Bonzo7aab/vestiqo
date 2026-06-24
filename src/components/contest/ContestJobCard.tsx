@@ -209,7 +209,7 @@ export function ContestJobCard({
   onApplyClick,
 }: ContestJobCardProps): React.ReactElement {
   const cityDistrict = formatContestLocation(job.location);
-  const locationLabel = job.contestInfo?.buildingAddress?.trim() || cityDistrict;
+  const locationLabel = job.contestInfo?.entityAddress?.trim() || cityDistrict;
   const categorySlug = resolveCategorySlugFromJob({ category: job.category });
   const categoryColor = categorySlug ? getCategoryColor(categorySlug) : 'hsl(var(--primary))';
 

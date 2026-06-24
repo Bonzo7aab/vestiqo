@@ -41,8 +41,8 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
     },
     {
       icon: Building2,
-      title: 'Zarządzanie nieruchomościami',
-      description: 'Zarządzaj budynkami, lokalizacjami i dokumentacją w jednym miejscu. Pełna kontrola nad swoimi nieruchomościami.',
+      title: 'Zarządzanie wspólnotami i spółdzielniami',
+      description: 'Dodawaj wspólnoty i spółdzielnie po NIP — dane pobierzesz automatycznie z rejestru GUS.',
       color: 'text-green-600'
     },
     {
@@ -283,7 +283,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
               </h3>
               <p className="text-white/90">
                 {isManager
-                  ? 'Przeprowadzimy Cię przez proces tworzenia profilu firmy, dodawania nieruchomości i publikowania pierwszego zgłoszenia lub przetargu.'
+                  ? 'Przeprowadzimy Cię przez proces tworzenia profilu firmy, dodawania wspólnot lub spółdzielni i publikowania pierwszego zgłoszenia lub konkursu.'
                   : 'Pokażemy Ci jak uzupełnić profil firmy, dodać portfolio projektów i aplikować o pierwsze zgłoszenia od zarządców.'
                 }
               </p>

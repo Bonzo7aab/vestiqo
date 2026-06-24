@@ -16,7 +16,7 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 
 | File | Purpose | Test | Prod |
 |------|---------|------|------|
-| _(none)_ | | | |
+| `20260625120000_managed_housing_entities.sql` | WM/SM entities replace buildings table | pending | pending |
 
 ## Recently applied to production (2026-06-24)
 

@@ -50,7 +50,7 @@ export interface TenderContestDocumentMeta {
 export interface TenderContestFormData {
   title: string;
   description: string;
-  buildingId: string;
+  managedEntityId: string;
   category: string;
   subcategory: string;
   submissionDeadline: Date;
@@ -177,7 +177,7 @@ export function createEmptyTenderContestForm(): TenderContestFormData {
   return {
     title: '',
     description: '',
-    buildingId: '',
+    managedEntityId: '',
     category: '',
     subcategory: '',
     submissionDeadline: new Date(),

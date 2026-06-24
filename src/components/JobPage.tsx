@@ -415,9 +415,9 @@ function normalizeJobData(
           ? `${dbTender.wadium} ${dbTender.currency}`
           : 'Brak';
 
-    const buildingAddress =
-      contestInfo?.buildingAddress ??
-      dbTender.building?.street_address ??
+    const entityAddress =
+      contestInfo?.entityAddress ??
+      dbTender.managed_entity?.address ??
       (typeof dbTender.address === 'string' ? dbTender.address : undefined);
 
     return {
@@ -471,7 +471,7 @@ function normalizeJobData(
       images: [],
       lat: dbTender.latitude || undefined,
       lng: dbTender.longitude || undefined,
-      address: buildingAddress,
+      address: entityAddress,
       status: dbTender.status as JobDisplayData['status'],
       published_at: dbTender.published_at,
       contestInfo,
@@ -1189,16 +1189,16 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                         <span className="hidden sm:inline text-gray-300" aria-hidden>|</span>
                         <span className="text-gray-500">{formatContestLocation(job.location)}</span>
                       </div>
-                      {job.contestInfo.buildingName ? (
+                      {job.contestInfo.entityName ? (
                         <span className="font-medium text-gray-700 break-words sm:text-right sm:max-w-[45%]">
-                          {job.contestInfo.buildingName}
+                          {job.contestInfo.entityName}
                         </span>
                       ) : null}
                     </div>
                     <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-2">
                       <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" aria-hidden />
                       <span className="break-words">
-                        {job.contestInfo.buildingAddress?.trim() || formatContestLocation(job.location)}
+                        {job.contestInfo.entityAddress?.trim() || formatContestLocation(job.location)}
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">

@@ -44,7 +44,7 @@ export async function fillContestForm(page: Page, mockData: ContestMockData): Pr
   const categoryTrigger = page.locator('#contest-category');
   await expect(categoryTrigger).toBeEnabled({ timeout: 20000 });
 
-  await selectFirstRadixOption(page, 'contest-building');
+  await selectFirstRadixOption(page, 'contest-managed-entity');
 
   await categoryTrigger.click();
   const firstCategory = page.locator('[role="option"]').first();

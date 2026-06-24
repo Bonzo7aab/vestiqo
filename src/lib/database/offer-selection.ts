@@ -334,19 +334,19 @@ export async function acceptManagerTenderOffer(
 
 function formatTenderLocationLabel(tender: {
   address?: string | null;
-  building?: {
+  managed_entity?: {
     name?: string | null;
-    street_address?: string | null;
+    address?: string | null;
     city?: string | null;
   } | null;
 }): string {
-  const building = tender.building;
-  if (building?.street_address || building?.city) {
-    const parts = [building.street_address, building.city].filter(Boolean);
+  const entity = tender.managed_entity;
+  if (entity?.address || entity?.city) {
+    const parts = [entity.address, entity.city].filter(Boolean);
     return parts.join(', ');
   }
   if (tender.address?.trim()) return tender.address.trim();
-  if (building?.name?.trim()) return building.name.trim();
+  if (entity?.name?.trim()) return entity.name.trim();
   return '—';
 }
 
@@ -385,10 +385,12 @@ export async function createOrderFromContestWinner(
       address,
       manager_id,
       company_id,
-      building:buildings!tenders_building_id_fkey (
+      managed_entity:managed_housing_entities!contests_managed_entity_id_fkey (
         name,
-        street_address,
-        city
+        address,
+        city,
+        entity_type,
+        nip
       )
     `,
     )

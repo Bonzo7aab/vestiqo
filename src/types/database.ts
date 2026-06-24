@@ -161,68 +161,56 @@ export type Database = {
           },
         ]
       }
-      buildings: {
+      managed_housing_entities: {
         Row: {
-          building_type: string | null
-          city: string
-          company_id: string
-          country: string | null
-          created_at: string | null
-          floors_count: number | null
+          address: string | null
+          bank_account_iban: string | null
+          city: string | null
+          created_at: string
+          entity_type: string
           id: string
-          images: string[] | null
-          latitude: number | null
-          longitude: number | null
+          manager_company_id: string
           name: string
-          notes: string | null
+          nip: string
           postal_code: string | null
-          street_address: string
-          units_count: number | null
-          updated_at: string | null
-          year_built: number | null
+          regon: string | null
+          updated_at: string
+          vat_status: string | null
         }
         Insert: {
-          building_type?: string | null
-          city: string
-          company_id: string
-          country?: string | null
-          created_at?: string | null
-          floors_count?: number | null
+          address?: string | null
+          bank_account_iban?: string | null
+          city?: string | null
+          created_at?: string
+          entity_type: string
           id?: string
-          images?: string[] | null
-          latitude?: number | null
-          longitude?: number | null
+          manager_company_id: string
           name: string
-          notes?: string | null
+          nip: string
           postal_code?: string | null
-          street_address: string
-          units_count?: number | null
-          updated_at?: string | null
-          year_built?: number | null
+          regon?: string | null
+          updated_at?: string
+          vat_status?: string | null
         }
         Update: {
-          building_type?: string | null
-          city?: string
-          company_id?: string
-          country?: string | null
-          created_at?: string | null
-          floors_count?: number | null
+          address?: string | null
+          bank_account_iban?: string | null
+          city?: string | null
+          created_at?: string
+          entity_type?: string
           id?: string
-          images?: string[] | null
-          latitude?: number | null
-          longitude?: number | null
+          manager_company_id?: string
           name?: string
-          notes?: string | null
+          nip?: string
           postal_code?: string | null
-          street_address?: string
-          units_count?: number | null
-          updated_at?: string | null
-          year_built?: number | null
+          regon?: string | null
+          updated_at?: string
+          vat_status?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "buildings_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "managed_housing_entities_manager_company_id_fkey"
+            columns: ["manager_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
@@ -658,7 +646,7 @@ export type Database = {
           address: string | null
           allow_questions: boolean | null
           awarded_at: string | null
-          building_id: string | null
+          managed_entity_id: string | null
           category_id: string
           company_id: string
           completion_date: string | null
@@ -705,7 +693,7 @@ export type Database = {
           address?: string | null
           allow_questions?: boolean | null
           awarded_at?: string | null
-          building_id?: string | null
+          managed_entity_id?: string | null
           category_id: string
           company_id: string
           completion_date?: string | null
@@ -752,7 +740,7 @@ export type Database = {
           address?: string | null
           allow_questions?: boolean | null
           awarded_at?: string | null
-          building_id?: string | null
+          managed_entity_id?: string | null
           category_id?: string
           company_id?: string
           completion_date?: string | null
@@ -797,10 +785,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "tenders_building_id_fkey"
-            columns: ["building_id"]
+            foreignKeyName: "contests_managed_entity_id_fkey"
+            columns: ["managed_entity_id"]
             isOneToOne: false
-            referencedRelation: "buildings"
+            referencedRelation: "managed_housing_entities"
             referencedColumns: ["id"]
           },
           {
@@ -1345,7 +1333,7 @@ export type Database = {
           budget_max: number | null
           budget_min: number | null
           budget_type: string | null
-          building_id: string | null
+          managed_entity_id: string | null
           building_type: string | null
           building_year: number | null
           category_id: string
@@ -1404,7 +1392,7 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           budget_type?: string | null
-          building_id?: string | null
+          managed_entity_id?: string | null
           building_type?: string | null
           building_year?: number | null
           category_id: string
@@ -1463,7 +1451,7 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           budget_type?: string | null
-          building_id?: string | null
+          managed_entity_id?: string | null
           building_type?: string | null
           building_year?: number | null
           category_id?: string
@@ -1516,10 +1504,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "jobs_building_id_fkey"
-            columns: ["building_id"]
+            foreignKeyName: "jobs_managed_entity_id_fkey"
+            columns: ["managed_entity_id"]
             isOneToOne: false
-            referencedRelation: "buildings"
+            referencedRelation: "managed_housing_entities"
             referencedColumns: ["id"]
           },
           {

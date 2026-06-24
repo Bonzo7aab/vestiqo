@@ -20,13 +20,13 @@ import { getManagerById } from '../mocks';
 import { createClient } from '../lib/supabase/client';
 import { createTender, updateTender, fetchTenderById, fetchJobApplicationsByJobId, fetchJobById, fetchTenderBidsByTenderId } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany, type CompanyData } from '../lib/database/companies';
-import { fetchCompanyBuildings } from '../lib/database/buildings';
+import { fetchManagerHousingEntities } from '../lib/database/managed-housing-entities';
+import type { ManagedHousingEntity } from '../types/managed-housing-entity';
+import { formatManagedHousingEntityType } from '../types/managed-housing-entity';
 import { fetchContractorsByWorkHistory } from '../lib/database/contractors';
 import { getStoragePublicUrl } from '../lib/storage/public-url';
 import { STORAGE_BUCKETS } from '../lib/storage/buckets';
 import type { Application } from '../types/application';
-import type { Building } from '../types/building';
-import { BUILDING_TYPE_OPTIONS } from '../types/building';
 import { toast } from 'sonner';
 import { formatBudget, budgetFromDatabase } from '../types/budget';
 import BidEvaluationPanel from './BidEvaluationPanel';
@@ -62,8 +62,8 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
   const [selectedTenderId, setSelectedTenderId] = useState<string | null>(null);
   const [editingTenderId, setEditingTenderId] = useState<string | null>(null);
   const [editingTenderData, setEditingTenderData] = useState<TenderWithCompany | null>(null);
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+  const [managedEntities, setManagedEntities] = useState<ManagedHousingEntity[]>([]);
+  const [isLoadingManagedEntities, setIsLoadingManagedEntities] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [_isLoadingCompany, setIsLoadingCompany] = useState(false);
@@ -465,9 +465,8 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
         setLoadingOverview(true);
         
         // Fetch buildings count for stats
-        const { data: buildingsData } = await fetchCompanyBuildings(supabase, companyId);
-        const buildingsCount = buildingsData?.length || 0;
-        const totalUnits = buildingsData?.reduce((sum, b) => sum + (b.units_count || 0), 0) || 0;
+        const { data: entitiesData } = await fetchManagerHousingEntities(supabase, companyId);
+        const entitiesCount = entitiesData?.length || 0;
         
         // Fetch jobs count for stats (active jobs)
         const { count: activeJobsCount } = await supabase
@@ -564,8 +563,8 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
         
         // Set stats
         setDashboardStats({
-          totalProperties: buildingsCount,
-          totalUnits: totalUnits,
+          totalProperties: entitiesCount,
+          totalUnits: entitiesCount,
           activeJobs: activeJobsCount || 0,
           completedJobs: completedJobsCount || 0,
           avgRating: managerData.stats.avgRating,
@@ -710,24 +709,26 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
       const supabase = createClient();
       
       try {
-        setIsLoadingBuildings(true);
+        setIsLoadingManagedEntities(true);
         
-        // Fetch buildings from database
-        const { data: buildingsData, error: buildingsError } = await fetchCompanyBuildings(supabase, companyId);
+        const { data: entitiesData, error: entitiesError } = await fetchManagerHousingEntities(
+          supabase,
+          companyId,
+        );
         
-        if (buildingsError) {
-          console.error('Error fetching buildings:', buildingsError);
-          setBuildings([]);
+        if (entitiesError) {
+          console.error('Error fetching managed entities:', entitiesError);
+          setManagedEntities([]);
         } else {
-          setBuildings(buildingsData || []);
+          setManagedEntities(entitiesData || []);
         }
         
         setLoadedTabs(prev => new Set(prev).add('properties'));
       } catch (error) {
         console.error('Error fetching properties data:', error);
-        setBuildings([]);
+        setManagedEntities([]);
       } finally {
-        setIsLoadingBuildings(false);
+        setIsLoadingManagedEntities(false);
       }
     };
 
@@ -1350,93 +1351,53 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
 
           {/* Properties Tab */}
           <TabsContent value="properties" className="space-y-6">
-            {isLoadingBuildings ? (
+            {isLoadingManagedEntities ? (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <p className="ml-2 text-sm text-muted-foreground">Ładowanie budynków...</p>
+                    <p className="ml-2 text-sm text-muted-foreground">Ładowanie wspólnot i spółdzielni...</p>
                   </div>
                 </CardContent>
               </Card>
-            ) : buildings && buildings.length > 0 ? (
+            ) : managedEntities && managedEntities.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {buildings.map((building) => {
-                  // Get first image URL if available
-                  const firstImage = building.images && building.images.length > 0 
-                    ? building.images[0] 
-                    : null;
-                  const imageUrl = getBuildingImageUrl(firstImage);
-                  
-                  return (
-                  <Card key={building.id}>
-                    <div className="aspect-video bg-gray-200 rounded-t-lg overflow-hidden flex items-center justify-center relative">
-                      {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={building.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      ) : (
-                        <Building2 className="w-16 h-16 text-gray-400" />
-                      )}
-                    </div>
+                {managedEntities.map((entity) => (
+                  <Card key={entity.id}>
                     <CardHeader>
-                      <CardTitle>{building.name}</CardTitle>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-lg">{entity.name}</CardTitle>
+                        <Badge variant="secondary">
+                          {formatManagedHousingEntityType(entity.entity_type)}
+                        </Badge>
+                      </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4" />
-                        <span>{building.street_address}, {building.city}</span>
+                        <span>
+                          {[entity.address, entity.postal_code, entity.city].filter(Boolean).join(', ') ||
+                            '—'}
+                        </span>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        {building.building_type && (
-                          <Badge variant="secondary">
-                            {BUILDING_TYPE_OPTIONS.find(opt => opt.value === building.building_type)?.label || building.building_type}
-                          </Badge>
-                        )}
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          {building.year_built && (
-                            <div>
-                              <div className="font-bold text-lg">{building.year_built}</div>
-                              <div className="text-sm text-gray-600">Rok budowy</div>
-                            </div>
-                          )}
-                          {building.units_count !== null && (
-                            <div>
-                              <div className="font-bold text-lg">{building.units_count}</div>
-                              <div className="text-sm text-gray-600">Lokali</div>
-                            </div>
-                          )}
-                          {building.floors_count !== null && (
-                            <div>
-                              <div className="font-bold text-lg">{building.floors_count}</div>
-                              <div className="text-sm text-gray-600">Pięter</div>
-                            </div>
-                          )}
-                        </div>
-                        {building.notes && (
-                          <p className="text-sm text-gray-600 mt-2">{building.notes}</p>
-                        )}
-                        {building.postal_code && (
-                          <p className="text-xs text-gray-500">Kod pocztowy: {building.postal_code}</p>
-                        )}
-                      </div>
+                      <p className="text-sm text-gray-600">NIP {entity.nip}</p>
+                      {entity.regon ? (
+                        <p className="text-sm text-gray-500 mt-1">REGON {entity.regon}</p>
+                      ) : null}
                     </CardContent>
                   </Card>
-                  );
-                })}
+                ))}
               </div>
             ) : (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <BuildingIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Brak zarejestrowanych budynków</h3>
-                  <p className="text-gray-600 mb-4">Nie posiadasz jeszcze zarejestrowanych budynków w portfolio.</p>
+                  <h3 className="text-lg font-medium mb-2">Brak zarejestrowanych podmiotów</h3>
+                  <p className="text-gray-600 mb-4">
+                    Nie posiadasz jeszcze zarejestrowanych wspólnot ani spółdzielni.
+                  </p>
                   <p className="text-sm text-gray-500">
-                    Przejdź do sekcji &quot;Firma&quot; w ustawieniach konta, aby dodać budynki.
+                    Przejdź do sekcji &quot;Profil&quot; w ustawieniach konta, aby dodać podmioty po NIP.
                   </p>
                 </CardContent>
               </Card>

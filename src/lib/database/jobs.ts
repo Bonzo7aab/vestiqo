@@ -27,7 +27,7 @@ import {
 
 /** Matches contest rows in DB (see opd70_remove_legacy_tenders migration). */
 export const CONTEST_TENDERS_OR_FILTER =
-  'building_id.not.is.null,selection_criteria.not.is.null,formal_requirements.not.is.null';
+  'managed_entity_id.not.is.null,selection_criteria.not.is.null,formal_requirements.not.is.null';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyContestTendersFilter(query: any): any {
@@ -104,7 +104,7 @@ export interface TenderUpsertData {
   latitude?: number;
   longitude?: number;
   projectDuration?: string;
-  buildingId?: string | null;
+  managedEntityId?: string | null;
   subcategoryId?: string | null;
   completionDate?: Date | null;
   siteVisitType?: string;
@@ -156,7 +156,7 @@ function tenderDbRowFromUpsert(
     description: tenderData.description,
     category_id: categoryId,
     subcategory_id: subcategoryId ?? tenderData.subcategoryId ?? null,
-    building_id: tenderData.buildingId ?? null,
+    managed_entity_id: tenderData.managedEntityId ?? null,
     location: locationJsonb,
     address: tenderData.address ?? null,
     latitude: tenderData.latitude ?? null,
@@ -408,29 +408,29 @@ export async function resolveJobFormCategoryIds(
 }
 
 /**
- * Location for jobs table: prefer selected building (company-scoped), else company HQ city.
+ * Location for jobs table: prefer selected WM/SM entity (company-scoped), else company HQ city.
  */
-export async function resolveJobLocationFromBuildingOrCompany(
+export async function resolveJobLocationFromManagedEntityOrCompany(
   supabase: SupabaseClient<Database>,
   companyId: string,
-  buildingId: string | null | undefined,
+  managedEntityId: string | null | undefined,
   companyCity: string | null | undefined,
   companyAddress: string | null | undefined,
 ): Promise<{ city: string; address: string | null; latitude: number | null; longitude: number | null }> {
-  if (buildingId) {
-    const { data: b, error } = await supabase
-      .from('buildings')
-      .select('city, street_address, latitude, longitude')
-      .eq('id', buildingId)
-      .eq('company_id', companyId)
+  if (managedEntityId) {
+    const { data: entity, error } = await supabase
+      .from('managed_housing_entities')
+      .select('city, address')
+      .eq('id', managedEntityId)
+      .eq('manager_company_id', companyId)
       .maybeSingle();
 
-    if (!error && b) {
+    if (!error && entity) {
       return {
-        city: b.city || '—',
-        address: b.street_address || null,
-        latitude: b.latitude != null ? Number(b.latitude) : null,
-        longitude: b.longitude != null ? Number(b.longitude) : null,
+        city: entity.city || '—',
+        address: entity.address || null,
+        latitude: null,
+        longitude: null,
       };
     }
   }
@@ -443,6 +443,9 @@ export async function resolveJobLocationFromBuildingOrCompany(
     longitude: null,
   };
 }
+
+/** @deprecated Use resolveJobLocationFromManagedEntityOrCompany */
+export const resolveJobLocationFromBuildingOrCompany = resolveJobLocationFromManagedEntityOrCompany;
 
 /**
  * Update an existing job owned by the manager. Allowed only for draft/active jobs with zero applications.
@@ -457,7 +460,7 @@ export async function updateManagerJob(
     description: string;
     category: string;
     subcategory?: string;
-    buildingId?: string | null;
+    managedEntityId?: string | null;
     budgetMin?: number | null;
     budgetMax?: number | null;
     budgetType?: 'fixed' | 'hourly' | 'negotiable' | 'range';
@@ -534,7 +537,7 @@ export async function updateManagerJob(
     const loc = await resolveJobLocationFromBuildingOrCompany(
       supabase,
       params.companyId,
-      params.buildingId ?? null,
+      params.managedEntityId ?? null,
       companyRow?.city ?? null,
       companyRow?.address ?? null,
     );
@@ -565,7 +568,7 @@ export async function updateManagerJob(
       description: params.description,
       category_id: resolved.categoryId,
       subcategory_id: resolved.subcategoryId,
-      building_id: params.buildingId ?? null,
+      managed_entity_id: params.managedEntityId ?? null,
       location: locationJsonb,
       address: loc.address,
       latitude: loc.latitude,
@@ -840,7 +843,7 @@ export interface TenderWithCompany {
   phases: Record<string, unknown> | null;
   current_phase: string | null;
   wadium: number | null;
-  building_id?: string | null;
+  managed_entity_id?: string | null;
   completion_date?: string | null;
   site_visit_type?: string | null;
   site_visit_notes?: string | null;
@@ -870,11 +873,13 @@ export interface TenderWithCompany {
     name: string;
     slug: string;
   } | null;
-  building?: {
+  managed_entity?: {
     id: string;
     name: string;
-    street_address: string | null;
+    address: string | null;
     city: string | null;
+    entity_type: string;
+    nip: string;
   } | null;
   address?: string | null;
 }
@@ -1545,11 +1550,13 @@ export async function fetchTenderById(
           name,
           slug
         ),
-        building:buildings!tenders_building_id_fkey (
+        managed_entity:managed_housing_entities!contests_managed_entity_id_fkey (
           id,
           name,
-          street_address,
-          city
+          address,
+          city,
+          entity_type,
+          nip
         )
       `)
       .eq('id', id)
@@ -2017,7 +2024,7 @@ export async function createJob(
     images?: string[];
     managerId: string; // User profile ID
     companyId: string; // Company ID
-    buildingId?: string | null;
+    managedEntityId?: string | null;
   }
 ): Promise<{ data: JobWithCompany | null; error: PostgrestError | null }> {
   try {
@@ -2064,11 +2071,11 @@ export async function createJob(
     let longitudeVal: number | null = jobData.longitude ?? null;
     let addressVal: string | null = jobData.address ?? null;
 
-    if (jobData.buildingId) {
-      const loc = await resolveJobLocationFromBuildingOrCompany(
+    if (jobData.managedEntityId) {
+      const loc = await resolveJobLocationFromManagedEntityOrCompany(
         supabase,
         jobData.companyId,
-        jobData.buildingId,
+        jobData.managedEntityId,
         companyRow?.city ?? null,
         companyRow?.address ?? null,
       );
@@ -2091,7 +2098,7 @@ export async function createJob(
         };
       }
     } else {
-      const loc = await resolveJobLocationFromBuildingOrCompany(
+      const loc = await resolveJobLocationFromManagedEntityOrCompany(
         supabase,
         jobData.companyId,
         null,
@@ -2110,7 +2117,7 @@ export async function createJob(
       description: jobData.description,
       category_id: categoryId,
       subcategory_id: subcategoryId,
-      building_id: jobData.buildingId ?? null,
+      managed_entity_id: jobData.managedEntityId ?? null,
       manager_id: jobData.managerId,
       company_id: jobData.companyId,
       location: locationJsonb,
@@ -3036,7 +3043,7 @@ export async function cancelTenderBid(
         ${parentTable} (
           status,
           submission_deadline,
-          building_id,
+          managed_entity_id,
           selection_criteria,
           formal_requirements
         )
@@ -3081,7 +3088,7 @@ export async function cancelTenderBid(
       contests?: {
         status?: string;
         submission_deadline?: string;
-        building_id?: string | null;
+        managed_entity_id?: string | null;
         selection_criteria?: unknown;
         formal_requirements?: unknown;
       };
@@ -3090,7 +3097,7 @@ export async function cancelTenderBid(
     if (tender) {
       const { isContestTender } = await import('../contest/map-tender-contest-display');
       const isContest = isContestTender({
-        building_id: tender.building_id ?? null,
+        managed_entity_id: tender.managed_entity_id ?? null,
         selection_criteria: tender.selection_criteria as Record<string, unknown> | null,
         formal_requirements: tender.formal_requirements as Record<string, unknown> | null,
       });

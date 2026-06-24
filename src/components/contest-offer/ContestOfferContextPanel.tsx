@@ -107,13 +107,13 @@ function renderContextContent(
             ) : null}
           </div>
         )}
-        {contestInfo.buildingName || contestInfo.buildingAddress ? (
+        {contestInfo.entityName || contestInfo.entityAddress ? (
           <div>
-            {contestInfo.buildingName ? (
-              <p className="font-medium">{contestInfo.buildingName}</p>
+            {contestInfo.entityName ? (
+              <p className="font-medium">{contestInfo.entityName}</p>
             ) : null}
-            {contestInfo.buildingAddress ? (
-              <p className="text-muted-foreground">{contestInfo.buildingAddress}</p>
+            {contestInfo.entityAddress ? (
+              <p className="text-muted-foreground">{contestInfo.entityAddress}</p>
             ) : null}
           </div>
         ) : null}

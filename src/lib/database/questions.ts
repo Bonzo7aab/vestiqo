@@ -592,7 +592,7 @@ async function resolveListingMeta(
   const { data: tenderData, error: tenderError } = await (supabase as any)
     .from('contests')
     .select(
-      'id, title, manager_id, allow_questions, submission_deadline, building_id, selection_criteria, formal_requirements',
+      'id, title, manager_id, allow_questions, submission_deadline, managed_entity_id, selection_criteria, formal_requirements',
     )
     .eq('id', listingId)
     .maybeSingle();
@@ -602,7 +602,7 @@ async function resolveListingMeta(
   }
 
   const isContest = isContestTender({
-    building_id: tenderData.building_id,
+    managed_entity_id: tenderData.managed_entity_id,
     selection_criteria: tenderData.selection_criteria as Record<string, unknown> | null,
     formal_requirements: tenderData.formal_requirements as Record<string, unknown> | null,
   });

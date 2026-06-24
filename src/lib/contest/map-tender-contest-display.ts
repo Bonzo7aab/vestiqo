@@ -25,10 +25,10 @@ const SITE_VISIT_LABELS: Record<SiteVisitType, string> = {
 
 export function isContestTender(row: Pick<
   TenderWithCompany,
-  'building_id' | 'selection_criteria' | 'formal_requirements'
+  'managed_entity_id' | 'selection_criteria' | 'formal_requirements'
 >): boolean {
   return Boolean(
-    row.building_id || row.selection_criteria || row.formal_requirements,
+    row.managed_entity_id || row.selection_criteria || row.formal_requirements,
   );
 }
 
@@ -66,8 +66,8 @@ export function formatPaymentTermsLabel(payment: PaymentTerms): string {
 }
 
 export interface ContestDisplayInfo {
-  buildingName: string | null;
-  buildingAddress: string | null;
+  entityName: string | null;
+  entityAddress: string | null;
   documents: TenderContestDocumentMeta[];
   submissionDeadline: string;
   evaluationDeadline: string | null;
@@ -97,7 +97,7 @@ export function mapTenderRowToContestDisplay(
     tender.subcategory?.name,
   );
 
-  const building = tender.building;
+  const entity = tender.managed_entity;
   const formal = { ...DEFAULT_FORMAL_REQUIREMENTS, ...form.formalRequirements };
   const payment = form.paymentTerms ?? { ...DEFAULT_PAYMENT_TERMS };
   const documents = parseExistingTenderDocuments(tender.documents);
@@ -109,8 +109,8 @@ export function mapTenderRowToContestDisplay(
       : null;
 
   return {
-    buildingName: building?.name ?? null,
-    buildingAddress: building?.street_address ?? tender.address ?? null,
+    entityName: entity?.name ?? null,
+    entityAddress: entity?.address ?? tender.address ?? null,
     documents,
     submissionDeadline: tender.submission_deadline,
     evaluationDeadline: tender.evaluation_deadline ?? null,

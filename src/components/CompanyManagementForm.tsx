@@ -12,7 +12,7 @@ import { Separator } from './ui/separator';
 import type { AuthUser } from '../types/auth';
 import { createClient } from '../lib/supabase/client';
 import { fetchUserPrimaryCompany, upsertUserCompany } from '../lib/database/companies';
-import { BuildingManagement } from './BuildingManagement';
+import { ManagedHousingEntityManagement } from './ManagedHousingEntityManagement';
 import { cn } from './ui/utils';
 import { GusNipStatusHint } from './gus/GusNipStatusHint';
 import { useGusNipLookup } from '../lib/gus/use-gus-nip-lookup';
@@ -20,8 +20,9 @@ import type { CompanyLookupResult } from '../lib/gus/types';
 
 interface CompanyManagementFormProps {
   user: AuthUser;
-  /** When true, only show building management (company data lives in ProfileForm). */
-  buildingsOnly?: boolean;
+  /** When true, only show managed WM/SM list (company data lives in ProfileForm). */
+  /** When true, only show managed WM/SM list (company data lives in ProfileForm). */
+  managedEntitiesOnly?: boolean;
 }
 
 const MANAGER_COMPANY_TYPES = [
@@ -39,7 +40,7 @@ const CONTRACTOR_COMPANY_TYPES = [
   { value: 'service_provider', label: 'Usługodawca' },
 ];
 
-export function CompanyManagementForm({ user, buildingsOnly = false }: CompanyManagementFormProps) {
+export function CompanyManagementForm({ user, managedEntitiesOnly = false }: CompanyManagementFormProps) {
   const isManager = user.userType === 'manager';
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -400,28 +401,28 @@ export function CompanyManagementForm({ user, buildingsOnly = false }: CompanyMa
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <p className="ml-2 text-sm text-muted-foreground">
-            {buildingsOnly ? 'Ładowanie nieruchomości...' : 'Ładowanie danych firmy...'}
+            {managedEntitiesOnly ? 'Ładowanie wspólnot i spółdzielni...' : 'Ładowanie danych firmy...'}
           </p>
         </div>
       </div>
     );
   }
 
-  if (buildingsOnly) {
+  if (managedEntitiesOnly) {
     return (
-      <div className="space-y-4" id="nieruchomosci">
+      <div className="space-y-4" id="wspolnoty-spoldzielnie">
         {hasCompany && companyId ? (
-          <BuildingManagement companyId={companyId} />
+          <ManagedHousingEntityManagement companyId={companyId} />
         ) : (
           <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-center gap-2 mb-2">
               <Building className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
+              <h4 className="font-medium">Zarządzanie wspólnotami i spółdzielniami</h4>
             </div>
             <div className="text-center py-6">
               <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
-                Dane firmy z rejestracji są widoczne powyżej. Nieruchomości możesz dodać po
+                Dane firmy z rejestracji są widoczne powyżej. Wspólnoty i spółdzielnie możesz dodać po
                 utworzeniu konta.
               </p>
             </div>
@@ -981,25 +982,25 @@ export function CompanyManagementForm({ user, buildingsOnly = false }: CompanyMa
         )}
       </div>
 
-      {/* Building Management Section - Only for managers */}
+      {/* Managed WM/SM section - only for managers */}
       {user.userType === 'manager' && (
-        <div className="mt-6" id="nieruchomosci">
+        <div className="mt-6" id="wspolnoty-spoldzielnie">
           <Separator className="my-6" />
           {hasCompany && companyId ? (
-            <BuildingManagement companyId={companyId} />
+            <ManagedHousingEntityManagement companyId={companyId} />
           ) : (
             <div className="border rounded-lg p-4 bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
+                <h4 className="font-medium">Zarządzanie wspólnotami i spółdzielniami</h4>
               </div>
               <div className="text-center py-6">
                 <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Aby dodać nieruchomości, najpierw uzupełnij dane firmy powyżej
+                  Aby dodać wspólnoty lub spółdzielnie, najpierw uzupełnij dane firmy powyżej
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Po zapisaniu firmy możesz dodawać i edytować nieruchomości, którymi zarządzasz
+                  Po zapisaniu firmy możesz dodawać podmioty po numerze NIP
                 </p>
               </div>
             </div>

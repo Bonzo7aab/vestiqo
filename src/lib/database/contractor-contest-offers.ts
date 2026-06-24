@@ -79,7 +79,7 @@ interface BidWithContestTender {
     title?: string;
     status?: string;
     submission_deadline?: string;
-    building_id?: string | null;
+    managed_entity_id?: string | null;
     selection_criteria?: unknown;
     formal_requirements?: unknown;
     companies?: { id?: string; name?: string } | null;
@@ -116,7 +116,7 @@ export async function fetchContractorContestOffers(
         title,
         status,
         submission_deadline,
-        building_id,
+        managed_entity_id,
         selection_criteria,
         formal_requirements,
         companies (
@@ -142,7 +142,7 @@ export async function fetchContractorContestOffers(
     if (!tender) continue;
 
     const isContest = isContestTender({
-      building_id: tender.building_id ?? null,
+      managed_entity_id: tender.managed_entity_id ?? null,
       selection_criteria: tender.selection_criteria as Record<string, unknown> | null,
       formal_requirements: tender.formal_requirements as Record<string, unknown> | null,
     });

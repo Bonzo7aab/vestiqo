@@ -140,8 +140,8 @@ export interface Job {
 }
 
 export interface ContestInfo {
-  buildingName: string | null;
-  buildingAddress: string | null;
+  entityName: string | null;
+  entityAddress: string | null;
   documents: TenderContestDocumentMeta[];
   submissionDeadline: string;
   evaluationDeadline: string | null;

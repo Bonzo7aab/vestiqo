@@ -58,11 +58,11 @@ export function ManagerContestDetailSections({
         <div className="rounded-lg border bg-muted/40 p-4 grid gap-3 sm:grid-cols-2">
           <DetailRow label="Kategoria" value={categoryName} />
           {subcategoryName ? <DetailRow label="Podkategoria" value={subcategoryName} /> : null}
-          {contestInfo.buildingName ? (
-            <DetailRow label="Nieruchomość" value={contestInfo.buildingName} />
+          {contestInfo.entityName ? (
+            <DetailRow label="Wspólnota / Spółdzielnia" value={contestInfo.entityName} />
           ) : null}
-          {contestInfo.buildingAddress ? (
-            <DetailRow label="Adres" value={contestInfo.buildingAddress} />
+          {contestInfo.entityAddress ? (
+            <DetailRow label="Adres" value={contestInfo.entityAddress} />
           ) : null}
           {tender.estimated_value != null ? (
             <DetailRow

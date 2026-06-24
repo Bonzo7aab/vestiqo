@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import {
-  resolveJobLocationFromBuildingOrCompany,
+  resolveJobLocationFromManagedEntityOrCompany,
   resolveTenderCategoryIds,
   type JobLocation,
 } from '../database/jobs';
@@ -47,7 +47,7 @@ export interface TenderContestCreatePayload {
   address?: string;
   latitude?: number;
   longitude?: number;
-  buildingId?: string | null;
+  managedEntityId?: string | null;
   subcategoryId?: string | null;
   completionDate?: Date | null;
   siteVisitType?: string;
@@ -110,10 +110,10 @@ export async function buildCreateTenderPayload(
   companyAddress: string | null | undefined,
   status: 'draft' | 'active',
 ): Promise<{ payload: TenderContestCreatePayload | null; error: Error | null }> {
-  const loc = await resolveJobLocationFromBuildingOrCompany(
+  const loc = await resolveJobLocationFromManagedEntityOrCompany(
     supabase,
     companyId,
-    form.buildingId || null,
+    form.managedEntityId || null,
     companyCity,
     companyAddress,
   );
@@ -197,7 +197,7 @@ export async function buildCreateTenderPayload(
     address: loc.address ?? undefined,
     latitude: loc.latitude ?? undefined,
     longitude: loc.longitude ?? undefined,
-    buildingId: form.buildingId || null,
+    managedEntityId: form.managedEntityId || null,
     subcategoryId: resolved.subcategoryId,
     completionDate: form.completionDate,
     siteVisitType: form.siteVisitType,
@@ -246,7 +246,7 @@ export function mapTenderRowToContestForm(
   );
   const payment = (tender.payment_terms as PaymentTerms | null) ?? { ...DEFAULT_PAYMENT_TERMS };
 
-  const buildingId = (tender.building_id as string) ?? '';
+  const managedEntityId = (tender.managed_entity_id as string) ?? '';
   const submissionDeadline = tender.submission_deadline
     ? new Date(tender.submission_deadline as string)
     : new Date();
@@ -260,7 +260,7 @@ export function mapTenderRowToContestForm(
   return {
     title: (tender.title as string) ?? '',
     description: (tender.description as string) ?? '',
-    buildingId,
+    managedEntityId,
     category: categoryName ?? '',
     subcategory: subcategoryName ?? '',
     submissionDeadline,

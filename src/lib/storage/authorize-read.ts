@@ -224,22 +224,8 @@ export async function assertCanReadStorageObject(
     case 'review':
       // Portfolio/review images: owner and admins only unless served via public profile SSR.
       throw new Error('Brak uprawnień do tego pliku.');
-    case 'building': {
-      const buildingId = parsed.resourceId;
-      if (!buildingId) {
-        throw new Error('Brak uprawnień do tego pliku.');
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: building } = await (supabase as any)
-        .from('buildings')
-        .select('manager_id')
-        .eq('id', buildingId)
-        .maybeSingle();
-      if (building?.manager_id === callerId) {
-        return;
-      }
-      break;
-    }
+    case 'building':
+      throw new Error('Brak uprawnień do tego pliku.');
     default:
       break;
   }

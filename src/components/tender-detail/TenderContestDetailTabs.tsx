@@ -76,11 +76,11 @@ export function TenderContestDetailTabs({
                 {job.subcategory ? (
                   <DetailRow label="Podkategoria" value={subcategoryName ?? job.subcategory} />
                 ) : null}
-                {contestInfo.buildingName ? (
-                  <DetailRow label="Nieruchomość" value={contestInfo.buildingName} />
+                {contestInfo.entityName ? (
+                  <DetailRow label="Wspólnota / Spółdzielnia" value={contestInfo.entityName} />
                 ) : null}
-                {contestInfo.buildingAddress ? (
-                  <DetailRow label="Adres" value={contestInfo.buildingAddress} />
+                {contestInfo.entityAddress ? (
+                  <DetailRow label="Adres" value={contestInfo.entityAddress} />
                 ) : null}
               </div>
             </div>

@@ -4,7 +4,7 @@ import { selectionCriteriaTotalWeight } from '../../types/tender-contest';
 export interface TenderContestFormFieldErrors {
   title?: string;
   description?: string;
-  buildingId?: string;
+  managedEntityId?: string;
   category?: string;
   subcategory?: string;
   documents?: string;
@@ -31,7 +31,7 @@ export function getTenderContestFormFieldErrors(
   form: TenderContestFormData,
   pendingFiles: File[],
   existingDocs: TenderContestDocumentMeta[],
-  hasBuildings: boolean,
+  hasManagedEntities: boolean,
   status: 'draft' | 'active',
 ): TenderContestFormFieldErrors {
   const errors: TenderContestFormFieldErrors = {};
@@ -92,8 +92,8 @@ export function getTenderContestFormFieldErrors(
   if (!form.description.trim()) {
     errors.description = 'Podaj szczegółowy zakres i uwagi';
   }
-  if (hasBuildings && !form.buildingId) {
-    errors.buildingId = 'Wybierz nieruchomość';
+  if (hasManagedEntities && !form.managedEntityId) {
+    errors.managedEntityId = 'Wybierz wspólnotę lub spółdzielnię';
   }
   if (!form.category) {
     errors.category = 'Wybierz kategorię';
@@ -139,7 +139,7 @@ export function hasTenderContestFormFieldErrors(
   if (
     errors.title ||
     errors.description ||
-    errors.buildingId ||
+    errors.managedEntityId ||
     errors.category ||
     errors.subcategory ||
     errors.documents ||
@@ -165,7 +165,7 @@ export function clearTenderContestFieldErrorsForPatch(
 
   if ('title' in patch) delete next.title;
   if ('description' in patch) delete next.description;
-  if ('buildingId' in patch) delete next.buildingId;
+  if ('managedEntityId' in patch) delete next.managedEntityId;
   if ('category' in patch) delete next.category;
   if ('subcategory' in patch) delete next.subcategory;
   if ('submissionDeadline' in patch) {
@@ -195,7 +195,7 @@ export function firstTenderContestErrorSelector(
 ): string | null {
   if (errors.title) return '#contest-title';
   if (errors.description) return '#contest-desc';
-  if (errors.buildingId) return '#contest-building';
+  if (errors.managedEntityId) return '#contest-managed-entity';
   if (errors.category) return '#contest-category';
   if (errors.subcategory) return '#contest-subcategory';
   if (errors.documents) return '#contest-documents';

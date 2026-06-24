@@ -232,7 +232,7 @@ export function UserAccountPageClient({
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
             {user.userType === 'manager' && (
-              <CompanyManagementForm user={user} buildingsOnly />
+              <CompanyManagementForm user={user} managedEntitiesOnly />
             )}
           </TabsContent>
 
