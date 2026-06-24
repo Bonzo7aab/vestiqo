@@ -1,4 +1,4 @@
 import * as Sentry from '@sentry/nextjs'
-import { baseSentryOptions } from './sentry.shared'
+import { serverSentryOptions } from './sentry.shared'
 
-Sentry.init(baseSentryOptions)
+Sentry.init(serverSentryOptions)

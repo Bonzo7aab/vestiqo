@@ -9,3 +9,15 @@ export const baseSentryOptions = {
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.05 : 0,
   sendDefaultPii: false,
 }
+
+export const clientSentryOptions = {
+  ...baseSentryOptions,
+  // Free plan: ~50 replays/month — record only sessions that hit an error.
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 1.0,
+}
+
+export const serverSentryOptions = {
+  ...baseSentryOptions,
+  includeLocalVariables: true,
+}

@@ -244,6 +244,7 @@ module.exports = withSentryConfig(nextConfig, {
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   widenClientFileUpload: true,
+  tunnelRoute: '/monitoring',
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
   },

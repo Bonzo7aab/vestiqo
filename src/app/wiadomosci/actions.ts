@@ -5,9 +5,10 @@ import {
   sendMessage,
 } from '../../lib/database/messaging';
 import { createNotificationWithPush } from '../../lib/database/notifications-server';
+import { instrumentServerAction } from '../../lib/sentry/instrument-server-action';
 import { createClient } from '../../lib/supabase/server';
 
-export async function sendConversationMessageAction(
+async function sendConversationMessageActionImpl(
   conversationId: string,
   content: string,
 ): Promise<{ messageId: string | null; error: string | null }> {
@@ -84,3 +85,8 @@ export async function sendConversationMessageAction(
 
   return { messageId: sendResult.data, error: null };
 }
+
+export const sendConversationMessageAction = instrumentServerAction(
+  'sendConversationMessageAction',
+  sendConversationMessageActionImpl,
+);

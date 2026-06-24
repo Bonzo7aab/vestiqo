@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../lib/supabase/server';
+import { instrumentServerAction } from '../../lib/sentry/instrument-server-action';
 import type { Database, Json } from '../../types/database';
 
 const DEFAULT_CONTRACTOR_NOTIFICATION_CHANNELS = {
@@ -96,7 +97,7 @@ async function fetchOcPolicyScanPathServer(
   return (data?.oc_policy_scan_path as string | null) ?? null;
 }
 
-export async function submitVerificationDocumentsAction(
+async function submitVerificationDocumentsActionImpl(
   uploadedPaths: Record<string, string>,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
@@ -276,7 +277,7 @@ export async function submitVerificationDocumentsAction(
   return { ok: true };
 }
 
-export async function removeAccountVerificationDocumentAction(
+async function removeAccountVerificationDocumentActionImpl(
   payload:
     | { kind: 'verification'; documentKey: string }
     | { kind: 'zus_certificate' }
@@ -306,3 +307,12 @@ export async function removeAccountVerificationDocumentAction(
 
   return result;
 }
+
+export const submitVerificationDocumentsAction = instrumentServerAction(
+  'submitVerificationDocumentsAction',
+  submitVerificationDocumentsActionImpl,
+);
+export const removeAccountVerificationDocumentAction = instrumentServerAction(
+  'removeAccountVerificationDocumentAction',
+  removeAccountVerificationDocumentActionImpl,
+);

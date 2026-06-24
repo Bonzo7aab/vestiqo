@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/nextjs'
-import { baseSentryOptions } from './sentry.shared'
+import { clientSentryOptions } from './sentry.shared'
 
-Sentry.init(baseSentryOptions)
+Sentry.init({
+  ...clientSentryOptions,
+  integrations: [Sentry.replayIntegration()],
+})
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

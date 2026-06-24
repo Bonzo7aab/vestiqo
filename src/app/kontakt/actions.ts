@@ -1,5 +1,6 @@
 'use server';
 
+import { instrumentServerAction } from '../../lib/sentry/instrument-server-action';
 import { companyLegal } from '../../lib/content/company-legal';
 import { contactRoleOptions, type ContactRole } from '../../lib/content/kontakt';
 import {
@@ -17,7 +18,7 @@ function getRoleLabel(role: ContactRole): string {
   return contactRoleOptions.find((option) => option.value === role)?.label ?? role;
 }
 
-export async function submitContactForm(formData: FormData): Promise<ContactFormResult> {
+async function submitContactFormImpl(formData: FormData): Promise<ContactFormResult> {
   const name = String(formData.get('name') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim();
   const phone = String(formData.get('phone') ?? '').trim();
@@ -81,3 +82,5 @@ export async function submitContactForm(formData: FormData): Promise<ContactForm
 
   return { success: true };
 }
+
+export const submitContactForm = instrumentServerAction('submitContactForm', submitContactFormImpl);

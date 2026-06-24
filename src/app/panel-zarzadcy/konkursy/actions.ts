@@ -7,6 +7,7 @@ import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection'
 import { notifyContestCancelledToContractors, notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
 import { deleteManagerContestDraft } from '../../../lib/database/manager-contests';
 import { canCancelContest } from '../../../lib/tender-workflow-status';
+import { instrumentServerAction } from '../../../lib/sentry/instrument-server-action';
 
 const KONKURSY_PATH = '/panel-zarzadcy/konkursy';
 
@@ -17,7 +18,7 @@ function revalidateKonkursy(tenderId?: string): void {
   }
 }
 
-export async function acceptTenderOfferAction(
+async function acceptTenderOfferActionImpl(
   tenderId: string,
   bidId: string,
   selectionJustification?: string,
@@ -71,7 +72,7 @@ export async function acceptTenderOfferAction(
   return result;
 }
 
-export async function cancelContestAction(
+async function cancelContestActionImpl(
   tenderId: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (!tenderId?.trim()) {
@@ -136,7 +137,7 @@ export async function cancelContestAction(
   return { success: true };
 }
 
-export async function abandonContestDraftAction(
+async function abandonContestDraftActionImpl(
   tenderId: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (!tenderId?.trim()) {
@@ -174,3 +175,16 @@ export async function abandonContestDraftAction(
 
   return result;
 }
+
+export const acceptTenderOfferAction = instrumentServerAction(
+  'acceptTenderOfferAction',
+  acceptTenderOfferActionImpl,
+);
+export const cancelContestAction = instrumentServerAction(
+  'cancelContestAction',
+  cancelContestActionImpl,
+);
+export const abandonContestDraftAction = instrumentServerAction(
+  'abandonContestDraftAction',
+  abandonContestDraftActionImpl,
+);

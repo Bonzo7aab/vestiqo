@@ -8,11 +8,12 @@ import {
   isOrdersFeatureEnabledForAuthUser,
   ORDERS_FEATURE_DISABLED_ERROR,
 } from '../../../lib/flagship/orders-feature';
+import { instrumentServerAction } from '../../../lib/sentry/instrument-server-action';
 
 const MANAGER_ORDERS_PATH = '/panel-zarzadcy/zamowienia';
 const CONTRACTOR_ORDERS_PATH = '/panel-wykonawcy/zamowienia';
 
-export async function reportOrderForAcceptanceAction(
+async function reportOrderForAcceptanceActionImpl(
   orderId: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (!orderId?.trim()) {
@@ -50,3 +51,8 @@ export async function reportOrderForAcceptanceAction(
 
   return result;
 }
+
+export const reportOrderForAcceptanceAction = instrumentServerAction(
+  'reportOrderForAcceptanceAction',
+  reportOrderForAcceptanceActionImpl,
+);

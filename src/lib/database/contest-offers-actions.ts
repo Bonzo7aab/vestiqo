@@ -5,6 +5,7 @@ import { createClient } from '../supabase/server';
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
 import type { PostgrestError } from '@supabase/supabase-js';
+import { instrumentServerAction } from '../sentry/instrument-server-action';
 import {
   deleteTenderBidDraft as deleteTenderBidDraftWithClient,
   submitTenderBid as submitTenderBidWithClient,
@@ -13,7 +14,7 @@ import {
   type TenderBidRowLite,
 } from './contest-offers';
 
-export async function submitTenderBid(
+async function submitTenderBidImpl(
   tenderId: string,
   contractorId: string,
   form: ContestOfferFormData,
@@ -23,7 +24,7 @@ export async function submitTenderBid(
   return submitTenderBidWithClient(supabase, tenderId, contractorId, form, contestInfo);
 }
 
-export async function upsertTenderBidDraft(
+async function upsertTenderBidDraftImpl(
   tenderId: string,
   contractorId: string,
   form: ContestOfferFormData,
@@ -33,7 +34,7 @@ export async function upsertTenderBidDraft(
   return upsertTenderBidDraftWithClient(supabase, tenderId, contractorId, form, currentStep);
 }
 
-export async function abandonTenderBidDraftAction(input: {
+async function abandonTenderBidDraftActionImpl(input: {
   contractorId: string;
   tenderId?: string;
   bidId?: string;
@@ -69,3 +70,13 @@ export async function abandonTenderBidDraftAction(input: {
 
   return { success: true };
 }
+
+export const submitTenderBid = instrumentServerAction('submitTenderBid', submitTenderBidImpl);
+export const upsertTenderBidDraft = instrumentServerAction(
+  'upsertTenderBidDraft',
+  upsertTenderBidDraftImpl,
+);
+export const abandonTenderBidDraftAction = instrumentServerAction(
+  'abandonTenderBidDraftAction',
+  abandonTenderBidDraftActionImpl,
+);
