@@ -29,6 +29,9 @@ pnpm-debug.log*
 # OS
 .DS_Store
 
+# Compound Engineering (machine-local preferences)
+.compound-engineering/*.local.yaml
+
 # Misc
 .cursor/
 .pnp*
