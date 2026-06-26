@@ -134,11 +134,6 @@ const nextConfig = {
     ];
   },
   reactStrictMode: true,
-  // Server Action bodySizeLimit is not wired into renderOpts in Next 16.0.7; large
-  // file uploads use /api/weryfikacja/upload instead. Keep this for when Next fixes it.
-  serverActions: {
-    bodySizeLimit: '50mb',
-  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],

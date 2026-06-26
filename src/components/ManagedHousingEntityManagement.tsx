@@ -195,7 +195,8 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
     nip: formData.nip,
     onApply: applyGusData,
     onClearDerived: clearGusDerived,
-    trigger: 'blur',
+    trigger: 'debounce',
+    debounceMs: 0,
     initialLookedUpNip,
   });
 
@@ -484,18 +485,31 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
 
             <div className="space-y-2">
               <Label htmlFor="entity-nip">NIP *</Label>
-              <Input
-                id="entity-nip"
-                value={formData.nip}
-                onChange={(e) =>
-                  gusLookup.handleNipChange(e.target.value, (next) =>
-                    setFormData((prev) => ({ ...prev, nip: next })),
-                  )
-                }
-                onBlur={() => gusLookup.handleNipBlur()}
-                placeholder="0000000000"
-                inputMode="numeric"
-              />
+              <div className="relative">
+                <Input
+                  id="entity-nip"
+                  value={formData.nip}
+                  onChange={(e) => {
+                    if (gusLookup.isLoading) {
+                      return;
+                    }
+                    gusLookup.handleNipChange(e.target.value, (next) =>
+                      setFormData((prev) => ({ ...prev, nip: next })),
+                    );
+                  }}
+                  placeholder="0000000000"
+                  inputMode="numeric"
+                  disabled={gusLookup.isLoading || isSubmitting}
+                  aria-busy={gusLookup.isLoading}
+                  className={cn(gusLookup.isLoading && 'pr-10 opacity-80')}
+                />
+                {gusLookup.isLoading ? (
+                  <Loader2
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary"
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
               <GusNipStatusHint
                 status={gusLookup.status}
                 message={gusLookup.message}
@@ -503,7 +517,17 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
               />
             </div>
 
-            {formData.name && (
+            {gusLookup.isLoading ? (
+              <div className="rounded-md border bg-muted/40 p-3 space-y-3" aria-hidden>
+                <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-2">
+                    <div className="h-3 animate-pulse rounded bg-muted" />
+                    <div className="col-span-2 h-3 animate-pulse rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : formData.name ? (
               <div className="rounded-md border bg-muted/40 p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Dane z rejestru
@@ -515,7 +539,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
 
           <DialogFooter>
