@@ -54,9 +54,12 @@ import { canManagerEditJobFields, getJobWorkflowStatusLabel } from '../lib/job-w
 import { getContestWorkflowStatusLabel } from '../lib/tender-workflow-status';
 import { formatContestLocation } from '../lib/contest-display';
 import {
+  getCategoryColor,
   getCategoryDisplayName,
   getSubcategoryDisplayName,
+  resolveCategorySlugFromJob,
 } from '../lib/config/categoryConfig';
+import { CategoryIconTile } from './contest/CategoryIconTile';
 import { ContestStatusBadge } from './manager-dashboard/ContestStatusBadge';
 import { VerificationRequiredApplyDialog } from './VerificationRequiredApplyDialog';
 import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
@@ -889,6 +892,12 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
   const isContestView = Boolean(job.contestInfo);
   const tenderLabel = isContestView ? 'konkurs' : 'przetarg';
   const tenderLocative = isContestView ? 'konkursie' : 'przetargu';
+  const contestCategorySlug = isContestView
+    ? resolveCategorySlugFromJob({ category: job.category })
+    : undefined;
+  const contestCategoryColor = contestCategorySlug
+    ? getCategoryColor(contestCategorySlug)
+    : 'hsl(var(--primary))';
 
   const handleApplicationSubmit = async () => {
     if (!user) {
@@ -1140,24 +1149,32 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
               <div className="relative flex-shrink-0 flex flex-col items-center gap-1.5 sm:gap-2">
-                <Avatar className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20">
-                  <AvatarImage src={job.companyInfo?.logo_url || undefined} alt={job.company} />
-                  <AvatarFallback className="bg-primary text-white text-sm sm:text-lg md:text-xl">
-                    {job.company?.charAt(0).toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                {job.verified && (
-                  <Badge variant="outline" className="text-[9px] sm:text-[10px] md:text-xs px-1.5 py-0.5">
-                    <CheckCircle className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5" />
-                    Zweryfikowany
-                  </Badge>
+                {isContestView ? (
+                  <CategoryIconTile
+                    categorySlug={contestCategorySlug}
+                    color={contestCategoryColor}
+                    className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20"
+                    iconClassName="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10"
+                  />
+                ) : (
+                  <>
+                    <Avatar className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20">
+                      <AvatarImage src={job.companyInfo?.logo_url || undefined} alt={job.company} />
+                      <AvatarFallback className="bg-primary text-white text-sm sm:text-lg md:text-xl">
+                        {job.company?.charAt(0).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {job.verified && (
+                      <Badge variant="outline" className="text-[9px] sm:text-[10px] md:text-xs px-1.5 py-0.5">
+                        <CheckCircle className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5" />
+                        Zweryfikowany
+                      </Badge>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 mb-1.5 sm:mb-2">
-                  {job.contestInfo ? (
-                    <FileSearch className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" aria-hidden />
-                  ) : null}
                   <h1 className="text-lg sm:text-2xl md:text-3xl font-bold break-words">
                     {job.title}
                   </h1>

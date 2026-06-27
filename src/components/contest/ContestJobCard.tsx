@@ -4,7 +4,6 @@ import React from 'react';
 import {
   Building2,
   Clock,
-  FileText,
   Heart,
   MapPin,
 } from 'lucide-react';
@@ -24,10 +23,10 @@ import {
   formatContestCategoryLine,
   getCategoryColor,
   getCategoryDisplayName,
-  getCategoryIcon,
   getSubcategoryDisplayName,
   resolveCategorySlugFromJob,
 } from '../../lib/config/categoryConfig';
+import { CategoryIconTile } from './CategoryIconTile';
 import { cn } from '../ui/utils';
 
 interface ContestJobCardProps {
@@ -68,25 +67,6 @@ interface ContestJobCardProps {
 
 const FOOTER_APPLY_BUTTON_CLASS =
   'h-9 w-full text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground';
-
-function CategoryIconTile({
-  categorySlug,
-  color,
-}: {
-  categorySlug?: string;
-  color: string;
-}): React.ReactElement {
-  const iconType = categorySlug ? getCategoryIcon(categorySlug) : FileText;
-
-  return (
-    <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background"
-      aria-hidden
-    >
-      {React.createElement(iconType, { className: 'h-6 w-6', style: { color } })}
-    </div>
-  );
-}
 
 function ListingStatusBadge({ status }: { status: string }): React.ReactElement {
   const label = getContestWorkflowStatusLabel(status).toUpperCase();
