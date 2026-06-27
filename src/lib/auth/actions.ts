@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { getRegistrationSettingsForRegister } from '../database/platform-settings'
 import { registrationClosedMessage } from '../registration-settings-shared'
 import { sanitizeRedirectPath } from './redirectPath'
+import { isRedirectForbiddenForContractor } from './manager-contest-routes'
 import { translateAuthErrorMessage, translateRegistrationErrorMessage, REGISTRATION_ERRORS } from './errorMessages'
 import {
   isValidPolishPhone,
@@ -104,9 +105,7 @@ async function loginActionImpl(
       redirectTo = '/administracja'
     } else if (requestedRedirect) {
       const forbiddenForContractor =
-        isContractor &&
-        (requestedRedirect.startsWith('/panel-zarzadcy') ||
-          requestedRedirect.startsWith('/administracja'))
+        isContractor && isRedirectForbiddenForContractor(requestedRedirect)
       const forbiddenForManager =
         !isContractor &&
         (requestedRedirect.startsWith('/administracja') ||

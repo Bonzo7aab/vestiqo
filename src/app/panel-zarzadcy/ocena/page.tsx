@@ -43,8 +43,8 @@ export default async function OcenaPage(): Promise<ReactElement> {
   }
 
   const [ratingSummary, reviews, writtenReviews] = await Promise.all([
-    fetchContractorRatingSummary(company.id),
-    fetchContractorReviews(company.id, 50, 0),
+    fetchContractorRatingSummary(company.id, supabase),
+    fetchContractorReviews(company.id, 50, 0, supabase),
     fetchReviewsWrittenByUser(supabase, user.id),
   ]);
 

@@ -39,6 +39,8 @@ interface AuthPageLayoutProps {
   /** Footer trust line on the side panel. Omit contractor verification note for managers. */
   trustNote?: string;
   sideVariant?: 'default' | 'simple';
+  /** Hide Vestiqo logo link on the left panel (e.g. login). */
+  showSideLogo?: boolean;
   side: {
     heading: string;
     body: string;
@@ -51,10 +53,12 @@ function AuthSidePanel({
   side,
   trustNote = 'Dane chronione zgodnie z RODO. Weryfikacja dokumentów dla wykonawców.',
   variant = 'default',
+  showSideLogo = true,
 }: {
   side: AuthPageLayoutProps['side'];
   trustNote?: string;
   variant?: 'default' | 'simple';
+  showSideLogo?: boolean;
 }) {
   if (variant === 'simple') {
     return (
@@ -63,14 +67,16 @@ function AuthSidePanel({
 
         <div className="relative flex flex-1 flex-col justify-between px-10 py-12 xl:px-14">
           <div>
-            <Link
-              href="/"
-              className="inline-flex items-center rounded-xl border border-white/15 bg-white px-4 py-2 shadow-md"
-            >
-              <BrandLogo variant="full" className="h-7 w-auto" />
-            </Link>
+            {showSideLogo ? (
+              <Link
+                href="/"
+                className="inline-flex items-center rounded-xl border border-white/15 bg-white px-4 py-2 shadow-md"
+              >
+                <BrandLogo variant="full" className="h-7 w-auto" />
+              </Link>
+            ) : null}
 
-            <h2 className="mt-10 text-2xl font-bold leading-tight tracking-tight text-white xl:text-[1.65rem]">
+            <h2 className={cn('text-2xl font-bold leading-tight tracking-tight text-white xl:text-[1.65rem]', showSideLogo ? 'mt-10' : '')}>
               {side.heading}
             </h2>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/75">{side.body}</p>
@@ -131,14 +137,21 @@ function AuthSidePanel({
       <div className="relative flex flex-1 flex-col justify-between px-10 py-12 xl:px-14">
         {/* Header */}
         <div>
-          <Link
-            href="/"
-            className="inline-flex items-center rounded-2xl border border-white/15 bg-white px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-white/95"
-          >
-            <BrandLogo variant="full" className="h-7 w-auto" />
-          </Link>
+          {showSideLogo ? (
+            <Link
+              href="/"
+              className="inline-flex items-center rounded-2xl border border-white/15 bg-white px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-white/95"
+            >
+              <BrandLogo variant="full" className="h-7 w-auto" />
+            </Link>
+          ) : null}
 
-          <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
+          <div
+            className={cn(
+              'inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm',
+              showSideLogo ? 'mt-10' : '',
+            )}
+          >
             <Sparkles className="h-3.5 w-3.5 text-amber-200" />
             Platforma B2B dla nieruchomości
           </div>
@@ -217,12 +230,13 @@ export function AuthPageLayout({
   contentMaxWidth = 'md',
   trustNote,
   sideVariant = 'default',
+  showSideLogo = true,
   side,
 }: AuthPageLayoutProps) {
   return (
     <div className="min-h-screen bg-background" data-testid={testId}>
       <div className="lg:grid lg:min-h-screen lg:grid-cols-2">
-        <AuthSidePanel side={side} trustNote={trustNote} variant={sideVariant} />
+        <AuthSidePanel side={side} trustNote={trustNote} variant={sideVariant} showSideLogo={showSideLogo} />
 
         <main className="flex min-h-screen flex-col justify-center px-4 py-10 sm:px-8 lg:min-h-0 lg:px-10 xl:px-14">
           <div

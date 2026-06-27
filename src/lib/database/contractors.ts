@@ -1520,9 +1520,10 @@ export async function fetchPlatformProjectHistory(
  * Fetch contractor reviews with pagination
  */
 export async function fetchContractorReviews(
-  contractorId: string, 
-  limit: number = 10, 
-  offset: number = 0
+  contractorId: string,
+  limit: number = 10,
+  offset: number = 0,
+  supabaseClient?: SupabaseClient<Database>,
 ): Promise<Array<{
   id: string;
   reviewerName: string;
@@ -1539,7 +1540,7 @@ export async function fetchContractorReviews(
   createdAt: string;
   helpfulCount: number;
 }>> {
-  const supabase = createClient();
+  const supabase = supabaseClient ?? createClient();
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1552,7 +1553,7 @@ export async function fetchContractorReviews(
         comment,
         categories,
         created_at,
-        user_profiles!company_reviews_reviewer_id_fkey (
+        user_profiles (
           first_name,
           last_name,
           user_type
@@ -1565,7 +1566,7 @@ export async function fetchContractorReviews(
 
     if (error) {
       console.error('Error fetching contractor reviews:', error);
-      throw new Error('Failed to fetch contractor reviews');
+      return [];
     }
 
     type ReviewWithProfile = {
@@ -1606,14 +1607,17 @@ export async function fetchContractorReviews(
     }));
   } catch (error) {
     console.error('Error in fetchContractorReviews:', error);
-    throw error;
+    return [];
   }
 }
 
 /**
  * Fetch contractor rating summary
  */
-export async function fetchContractorRatingSummary(contractorId: string): Promise<{
+export async function fetchContractorRatingSummary(
+  contractorId: string,
+  supabaseClient?: SupabaseClient<Database>,
+): Promise<{
   averageRating: number;
   totalReviews: number;
   ratingBreakdown: {
@@ -1631,7 +1635,7 @@ export async function fetchContractorRatingSummary(contractorId: string): Promis
   };
   lastReviewDate: string | null;
 }> {
-  const supabase = createClient();
+  const supabase = supabaseClient ?? createClient();
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

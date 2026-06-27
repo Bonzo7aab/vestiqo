@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isInvalidRefreshTokenError } from '../auth/sessionErrors'
+import { isManagerContestPath } from '../auth/manager-contest-routes'
 import type { Database } from '../../types/database'
 import { supabaseCookieOptions } from './cookie-options'
 
@@ -76,6 +77,7 @@ export async function updateSession(request: NextRequest) {
   const isContractorOnlyPath =
     pathname === '/panel-wykonawcy' || pathname.startsWith('/panel-wykonawcy/')
   const isAdminPath = pathname === '/administracja' || pathname.startsWith('/administracja/')
+  const isManagerContestRoute = isManagerContestPath(pathname)
   const isAuthEntryPath = pathname === '/logowanie' || pathname === '/rejestracja'
 
   // Fetch role only when we may need to act on it
@@ -85,7 +87,8 @@ export async function updateSession(request: NextRequest) {
       isAccountPath ||
       isManagerDashboardPath ||
       isContractorOnlyPath ||
-      isAdminPath)
+      isAdminPath ||
+      isManagerContestRoute)
   ) {
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -152,6 +155,13 @@ export async function updateSession(request: NextRequest) {
 
     // /administracja is admin-only
     if (isAdminPath && !isAdmin) {
+      const url = request.nextUrl.clone()
+      url.pathname = homePathFor
+      return NextResponse.redirect(url)
+    }
+
+    // Contest creation is manager-only (contractors cannot create contests)
+    if (isManagerContestRoute && isContractor && !isAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = homePathFor
       return NextResponse.redirect(url)

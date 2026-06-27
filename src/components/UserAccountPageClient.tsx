@@ -9,6 +9,7 @@ import { ProfileForm } from './ProfileForm';
 import { CompanyManagementForm } from './CompanyManagementForm';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { ContractorDocumentsTab } from './ContractorDocumentsTab';
+import { ContractorServicesTab } from './contractor-account/ContractorServicesTab';
 import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
 import type {
   DocumentReviewMap,
@@ -31,12 +32,16 @@ interface UserAccountPageClientProps {
   verificationStatus: VerificationStatus;
   verificationDocuments?: VerificationDocumentEntry[];
   documentReviews?: DocumentReviewMap;
+  contractorCompanyId?: string | null;
+  initialServiceSubcategorySlugs?: string[];
 }
 
 export function UserAccountPageClient({
   verificationStatus,
   verificationDocuments = [],
   documentReviews,
+  contractorCompanyId = null,
+  initialServiceSubcategorySlugs,
 }: UserAccountPageClientProps) {
   const { user, isLoading } = useUserProfile();
   const router = useRouter();
@@ -186,6 +191,17 @@ export function UserAccountPageClient({
                     </span>
                   )}
                 </button>
+                <button
+                  onClick={() => handleTabChange(KONTO_TABS.uslugi)}
+                  className={cn(
+                    'px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0',
+                    activeTab === KONTO_TABS.uslugi
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  )}
+                >
+                  Usługi
+                </button>
               </>
             ) : (
               <button
@@ -246,6 +262,14 @@ export function UserAccountPageClient({
               initialStatus={verificationStatus}
               existingDocuments={verificationDocuments}
               documentReviews={documentReviews}
+            />
+          </TabsContent>
+
+          <TabsContent value={KONTO_TABS.uslugi} className="space-y-6">
+            <ContractorServicesTab
+              key={initialServiceSubcategorySlugs?.join(',') ?? 'none'}
+              companyId={contractorCompanyId}
+              initialSubcategorySlugs={initialServiceSubcategorySlugs}
             />
           </TabsContent>
 

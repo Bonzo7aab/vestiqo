@@ -3,6 +3,7 @@ export const KONTO_TABS = {
   profil: 'profil',
   twojeDane: 'twoje-dane',
   dokumenty: 'dokumenty',
+  uslugi: 'uslugi',
   bezpieczenstwo: 'bezpieczenstwo',
   powiadomienia: 'powiadomienia',
 } as const;
@@ -21,6 +22,7 @@ const LEGACY_KONTO_TAB_ALIASES: Record<string, KontoTab> = {
   security: KONTO_TABS.bezpieczenstwo,
   notifications: KONTO_TABS.powiadomienia,
   'contractor-notifications': KONTO_TABS.powiadomienia,
+  services: KONTO_TABS.uslugi,
 };
 
 export function normalizeKontoTabSlug(raw: string | null | undefined): KontoTab | null {
@@ -54,6 +56,10 @@ export function resolveKontoTabFromUrl(
   }
 
   if (normalized === KONTO_TABS.dokumenty && userType === 'manager') {
+    return KONTO_TABS.profil;
+  }
+
+  if (normalized === KONTO_TABS.uslugi && userType !== 'contractor') {
     return KONTO_TABS.profil;
   }
 

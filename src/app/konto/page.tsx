@@ -7,6 +7,8 @@ import {
   type VerificationDocumentEntry,
 } from '../../lib/database/admin-verification';
 import { UserAccountPageClient } from '../../components/UserAccountPageClient';
+import { fetchUserPrimaryCompany } from '../../lib/database/companies';
+import { parseServiceSubcategorySlugsFromMetadata } from '../../lib/database/contractor-service-categories';
 
 export default async function Account() {
   const supabase = await createClient();
@@ -27,15 +29,16 @@ export default async function Account() {
     .maybeSingle();
 
   const isContractor = profileRow?.user_type === 'contractor';
-  const isManager = profileRow?.user_type === 'manager';
 
   const verificationStatus = await getUserVerificationStatus(user.id, supabase);
 
   let existingDocuments: VerificationDocumentEntry[] = [];
   let documentReviews: Awaited<ReturnType<typeof fetchVerificationDocumentReviews>> = {};
+  let contractorCompanyId: string | null = null;
+  let initialServiceSubcategorySlugs: string[] | undefined;
 
   if (isContractor) {
-    const [casResult, profileDocsResult] = await Promise.all([
+    const [casResult, profileDocsResult, primaryCompanyResult] = await Promise.all([
       sb
         .from('contractor_account_settings')
         .select('oc_valid_until, oc_policy_scan_path')
@@ -46,6 +49,7 @@ export default async function Account() {
         .select('verification_document_paths')
         .eq('id', user.id)
         .maybeSingle(),
+      fetchUserPrimaryCompany(supabase, user.id),
     ]);
     const accountOcPath = (casResult.data?.oc_policy_scan_path as string | null) ?? null;
     const verificationPaths =
@@ -62,6 +66,18 @@ export default async function Account() {
       getVerificationDocumentSignedUrls(supabase, docPaths),
       fetchVerificationDocumentReviews(supabase, user.id),
     ]);
+
+    if (primaryCompanyResult.data?.id) {
+      contractorCompanyId = primaryCompanyResult.data.id;
+      const { data: companyMeta } = await sb
+        .from('companies')
+        .select('metadata')
+        .eq('id', primaryCompanyResult.data.id)
+        .maybeSingle();
+      initialServiceSubcategorySlugs = parseServiceSubcategorySlugsFromMetadata(
+        companyMeta?.metadata,
+      );
+    }
   }
 
   return (
@@ -69,6 +85,10 @@ export default async function Account() {
       verificationStatus={verificationStatus}
       verificationDocuments={isContractor ? existingDocuments : undefined}
       documentReviews={isContractor ? documentReviews : undefined}
+      contractorCompanyId={isContractor ? contractorCompanyId : null}
+      initialServiceSubcategorySlugs={
+        isContractor ? initialServiceSubcategorySlugs : undefined
+      }
     />
   );
 }

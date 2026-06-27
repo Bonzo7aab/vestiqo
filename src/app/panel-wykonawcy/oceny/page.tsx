@@ -17,8 +17,8 @@ async function getRatingsData(userId: string) {
 
   // Fetch all data in parallel
   const [ratingSummary, reviews, writtenReviews] = await Promise.all([
-    fetchContractorRatingSummary(company.id),
-    fetchContractorReviews(company.id, 20),
+    fetchContractorRatingSummary(company.id, supabase),
+    fetchContractorReviews(company.id, 20, 0, supabase),
     fetchReviewsWrittenByUser(supabase, userId),
   ]);
 

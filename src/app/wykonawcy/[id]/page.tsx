@@ -1,16 +1,13 @@
 'use client';
 
 import ContractorProfilePage from '../../../components/ContractorProfilePage';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useAuthAwareBack } from '../../../hooks/useAuthAwareBack';
 
 export default function ContractorProfile() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
-
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = useAuthAwareBack();
 
   return (
     <ContractorProfilePage 

@@ -119,3 +119,8 @@ export interface ContractorProfile {
   joinedDate: string;
   lastActive: string;
 }
+
+export interface CompanyMetadata {
+  service_subcategory_slugs?: string[];
+  primary_category_slugs?: string[];
+}

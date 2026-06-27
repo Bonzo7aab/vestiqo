@@ -437,6 +437,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       testId="register-page"
       headingTestId="register-heading"
       contentMaxWidth="lg"
+      showSideLogo={false}
       title="Zarejestruj się"
       subtitle="Kilka pól — i możesz korzystać z platformy."
       trustNote={
@@ -724,11 +725,21 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
             />
             <label htmlFor="acceptTerms" className="cursor-pointer text-sm leading-snug text-muted-foreground">
               Akceptuję{' '}
-              <Link href="/regulamin" className="font-medium text-primary hover:underline">
+              <Link
+                href="/regulamin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
                 regulamin
               </Link>{' '}
               i{' '}
-              <Link href="/polityka-prywatnosci" className="font-medium text-primary hover:underline">
+              <Link
+                href="/polityka-prywatnosci"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
                 politykę prywatności
               </Link>
               .
@@ -752,11 +763,11 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
             )}
           </Button>
 
-          <p className="text-center text-xs text-muted-foreground">
-            {selectedUserType === 'contractor'
-              ? 'Po rejestracji wybierzesz, czy chcesz od razu przesłać dokumenty weryfikacyjne.'
-              : 'Twoje dane służą wyłącznie do kontaktu z wybranymi wykonawcami.'}
-          </p>
+          {selectedUserType === 'manager' ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Twoje dane służą wyłącznie do kontaktu z wybranymi wykonawcami.
+            </p>
+          ) : null}
         </form>
       </AuthFormPanel>
     </AuthPageLayout>

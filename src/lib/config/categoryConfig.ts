@@ -289,6 +289,35 @@ export function getAllCategoryConfigs(): CategoryConfig[] {
   });
 }
 
+/** All valid OPD-105 subcategory slugs from categoryConfig. */
+export function getAllSubcategorySlugs(): Set<string> {
+  const slugs = new Set<string>();
+  for (const category of getAllCategoryConfigs()) {
+    for (const subcategory of category.subcategories) {
+      slugs.add(subcategory.slug);
+    }
+  }
+  return slugs;
+}
+
+export function isValidSubcategorySlug(slug: string): boolean {
+  return getAllSubcategorySlugs().has(slug);
+}
+
+/** Display names for subcategory slugs in categoryConfig order. */
+export function subcategoryDisplayNamesFromSlugs(slugs: string[]): string[] {
+  const slugSet = new Set(slugs.filter(isValidSubcategorySlug));
+  const names: string[] = [];
+  for (const category of getAllCategoryConfigs()) {
+    for (const subcategory of category.subcategories) {
+      if (slugSet.has(subcategory.slug)) {
+        names.push(subcategory.name);
+      }
+    }
+  }
+  return names;
+}
+
 /** OPD-105 display name for a main category (by slug or legacy name). */
 export function getCategoryDisplayName(input?: {
   slug?: string | null;

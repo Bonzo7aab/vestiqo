@@ -1,12 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useAuthAwareBack } from './useAuthAwareBack';
 import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 export function useNavigationWithLoading() {
   const router = useRouter();
   const { startNavigation } = useNavigation();
+  const authAwareBack = useAuthAwareBack();
 
   const push = useCallback((href: string) => {
     startNavigation();
@@ -20,8 +22,8 @@ export function useNavigationWithLoading() {
 
   const back = useCallback(() => {
     startNavigation();
-    router.back();
-  }, [router, startNavigation]);
+    authAwareBack();
+  }, [authAwareBack, startNavigation]);
 
   const forward = useCallback(() => {
     startNavigation();
