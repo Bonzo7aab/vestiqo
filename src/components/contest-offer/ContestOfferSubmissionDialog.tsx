@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import posthog from 'posthog-js';
 import { notifyContestBidStatusChanged } from '../../utils/contestBidStatusEvents';
 import {
   Dialog,
@@ -265,6 +266,7 @@ export function ContestOfferSubmissionDialog({
         return;
       }
       toast.success('Szkic oferty został zapisany');
+      posthog.capture('contest_bid_draft_saved', { tender_id: tenderId });
       setHasExistingDraft(true);
       notifyContestBidStatusChanged({ tenderId, status: 'draft' });
       onDraftSaved?.();
@@ -285,6 +287,7 @@ export function ContestOfferSubmissionDialog({
         return;
       }
       toast.success('Szkic oferty został odrzucony');
+      posthog.capture('contest_bid_draft_abandoned', { tender_id: tenderId });
       setShowAbandonDialog(false);
       notifyContestBidStatusChanged({ tenderId, status: 'none' });
       onDraftAbandoned?.();
@@ -319,6 +322,7 @@ export function ContestOfferSubmissionDialog({
         toast.error(error.message);
         return;
       }
+      posthog.capture('contest_offer_submitted', { tender_id: tenderId });
       toast.success('Oferta wysłana', {
         classNames: {
           toast: 'bg-emerald-50 border-emerald-200 text-emerald-800',

@@ -206,6 +206,11 @@ export async function acceptTenderOfferAction(
     } catch (notifyError) {
       console.error('notifyContestOfferResolution:', notifyError);
     }
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'contest_offer_accepted',
+      properties: { tender_id: tenderId.trim(), bid_id: bidId.trim() },
+    });
     revalidatePath('/panel-zarzadcy/zgloszenia');
     revalidatePath('/panel-zarzadcy/konkursy');
     revalidatePath('/panel-zarzadcy/zamowienia');

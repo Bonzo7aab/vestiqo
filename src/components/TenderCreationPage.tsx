@@ -19,6 +19,7 @@ import {
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/tender-contest';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 
 interface TenderCreationPageProps {
   onBack: () => void;
@@ -254,6 +255,13 @@ export default function TenderCreationPage({
         }
       }
 
+      if (status === 'active' && !isEditMode) {
+        posthog.capture('contest_created', {
+          category: form.category,
+          subcategory: form.subcategory,
+          is_duplicate: isDuplicateMode,
+        });
+      }
       toast.success(
         status === 'draft'
           ? isEditMode
