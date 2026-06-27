@@ -3,6 +3,7 @@
 import { instrumentServerAction } from '../../lib/sentry/instrument-server-action';
 import { companyLegal } from '../../lib/content/company-legal';
 import { contactRoleOptions, type ContactRole } from '../../lib/content/kontakt';
+import { getPostHogClient } from '../../lib/posthog-server';
 import {
   buildContactFormEmailHtml,
   buildContactFormEmailSubject,
@@ -80,6 +81,11 @@ async function submitContactFormImpl(formData: FormData): Promise<ContactFormRes
     return { success: false, error: 'Nie udało się wysłać wiadomości. Spróbuj ponownie później.' };
   }
 
+  getPostHogClient().capture({
+    distinctId: email,
+    event: 'contact_form_submitted',
+    properties: { role, subject },
+  });
   return { success: true };
 }
 

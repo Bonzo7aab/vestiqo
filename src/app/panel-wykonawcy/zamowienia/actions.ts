@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '../../../lib/supabase/server';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
+import { getPostHogClient } from '../../../lib/posthog-server';
 import { reportOrderForAcceptance } from '../../../lib/database/order-mutations';
 import {
   isOrdersFeatureEnabledForAuthUser,
@@ -45,6 +46,11 @@ async function reportOrderForAcceptanceActionImpl(
   const result = await reportOrderForAcceptance(supabase, orderId.trim(), company.id);
 
   if (result.success) {
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'order_reported_for_acceptance',
+      properties: { order_id: orderId.trim() },
+    });
     revalidatePath(MANAGER_ORDERS_PATH);
     revalidatePath(CONTRACTOR_ORDERS_PATH);
   }

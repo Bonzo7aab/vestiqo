@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import posthog from 'posthog-js';
 import { Mail, Lock, Loader2, ArrowRight, MapPin, MessagesSquare, ClipboardList, CircleAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -49,6 +50,7 @@ export function LoginPage() {
       if ('error' in result) {
         setError(translateAuthErrorMessage(result.error));
       } else {
+        posthog.capture('user_logged_in', { email });
         await refreshSession();
         router.refresh();
         const target = result.redirectTo || redirectTo;

@@ -2,6 +2,7 @@
 
 import { createClient } from '../../../lib/supabase/server';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
+import { getPostHogClient } from '../../../lib/posthog-server';
 import {
   updateManagerJobWorkflowStatus,
   updateManagerTenderWorkflowStatus,
@@ -153,6 +154,11 @@ export async function acceptJobOfferAction(
   });
 
   if (result.success) {
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'job_offer_accepted',
+      properties: { job_id: jobId.trim(), application_id: applicationId.trim() },
+    });
     revalidatePath('/panel-zarzadcy/zgloszenia');
     revalidatePath(`/panel-zarzadcy/zgloszenia/porownaj/${jobId.trim()}`);
     revalidatePath(`/panel-zarzadcy/konkursy/${jobId.trim()}/aplikacje`);

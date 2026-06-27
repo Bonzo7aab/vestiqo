@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '../../../lib/supabase/server';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
+import { getPostHogClient } from '../../../lib/posthog-server';
 import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection';
 import { notifyContestCancelledToContractors, notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
 import { deleteManagerContestDraft } from '../../../lib/database/manager-contests';
@@ -63,6 +64,11 @@ async function acceptTenderOfferActionImpl(
     } catch (notifyError) {
       console.error('notifyContestOfferResolution:', notifyError);
     }
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'contest_offer_accepted',
+      properties: { tender_id: tenderId.trim(), bid_id: bidId.trim() },
+    });
     revalidateKonkursy(tenderId.trim());
     revalidatePath('/panel-zarzadcy/zgloszenia');
     revalidatePath('/panel-zarzadcy/zamowienia');
@@ -133,6 +139,11 @@ async function cancelContestActionImpl(
     console.error('notifyContestCancelledToContractors:', notifyError);
   }
 
+  getPostHogClient().capture({
+    distinctId: user.id,
+    event: 'contest_cancelled',
+    properties: { tender_id: tenderId.trim() },
+  });
   revalidateKonkursy(tenderId.trim());
   return { success: true };
 }
@@ -169,6 +180,11 @@ async function abandonContestDraftActionImpl(
   });
 
   if (result.success) {
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'contest_draft_abandoned',
+      properties: { tender_id: tenderId.trim() },
+    });
     revalidateKonkursy(tenderId.trim());
     revalidatePath('/panel-zarzadcy/zgloszenia');
   }

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import posthog from 'posthog-js';
 import {
   Building,
   User,
@@ -384,6 +385,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       }
 
       if (result && 'success' in result && result.success) {
+        posthog.capture('user_signed_up', { user_type: selectedUserType });
         await refreshSession();
         router.refresh();
         setTimeout(() => {

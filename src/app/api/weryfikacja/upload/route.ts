@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { STORAGE_BUCKETS } from '../../../../lib/storage/buckets';
 import { uploadObject } from '../../../../lib/storage/r2/operations';
+import { getPostHogClient } from '../../../../lib/posthog-server';
 import {
   buildVerificationDocumentPath,
   validateVerificationDocFile,
@@ -48,6 +49,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const path = buildVerificationDocumentPath(user.id, documentKey, file);
     await uploadObject(STORAGE_BUCKETS.VERIFICATION_DOCUMENTS, path, file);
+
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'verification_document_uploaded',
+      properties: { document_key: documentKey },
+    });
 
     return NextResponse.json({ path });
   } catch (error) {

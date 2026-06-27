@@ -1,6 +1,7 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js'
 import { createClient } from '../lib/supabase/client'
@@ -153,9 +154,15 @@ export default function AuthProvider({
   useEffect(() => {
     if (user?.id) {
       Sentry.setUser({ id: user.id })
+      posthog.identify(user.id, {
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        user_type: user.userType,
+      })
     } else if (!session) {
       Sentry.setUser(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, session])
 
   useEffect(() => {
