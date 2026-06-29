@@ -22,6 +22,7 @@ import {
 import type { AuthUser } from '../types/auth';
 import { useUserProfile } from '../contexts/AuthContext';
 import { ContractorServiceAreaSettings } from './ContractorServiceAreaSettings';
+import { getProfileSectionLabels } from '../lib/profile/account-role-labels';
 import { cn } from './ui/utils';
 
 interface ProfileFormProps {
@@ -129,6 +130,9 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const [vatStatus, setVatStatus] = useState('');
   const [vatWhitelistAssigned, setVatWhitelistAssigned] = useState<boolean | null>(null);
   const [vatWhitelistCheckedForDate, setVatWhitelistCheckedForDate] = useState<string | null>(null);
+  const [companyType, setCompanyType] = useState<string | null>(null);
+  const [accountRole, setAccountRole] = useState<string | null>(null);
+  const [organizationType, setOrganizationType] = useState<string | null>(null);
 
   useEffect(() => {
     setFirstName(user.firstName);
@@ -226,16 +230,27 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
     setVatWhitelistCheckedForDate(vatWhitelistCheckedForDate);
   }, []);
 
-  const loadBusinessData = useCallback(async () => {
+  const loadProfileContext = useCallback(async () => {
+    const supabase = createClient();
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('account_role, organization_type')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    setAccountRole(profile?.account_role ?? null);
+    setOrganizationType(profile?.organization_type ?? null);
+
     if (!showBusinessData) {
       return;
     }
 
     setIsLoadingBusiness(true);
     try {
-      const supabase = createClient();
       const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
 
+      setCompanyType(company?.type ?? null);
       setCompanyName(company?.name || '');
       setCompanyNip((company?.nip || '').trim());
       setCompanyRegon((company?.regon || '').trim());
@@ -250,17 +265,24 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   }, [loadFinanceSettings, showBusinessData, user.id]);
 
   useEffect(() => {
-    void loadBusinessData();
-  }, [loadBusinessData]);
+    void loadProfileContext();
+  }, [loadProfileContext]);
 
   const vatLabel =
     VAT_STATUS_OPTIONS.find(option => option.value === vatStatus)?.label ??
     (vatStatus || '—');
 
+  const sectionLabels = getProfileSectionLabels({
+    userType: user.userType,
+    accountRole,
+    companyType,
+    organizationType,
+  });
+
   return (
     <div className="space-y-4">
       <div className="border rounded-lg p-4 bg-card">
-        <h4 className="font-medium mb-4">Dane osobowe i kontaktowe</h4>
+        <h4 className="font-medium mb-4">{sectionLabels.contact}</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="profile-first-name">Imię</Label>
@@ -325,7 +347,7 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
         <div className="border rounded-lg p-4 bg-card">
           <h4 className="font-medium mb-4 flex items-center gap-2">
             <Building2 className="h-4 w-4 text-muted-foreground" aria-hidden />
-            {isContractor ? 'Dane biznesowe i finanse' : 'Dane biznesowe'}
+            {sectionLabels.business}
           </h4>
 
           {isLoadingBusiness ? (

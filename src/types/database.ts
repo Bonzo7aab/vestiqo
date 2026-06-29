@@ -2488,6 +2488,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          account_role: string | null
           ac_amount: string | null
           active_contractors: number | null
           availability_status: string | null
@@ -2596,6 +2597,7 @@ export type Database = {
           years_in_business: number | null
         }
         Insert: {
+          account_role?: string | null
           ac_amount?: string | null
           active_contractors?: number | null
           availability_status?: string | null
@@ -2704,6 +2706,7 @@ export type Database = {
           years_in_business?: number | null
         }
         Update: {
+          account_role?: string | null
           ac_amount?: string | null
           active_contractors?: number | null
           availability_status?: string | null

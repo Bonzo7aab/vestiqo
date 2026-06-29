@@ -222,7 +222,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
 
     if (isManager) {
       if (!(user.phone || '').trim()) {
-        setError('Uzupełnij telefon w sekcji „Dane kontaktowe” powyżej.');
+        setError('Uzupełnij telefon w sekcji „Dane osoby kontaktowej” powyżej.');
         setIsLoading(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
@@ -748,7 +748,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
                 </div>
               )}
 
-              {/* Contact Details — dla zarządcy telefon i e-mail biorą się z zakładki „Dane kontaktowe” powyżej */}
+              {/* Contact Details — dla zarządcy telefon i e-mail biorą się z sekcji „Dane osoby kontaktowej” powyżej */}
               {!isManager && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
