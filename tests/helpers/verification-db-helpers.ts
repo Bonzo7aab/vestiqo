@@ -148,7 +148,6 @@ export async function assertContractorInAdminPendingQueue(
   expect(row.is_verified).toBe(false);
 
   const paths = (row.verification_document_paths as Record<string, string> | null) ?? {};
-  expect(paths.company_registration).toBeTruthy();
   expect(paths.insurance).toBeTruthy();
 
   const { data: queueProfile, error: queueError } = await adminClient

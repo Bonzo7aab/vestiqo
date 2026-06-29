@@ -4,16 +4,12 @@ import {
   buildCategoryFilterUrl,
   buildSubcategoryFilterUrl,
 } from '../../lib/content/category-filter-url';
+import {
+  selectionPillBase,
+  selectionPillSelected,
+  selectionPillUnselected,
+} from '../../lib/ui/selection-pill-styles';
 import { cn } from '../ui/utils';
-
-const subcategoryPillBase =
-  'rounded-full border px-3 py-1.5 text-sm transition-colors';
-
-const subcategoryPillUnselected =
-  'border-border bg-muted/50 text-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary';
-
-const subcategoryPillSelected =
-  'border-primary bg-primary/10 text-primary font-medium';
 
 interface CategoryDirectoryLinkProps {
   mode: 'link';
@@ -39,7 +35,7 @@ function renderSubcategory(
       <Link
         key={subcategory.slug}
         href={buildSubcategoryFilterUrl(subcategory.name)}
-        className={cn(subcategoryPillBase, subcategoryPillUnselected)}
+        className={cn(selectionPillBase, selectionPillUnselected)}
       >
         {subcategory.name}
       </Link>
@@ -55,8 +51,8 @@ function renderSubcategory(
       disabled={props.disabled}
       onClick={() => props.onToggle(subcategory.slug)}
       className={cn(
-        subcategoryPillBase,
-        isSelected ? subcategoryPillSelected : subcategoryPillUnselected,
+        selectionPillBase,
+        isSelected ? selectionPillSelected : selectionPillUnselected,
         props.disabled && 'pointer-events-none opacity-60',
       )}
     >

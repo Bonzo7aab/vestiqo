@@ -43,7 +43,7 @@ test.describe('Contractor verification submission (wykonawca3)', () => {
     await openContractorDocumentsTab(page);
 
     expect(page.url()).not.toContain('/logowanie');
-    await expect(page.getByText(/Dokumenty wymagane do weryfikacji/i).first()).toBeVisible({
+    await expect(page.getByText(/Polisa OC|Weryfikacja konta/i).first()).toBeVisible({
       timeout: 15000,
     });
   });

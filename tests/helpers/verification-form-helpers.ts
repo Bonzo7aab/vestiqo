@@ -3,8 +3,7 @@ import type { VerificationMockFiles } from '../fixtures/verification-mock-docume
 import { ROUTES } from '../config/constants';
 
 const DOC_LABELS = {
-  companyRegistration: 'Wypis z KRS/CEIDG',
-  insurance: 'Ubezpieczenie OC',
+  insurance: 'Polisa OC',
   certifications: 'Certyfikaty zawodowe',
   references: 'Referencje',
 } as const;
@@ -17,7 +16,7 @@ export async function openContractorDocumentsTab(page: Page): Promise<void> {
   await documentsTab.click();
 
   await expect(
-    page.getByText(/Dokumenty wymagane do weryfikacji|Prześlij dokumenty|Oczekujemy na decyzję moderatora/i).first(),
+    page.getByText(/Polisa OC|Dokumenty do weryfikacji|Weryfikacja konta|Oczekujemy na decyzję moderatora/i).first(),
   ).toBeVisible({ timeout: 20000 });
 }
 
@@ -52,18 +51,24 @@ async function uploadVerificationDocument(
   await expect(section.getByText(/kliknij, aby zmienić/i)).toBeVisible({ timeout: 10000 });
 }
 
+async function fillOcPolicyDetails(page: Page): Promise<void> {
+  await expandVerificationSection(page, /Polisa OC/i);
+
+  await page.locator('#oc-valid-until-verification').fill('2030-12-31');
+  await page.locator('#oc-guarantee-amount').fill('200000');
+
+  const saveOcButton = page.getByRole('button', { name: /Zapisz dane OC/i });
+  await saveOcButton.scrollIntoViewIfNeeded();
+  await saveOcButton.click();
+}
+
 export async function fillVerificationForm(
   page: Page,
   files: VerificationMockFiles,
 ): Promise<void> {
   await openContractorDocumentsTab(page);
 
-  await uploadVerificationDocument(
-    page,
-    /Wypis z KRS\/CEIDG/i,
-    DOC_LABELS.companyRegistration,
-    files.companyRegistration,
-  );
+  await fillOcPolicyDetails(page);
 
   await uploadVerificationDocument(
     page,
@@ -74,14 +79,14 @@ export async function fillVerificationForm(
 
   await uploadVerificationDocument(
     page,
-    /Certyfikaty i zadeklarowane uprawnienia/i,
+    /Certyfikaty i uprawnienia/i,
     DOC_LABELS.certifications,
     files.certifications,
   );
 
   await uploadVerificationDocument(
     page,
-    /Referencje i dodatkowy skan kwalifikacji/i,
+    /^Referencje$/i,
     DOC_LABELS.references,
     files.references,
   );

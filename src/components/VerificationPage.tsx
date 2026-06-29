@@ -59,7 +59,6 @@ import type {
   VerificationDocumentEntry,
 } from '../lib/database/admin-verification';
 import { ContractorProfessionalQualificationsSettings } from './ContractorProfessionalQualificationsSettings';
-import { ContractorOfficialCertificatesSettings } from './ContractorOfficialCertificatesSettings';
 import { ContractorProfessionalQualificationsChecklist } from './ContractorProfessionalQualificationsChecklist';
 
 interface VerificationPageProps {
@@ -79,7 +78,7 @@ interface VerificationPageProps {
 
 type DocumentReviewState = 'approved' | 'rejected' | 'pending' | 'stale';
 /** File on record or satisfied via profile (KRS/OC) — shown in section header, not on file row. */
-type DocHighlightStatus = DocumentReviewState | 'attached';
+type DocHighlightStatus = DocumentReviewState | 'attached' | 'missing';
 
 interface DocumentUpload {
   type: string;
@@ -201,7 +200,7 @@ function resolveDocHighlightStatus(
   ) {
     return 'attached';
   }
-  return null;
+  return 'missing';
 }
 
 interface StateBannerProps {
@@ -344,6 +343,166 @@ interface DocumentsSectionGroupProps {
   description?: string;
   variant?: 'required' | 'optional';
   children: React.ReactNode;
+}
+
+interface ContractorVerificationStatusStripProps {
+  status: VerificationStatus;
+}
+
+function ContractorVerificationStatusStrip({
+  status,
+}: ContractorVerificationStatusStripProps): React.ReactElement | null {
+  const { state, submittedAt, decidedAt, reason } = status;
+
+  if (state === 'approved') {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3.5 sm:px-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <ShieldCheck className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-semibold text-emerald-800">Konto zweryfikowane</p>
+          <p className="text-xs text-muted-foreground">
+            Możesz uzupełniać opcjonalne certyfikaty i referencje w profilu.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'pending') {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-500/25 bg-blue-500/[0.06] px-4 py-3.5 sm:px-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white">
+          <Clock className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-semibold text-blue-800">W trakcie weryfikacji</p>
+          <p className="text-xs text-muted-foreground">
+            Administrator sprawdzi dokumenty w ciągu 1–3 dni roboczych.
+          </p>
+          {submittedAt ? (
+            <p className="text-[11px] text-muted-foreground">
+              Przesłano: {formatDateTime(submittedAt)}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'rejected') {
+    return (
+      <div className="space-y-3 rounded-2xl border border-destructive/30 bg-destructive/[0.04] px-4 py-3.5 sm:px-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+            <ShieldX className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-semibold text-destructive">Weryfikacja odrzucona</p>
+            {decidedAt ? (
+              <p className="text-[11px] text-muted-foreground">
+                Decyzja: {formatDateTime(decidedAt)}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {reason ? (
+          <p className="rounded-lg border border-destructive/20 bg-background/80 px-3 py-2 text-xs text-foreground whitespace-pre-line">
+            {reason}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+interface ContractorDocumentPanelProps {
+  heading: string;
+  description?: string;
+  id?: string;
+  required?: boolean;
+  highlightStatus?: DocHighlightStatus | null;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  nested?: boolean;
+  children: React.ReactNode;
+}
+
+function ContractorDocumentPanel({
+  heading,
+  description,
+  id,
+  required = false,
+  highlightStatus = null,
+  icon,
+  defaultOpen = false,
+  nested = false,
+  children,
+}: ContractorDocumentPanelProps): React.ReactElement {
+  const [open, setOpen] = React.useState(defaultOpen);
+
+  const panel = (
+    <Collapsible
+      id={id}
+      open={open}
+      onOpenChange={setOpen}
+      className={cn(!nested && 'scroll-mt-24')}
+    >
+      <CollapsibleTrigger
+        className={cn(
+          'flex w-full items-center gap-3 px-4 py-4 text-left transition-colors sm:px-5',
+          nested ? 'hover:bg-muted/30' : 'hover:bg-muted/20',
+        )}
+      >
+        <div
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+            required ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+          )}
+        >
+          {icon}
+        </div>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground sm:text-base">{heading}</span>
+            {required ? (
+              <Badge variant="secondary" className="text-[10px] font-medium uppercase">
+                Wymagane
+              </Badge>
+            ) : null}
+            {highlightStatus ? <HeaderDocStatusBadge status={highlightStatus} /> : null}
+          </span>
+          {description ? (
+            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>
+          ) : null}
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            open && 'rotate-180',
+          )}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className={cn('border-t px-4 pb-5 pt-4 sm:px-5', nested && 'bg-muted/10')}>
+          {children}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
+  if (nested) {
+    return <div className="border-b border-border/60 last:border-b-0">{panel}</div>;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      {panel}
+    </div>
+  );
 }
 
 function DocumentsSectionGroup({
@@ -509,6 +668,14 @@ function HeaderDocStatusBadge({ status }: { status: DocHighlightStatus }) {
       <Badge className="border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10">
         <Check className="h-3 w-3" />
         Przesłano
+      </Badge>
+    );
+  }
+  if (status === 'missing') {
+    return (
+      <Badge className="border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/10">
+        <AlertTriangle className="h-3 w-3" />
+        Brakuje
       </Badge>
     );
   }
@@ -819,7 +986,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     },
     {
       type: 'insurance',
-      name: 'Ubezpieczenie OC',
+      name: 'Polisa OC',
       description: 'Polisa ubezpieczenia odpowiedzialności cywilnej (ważna minimum 6 miesięcy)',
       required: true,
     },
@@ -869,6 +1036,10 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   const verificationRequiredDocs = documents.filter(
     doc => doc.type === 'company_registration' || doc.type === 'insurance',
   );
+  /** Progress bar on contractor account tab tracks only what is collected here (Polisa OC). */
+  const progressRequiredDocs = useContractorDocumentSections
+    ? documents.filter(doc => doc.type === 'insurance')
+    : verificationRequiredDocs;
   const visibleDocuments = useContractorDocumentSections
     ? documents.filter(doc => doc.type !== 'company_registration')
     : documents;
@@ -1055,9 +1226,9 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     );
 
   const requiredSlotsTotal =
-    verificationRequiredDocs.length + (contractorOcDetailsRequired ? 1 : 0);
+    progressRequiredDocs.length + (contractorOcDetailsRequired ? 1 : 0);
   const requiredCompleteCount =
-    verificationRequiredDocs.filter(doc =>
+    progressRequiredDocs.filter(doc =>
       isRequiredDocComplete(
         doc,
         existingByKey,
@@ -1134,6 +1305,9 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     const showUploadSection = !existing || isReplacing;
 
     const hideHeader = options?.hideHeader ?? false;
+    const showDocumentCommentField =
+      !useContractorDocumentSections ||
+      !['insurance', 'certifications', 'references'].includes(doc.type);
 
     return (
       <section
@@ -1247,7 +1421,12 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
           {showUploadSection && (
             <div className="rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 sm:p-4 overflow-hidden">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
+              <div
+                className={cn(
+                  'grid grid-cols-1 gap-4',
+                  showDocumentCommentField && 'sm:grid-cols-2 sm:items-start',
+                )}
+              >
                 <div className="flex min-w-0 flex-col gap-1.5 overflow-hidden">
                   <Label className="text-xs font-medium text-foreground">{`Plik — ${doc.name}`}</Label>
                   <Dropzone
@@ -1309,19 +1488,21 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                   )}
                 </div>
 
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <Label htmlFor={`desc-${doc.type}`} className="text-xs font-medium">
-                    Komentarz (opcjonalnie)
-                  </Label>
-                  <Textarea
-                    id={`desc-${doc.type}`}
-                    placeholder="Np. zakres uprawnień, numer polisy..."
-                    value={uploads[doc.type]?.description || ''}
-                    onChange={e => handleDescriptionChange(doc.type, e.target.value)}
-                    className="h-[5.5rem] min-h-[5.5rem] max-h-40 resize-y bg-background"
-                    rows={3}
-                  />
-                </div>
+                {showDocumentCommentField ? (
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <Label htmlFor={`desc-${doc.type}`} className="text-xs font-medium">
+                      Komentarz (opcjonalnie)
+                    </Label>
+                    <Textarea
+                      id={`desc-${doc.type}`}
+                      placeholder="Np. zakres uprawnień, numer polisy..."
+                      value={uploads[doc.type]?.description || ''}
+                      onChange={e => handleDescriptionChange(doc.type, e.target.value)}
+                      className="h-[5.5rem] min-h-[5.5rem] max-h-40 resize-y bg-background"
+                      rows={3}
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -1332,18 +1513,21 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
   const content = (
     <>
-    <div className={embedded ? 'space-y-6' : 'max-w-4xl mx-auto px-4 py-8'}>
-        <div className="space-y-6">
-          {/* State banner — skip duplicate unsubmitted prompt in account tab */}
+    <div className={cn(embedded ? 'space-y-4' : 'max-w-4xl mx-auto space-y-6 px-4 py-8')}>
+          {/* Status — compact strip on contractor account tab, full banner elsewhere */}
           {!(embedded && status === 'unsubmitted') && (
-            <VerificationStateBanner
-              status={initialStatus}
-              onAction={
-                status === 'approved' && !embedded
-                  ? () => router.push('/konto')
-                  : undefined
-              }
-            />
+            useContractorDocumentSections ? (
+              <ContractorVerificationStatusStrip status={initialStatus} />
+            ) : (
+              <VerificationStateBanner
+                status={initialStatus}
+                onAction={
+                  status === 'approved' && !embedded
+                    ? () => router.push('/konto')
+                    : undefined
+                }
+              />
+            )
           )}
 
           {/* Approved: read-only documents list */}
@@ -1395,7 +1579,144 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
             </Card>
           )}
 
-          {showDocumentSections && (
+          {showDocumentSections && useContractorDocumentSections && userId ? (
+            <div className="space-y-4">
+              {showVerificationSubmit &&
+              (() => {
+                const rejectedCount = existingDocuments.filter(d => {
+                  const r = reviewByKey[d.key] ?? null;
+                  return deriveDocumentReviewState(d, r) === 'rejected';
+                }).length;
+                if (rejectedCount === 0) return null;
+                return (
+                  <Alert variant="destructive" className="rounded-2xl border-destructive/30">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      {rejectedCount === 1
+                        ? 'Jeden dokument został odrzucony — zastąp go i wyślij ponownie.'
+                        : `${rejectedCount} dokumentów odrzuconych — zastąp je i wyślij ponownie.`}
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
+
+              <ContractorDocumentPanel
+                heading="Polisa OC"
+                description="Odpowiedzialność cywilna wymagana do weryfikacji konta"
+                id="oc-policy"
+                required
+                defaultOpen
+                icon={<Shield className="h-5 w-5" />}
+                highlightStatus={getDocHighlightStatus(
+                  documents.find(d => d.type === 'insurance') ?? {
+                    type: 'insurance',
+                    required: true,
+                  },
+                )}
+              >
+                {visibleDocuments
+                  .filter(doc => doc.type === 'insurance')
+                  .map(doc =>
+                    renderContractorDocumentRow(doc, {
+                      nestedInSectionShell: true,
+                      hideHeader: true,
+                    }),
+                  )}
+              </ContractorDocumentPanel>
+
+              <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+                <div className="border-b border-border/60 bg-muted/15 px-5 py-3.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Opcjonalnie
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Certyfikaty i referencje wzmacniają wiarygodność profilu.
+                  </p>
+                </div>
+                <ContractorDocumentPanel
+                  nested
+                  heading="Certyfikaty i uprawnienia"
+                  description="Skany certyfikatów oraz deklaracja typów uprawnień"
+                  icon={<Award className="h-5 w-5" />}
+                  highlightStatus={getDocHighlightStatus(
+                    documents.find(d => d.type === 'certifications') ?? {
+                      type: 'certifications',
+                      required: false,
+                    },
+                  )}
+                >
+                  {visibleDocuments
+                    .filter(doc => doc.type === 'certifications')
+                    .map(doc =>
+                      renderContractorDocumentRow(doc, {
+                        nestedInSectionShell: true,
+                        hideHeader: true,
+                      }),
+                    )}
+                  <ContractorProfessionalQualificationsChecklist userId={userId} />
+                </ContractorDocumentPanel>
+                <ContractorDocumentPanel
+                  nested
+                  heading="Referencje"
+                  description="Rekomendacje od klientów i dodatkowy skan licencji"
+                  icon={<Users className="h-5 w-5" />}
+                  highlightStatus={getDocHighlightStatus(
+                    documents.find(d => d.type === 'references') ?? {
+                      type: 'references',
+                      required: false,
+                    },
+                  )}
+                >
+                  {visibleDocuments
+                    .filter(doc => doc.type === 'references')
+                    .map(doc =>
+                      renderContractorDocumentRow(doc, {
+                        nestedInSectionShell: true,
+                        hideHeader: true,
+                      }),
+                    )}
+                  <ContractorProfessionalQualificationsSettings
+                    userId={userId}
+                    variant="section"
+                    hideSectionChrome
+                  />
+                </ContractorDocumentPanel>
+              </div>
+
+              {(showVerificationSubmit || showOptionalSave) && (
+                <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={
+                      showVerificationSubmit
+                        ? isAwaitingVerificationWithNoChanges ||
+                          !requiredDocumentsUploaded ||
+                          isSubmitting
+                        : isSubmitting
+                    }
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>Przesyłanie...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {isAwaitingVerificationWithNoChanges ? (
+                          <Clock className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        {submitLabel}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : showDocumentSections ? (
             <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <div className="border-b bg-muted/30 px-4 py-4 sm:px-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1405,20 +1726,15 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-base font-semibold tracking-tight">
-                        {status === 'approved' && embedded
-                          ? 'Dokumenty i załączniki'
-                          : existingDocuments.length > 0
-                            ? 'Twoje dokumenty weryfikacyjne'
-                            : 'Dokumenty do weryfikacji'}
+                        {existingDocuments.length > 0
+                          ? 'Twoje dokumenty weryfikacyjne'
+                          : 'Dokumenty do weryfikacji'}
                       </h2>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {status === 'approved' && embedded
-                          ? 'Konto jest zweryfikowane. Uzupełnij wymagane zaświadczenia w pierwszej sekcji oraz opcjonalne dokumenty w drugiej.'
-                          : useContractorDocumentSections
-                            ? 'Uzupełnij dokumenty wymagane do weryfikacji, a następnie — opcjonalnie — certyfikaty i referencje. Weryfikacja jest bezpłatna i trwa zwykle 1–3 dni robocze.'
-                            : 'Zweryfikowane konto buduje zaufanie i poprawia widoczność w wynikach. Weryfikacja jest bezpłatna i trwa zwykle 1–3 dni robocze.'}
+                        Zweryfikowane konto buduje zaufanie i poprawia widoczność w wynikach.
+                        Weryfikacja jest bezpłatna i trwa zwykle 1–3 dni robocze.
                       </p>
-                      {existingDocuments.length > 0 && !(status === 'approved' && embedded) && (
+                      {existingDocuments.length > 0 && (
                         <p className="mt-2 text-xs text-muted-foreground">
                           Użyj „Zastąp”, aby wymienić plik w wybranym polu.
                         </p>
@@ -1474,145 +1790,18 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                 );
               })()}
 
-              <div
-                className={cn(
-                  useContractorDocumentSections && 'space-y-6',
-                )}
-              >
-                {useContractorDocumentSections && userId ? (
-                  <>
-                    <DocumentsSectionGroup
-                      variant="required"
-                      heading="Dokumenty wymagane do weryfikacji"
-                      description="KRS/CEIDG, polisa OC i zaświadczenia urzędowe — potrzebne do zatwierdzenia konta."
-                    >
-                      {documents
-                        .filter(doc => doc.type === 'company_registration')
-                        .map(doc => (
-                          <DocumentsCollapsibleSection
-                            key={doc.type}
-                            heading={doc.name}
-                            description={doc.description}
-                            required
-                            highlightStatus={getDocHighlightStatus(doc)}
-                          >
-                            {renderContractorDocumentRow(doc, {
-                              nestedInSectionShell: true,
-                              hideHeader: true,
-                            })}
-                          </DocumentsCollapsibleSection>
-                        ))}
-                      <DocumentsCollapsibleSection
-                        heading="Polisa OC (odpowiedzialność cywilna)"
-                        id="oc-policy"
-                        required
-                        highlightStatus={getDocHighlightStatus(
-                          documents.find(d => d.type === 'insurance') ?? {
-                            type: 'insurance',
-                            required: true,
-                          },
-                        )}
-                      >
-                        {visibleDocuments
-                          .filter(doc => doc.type === 'insurance')
-                          .map(doc =>
-                            renderContractorDocumentRow(doc, {
-                              nestedInSectionShell: true,
-                              hideHeader: true,
-                            }),
-                          )}
-                      </DocumentsCollapsibleSection>
-                      <DocumentsCollapsibleSection
-                        heading="Zaświadczenia urzędowe: ZUS i US"
-                        description="Zarządcy wymagają dokumentów nie starszych niż 3 miesiące."
-                      >
-                        <ContractorOfficialCertificatesSettings userId={userId} />
-                      </DocumentsCollapsibleSection>
-                    </DocumentsSectionGroup>
-                    <DocumentsSectionGroup
-                      variant="optional"
-                      heading="Dokumenty opcjonalne"
-                      description="Certyfikaty, referencje i dodatkowe załączniki — zwiększają wiarygodność, ale nie blokują weryfikacji konta."
-                    >
-                      <DocumentsCollapsibleSection
-                        heading="Certyfikaty i zadeklarowane uprawnienia"
-                        highlightStatus={getDocHighlightStatus(
-                          documents.find(d => d.type === 'certifications') ?? {
-                            type: 'certifications',
-                            required: false,
-                          },
-                        )}
-                      >
-                        {visibleDocuments
-                          .filter(doc => doc.type === 'certifications')
-                          .map(doc =>
-                            renderContractorDocumentRow(doc, {
-                              nestedInSectionShell: true,
-                              hideHeader: true,
-                            }),
-                          )}
-                        <div className="mt-6 space-y-3 border-t border-border pt-5">
-                          <div>
-                            <h4 className="text-sm font-semibold text-foreground">
-                              Typy uprawnień w profilu
-                            </h4>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Zaznacz kategorie zgodne z dokumentami i zapisz listę — ułatwia to
-                              weryfikację.
-                            </p>
-                          </div>
-                          <ContractorProfessionalQualificationsChecklist userId={userId} />
-                        </div>
-                      </DocumentsCollapsibleSection>
-                      <DocumentsCollapsibleSection
-                        heading="Referencje i dodatkowy skan kwalifikacji"
-                        highlightStatus={getDocHighlightStatus(
-                          documents.find(d => d.type === 'references') ?? {
-                            type: 'references',
-                            required: false,
-                          },
-                        )}
-                      >
-                        {visibleDocuments
-                          .filter(doc => doc.type === 'references')
-                          .map(doc =>
-                            renderContractorDocumentRow(doc, {
-                              nestedInSectionShell: true,
-                              hideHeader: true,
-                            }),
-                          )}
-                        <div className="mt-6 space-y-3 border-t border-border pt-5">
-                          <div>
-                            <h4 className="text-sm font-semibold text-foreground">
-                              Skan certyfikatu lub licencji (opcjonalnie)
-                            </h4>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Osobny plik uzupełniający certyfikaty powyżej — np. skan licencji
-                              branżowej.
-                            </p>
-                          </div>
-                          <ContractorProfessionalQualificationsSettings
-                            userId={userId}
-                            variant="section"
-                            hideSectionChrome
-                          />
-                        </div>
-                      </DocumentsCollapsibleSection>
-                    </DocumentsSectionGroup>
-                  </>
-                ) : (
-                  visibleDocuments.map(doc => (
-                    <VerificationDocumentCollapsibleItem
-                      key={doc.type}
-                      doc={doc}
-                      highlightStatus={getDocHighlightStatus(doc)}
-                    >
-                      <div className="px-4 py-4 sm:px-6">
-                        {renderContractorDocumentRow(doc, { hideHeader: true })}
-                      </div>
-                    </VerificationDocumentCollapsibleItem>
-                  ))
-                )}
+              <div>
+                {visibleDocuments.map(doc => (
+                  <VerificationDocumentCollapsibleItem
+                    key={doc.type}
+                    doc={doc}
+                    highlightStatus={getDocHighlightStatus(doc)}
+                  >
+                    <div className="px-4 py-4 sm:px-6">
+                      {renderContractorDocumentRow(doc, { hideHeader: true })}
+                    </div>
+                  </VerificationDocumentCollapsibleItem>
+                ))}
               </div>
 
               {(showVerificationSubmit || showOptionalSave) && (
@@ -1636,12 +1825,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                     <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 sm:p-4">
                       <p className="text-xs font-semibold text-amber-900">Przed wysłaniem</p>
                       <ul className="mt-2 space-y-1 text-xs text-amber-900/90">
-                        {useContractorDocumentSections && (
-                          <>
-                            <li>· Uzupełnij datę ważności polisy OC i sumę gwarancyjną</li>
-                            <li>· Dokumenty urzędowe (ZUS, US) nie starsze niż 3 miesiące</li>
-                          </>
-                        )}
                         <li>· Dokumenty aktualne (nie starsze niż 6 miesięcy) i czytelne</li>
                         <li>· Do dokumentów obcojęzycznych dołącz tłumaczenie</li>
                         <li className="font-medium">
@@ -1700,8 +1883,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
               </div>
               )}
             </div>
-          )}
-        </div>
+          ) : null}
     </div>
       <DocumentRemovalAlertDialog
         open={pendingDocRemovalKey !== null}

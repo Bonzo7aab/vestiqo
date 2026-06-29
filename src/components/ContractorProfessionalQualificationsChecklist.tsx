@@ -8,9 +8,14 @@ import {
   upsertContractorAccountSettings,
 } from '../lib/database/contractor-account';
 import { PROFESSIONAL_QUALIFICATION_GROUPS } from '../lib/contractor/constants';
+import {
+  selectionPillBase,
+  selectionPillSelected,
+  selectionPillUnselected,
+} from '../lib/ui/selection-pill-styles';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
+import { cn } from './ui/utils';
 
 interface ContractorProfessionalQualificationsChecklistProps {
   userId: string;
@@ -64,19 +69,43 @@ export function ContractorProfessionalQualificationsChecklist({
   }
 
   return (
-    <div className="space-y-4">
-      {PROFESSIONAL_QUALIFICATION_GROUPS.map(group => (
-        <QualificationGroup
-          key={group.title}
-          title={group.title}
-          options={group.options}
-          selected={selected}
-          onToggle={toggle}
-        />
-      ))}
-      <Button type="button" size="sm" disabled={isSaving} onClick={handleSave}>
-        {isSaving ? 'Zapisywanie…' : 'Zapisz zaznaczone uprawnienia'}
-      </Button>
+    <div className="mt-4 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-sm font-semibold text-foreground">Typy uprawnień w profilu</h4>
+            {selected.length > 0 ? (
+              <Badge variant="secondary" className="text-[10px] font-medium tabular-nums">
+                {selected.length} wybrane
+              </Badge>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Kliknij tagi zgodne z Twoimi certyfikatami — ułatwi to weryfikację profilu.
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          disabled={isSaving}
+          onClick={handleSave}
+          className="shrink-0 self-start"
+        >
+          {isSaving ? 'Zapisywanie…' : 'Zapisz uprawnienia'}
+        </Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {PROFESSIONAL_QUALIFICATION_GROUPS.map(group => (
+          <QualificationGroup
+            key={group.title}
+            title={group.title}
+            options={group.options}
+            selected={selected}
+            onToggle={toggle}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -92,21 +121,38 @@ function QualificationGroup({
   selected: string[];
   onToggle: (id: string) => void;
 }) {
+  const selectedInGroup = options.filter(option => selected.includes(option.id)).length;
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-      <div className="space-y-2">
-        {options.map(option => (
-          <label key={option.id} className="flex items-start gap-2 text-sm cursor-pointer">
-            <Checkbox
-              checked={selected.includes(option.id)}
-              onCheckedChange={() => onToggle(option.id)}
-              className="mt-0.5"
-            />
-            <span>{option.label}</span>
-          </label>
-        ))}
+    <section className="rounded-xl border border-border/70 bg-muted/20 p-3 sm:p-4">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+        {selectedInGroup > 0 ? (
+          <span className="shrink-0 text-[10px] font-medium tabular-nums text-primary">
+            {selectedInGroup}/{options.length}
+          </span>
+        ) : null}
       </div>
-    </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map(option => {
+          const isSelected = selected.includes(option.id);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onToggle(option.id)}
+              className={cn(
+                selectionPillBase,
+                'text-left text-xs sm:text-sm',
+                isSelected ? selectionPillSelected : selectionPillUnselected,
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

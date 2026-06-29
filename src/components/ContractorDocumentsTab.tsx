@@ -15,7 +15,7 @@ interface ContractorDocumentsTabProps {
 }
 
 /**
- * Contractor account tab: verification documents (KRS, OC, certyfikaty, referencje,
+ * Contractor account tab: verification documents (polisa OC, certyfikaty, referencje,
  * uprawnienia zawodowe, dodatkowe informacje).
  */
 export function ContractorDocumentsTab({
