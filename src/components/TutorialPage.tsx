@@ -228,23 +228,23 @@ export function TutorialPage({ onBack, onComplete }: TutorialPageProps) {
           <div className="bg-muted/50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Kryteria oceny ofert:</h4>
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-2 bg-background rounded">
+              <div className="flex justify-between items-center p-2 bg-card rounded">
                 <span className="text-sm">Cena</span>
                 <Badge variant="secondary">30%</Badge>
               </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
+              <div className="flex justify-between items-center p-2 bg-card rounded">
                 <span className="text-sm">Doświadczenie i opinie</span>
                 <Badge variant="secondary">25%</Badge>
               </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
+              <div className="flex justify-between items-center p-2 bg-card rounded">
                 <span className="text-sm">Terminowość</span>
                 <Badge variant="secondary">20%</Badge>
               </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
+              <div className="flex justify-between items-center p-2 bg-card rounded">
                 <span className="text-sm">Jakość portfolio</span>
                 <Badge variant="secondary">15%</Badge>
               </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
+              <div className="flex justify-between items-center p-2 bg-card rounded">
                 <span className="text-sm">Certyfikaty i ubezpieczenia</span>
                 <Badge variant="secondary">10%</Badge>
               </div>
@@ -372,7 +372,7 @@ export function TutorialPage({ onBack, onComplete }: TutorialPageProps) {
         </div>
 
         {/* Current Step */}
-        <Card className="bg-white/90 backdrop-blur-sm">
+        <Card className="bg-card/90 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 rounded-lg bg-primary/10">

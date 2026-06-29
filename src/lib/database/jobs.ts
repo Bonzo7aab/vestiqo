@@ -4,6 +4,9 @@ import type { Application } from '../../types/application';
 import type { Budget, BudgetInput } from '../../types/budget';
 import { budgetFromDatabase, budgetToDatabase, formatBudget } from '../../types/budget';
 import {
+  findCategoryConfigByDisplayName,
+  findSubcategoryConfigByDisplayName,
+  getAllCategoryConfigs,
   resolveCategoryIdsFromFilterKeys,
   resolveSubcategoryIdsFromFilterKeys,
 } from '../config/categoryConfig';
@@ -293,6 +296,53 @@ export async function resolveTenderCategoryIds(
   return { categoryId: categories[0].id, subcategoryId: null, error: null };
 }
 
+async function fetchActiveCategoryBySlug(
+  supabase: SupabaseClient<Database>,
+  slug: string,
+  parentId?: string | null,
+): Promise<{ id: string; name: string } | null> {
+  let query = supabase
+    .from('job_categories')
+    .select('id, name')
+    .eq('slug', slug)
+    .eq('is_active', true);
+
+  if (parentId === null) {
+    query = query.is('parent_id', null);
+  } else if (parentId) {
+    query = query.eq('parent_id', parentId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
+async function fetchActiveCategoryByNames(
+  supabase: SupabaseClient<Database>,
+  names: string[],
+  parentId?: string | null,
+): Promise<{ id: string; name: string } | null> {
+  for (const name of names) {
+    let query = supabase
+      .from('job_categories')
+      .select('id, name')
+      .ilike('name', name)
+      .eq('is_active', true);
+
+    if (parentId === null) {
+      query = query.is('parent_id', null);
+    } else if (parentId) {
+      query = query.eq('parent_id', parentId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (!error && data) return data;
+  }
+
+  return null;
+}
+
 /**
  * Resolve main category_id and optional subcategory_id from Polish form labels.
  * Shared by createJob and updateManagerJob.
@@ -306,65 +356,44 @@ export async function resolveJobFormCategoryIds(
   | { categoryId: null; subcategoryId: null; error: PostgrestError }
 > {
   const categoryMapping: Record<string, string> = {
-    'Utrzymanie Czystości i Zieleni': 'Usługi Sprzątające',
-    'Roboty Remontowo-Budowlane': 'Remonty i Budownictwo',
-    'Instalacje i systemy': 'Instalacje Techniczne',
-    'Utrzymanie techniczne i konserwacja': 'Zarządzanie Nieruchomościami',
-    'Specjalistyczne usługi': 'Zarządzanie Nieruchomościami',
-    'Inne': 'Zarządzanie Nieruchomościami',
+    'Utrzymanie Czystości i Zieleni': 'Sprzątanie',
+    'Roboty Remontowo-Budowlane': 'Budowlanka',
+    'Instalacje i systemy': 'Instalacje',
+    'Utrzymanie techniczne i konserwacja': 'Przeglądy i Serwis',
+    'Specjalistyczne usługi': 'Inżynieria',
+    Inne: 'Inżynieria',
   };
 
-  const searchCategoryName = categoryMapping[categoryName] || categoryName;
+  const resolvedCategoryName = categoryMapping[categoryName] || categoryName;
+  const categoryConfig = findCategoryConfigByDisplayName(resolvedCategoryName);
 
-  let { data: categoryData, error: categoryError } = await supabase
-    .from('job_categories')
-    .select('id, name')
-    .ilike('name', searchCategoryName)
-    .eq('is_active', true)
-    .maybeSingle();
+  let categoryData: { id: string; name: string } | null = null;
 
-  if (categoryError || !categoryData) {
-    const { data: partialMatch, error: partialError } = await supabase
-      .from('job_categories')
-      .select('id, name')
-      .ilike('name', `%${searchCategoryName}%`)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (!partialError && partialMatch) {
-      categoryData = partialMatch;
-      categoryError = null;
+  if (categoryConfig) {
+    categoryData = await fetchActiveCategoryBySlug(supabase, categoryConfig.slug, null);
+    if (!categoryData) {
+      categoryData = await fetchActiveCategoryByNames(
+        supabase,
+        [categoryConfig.name, ...(categoryConfig.legacyNames ?? [])],
+        null,
+      );
     }
   }
 
-  if (categoryError || !categoryData) {
-    const { data: originalMatch, error: originalError } = await supabase
-      .from('job_categories')
-      .select('id, name')
-      .ilike('name', `%${categoryName}%`)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (!originalError && originalMatch) {
-      categoryData = originalMatch;
-      categoryError = null;
-    }
+  if (!categoryData) {
+    categoryData = await fetchActiveCategoryByNames(supabase, [resolvedCategoryName, categoryName], null);
   }
 
-  if (categoryError || !categoryData) {
-    const { data: allCategories } = await supabase
-      .from('job_categories')
-      .select('name, slug')
-      .eq('is_active', true)
-      .limit(20);
+  if (!categoryData) {
+    const availableNames = getAllCategoryConfigs()
+      .map((config) => config.name)
+      .join(', ');
 
     return {
       categoryId: null,
       subcategoryId: null,
       error: new Error(
-        `Category "${categoryName}" not found. Available categories: ${allCategories?.map((c: { name: string }) => c.name).join(', ') || 'none'}`,
+        `Category "${categoryName}" not found. Available categories: ${availableNames || 'none'}`,
       ) as PostgrestError,
     };
   }
@@ -374,16 +403,26 @@ export async function resolveJobFormCategoryIds(
 
   if (subcategoryName && subcategoryName.trim()) {
     const subTrim = subcategoryName.trim();
+    const subConfig = findSubcategoryConfigByDisplayName(resolvedCategoryName, subTrim);
 
-    let { data: subcategoryData, error: subcategoryError } = await supabase
-      .from('job_categories')
-      .select('id, name')
-      .eq('parent_id', categoryId)
-      .ilike('name', subTrim)
-      .eq('is_active', true)
-      .maybeSingle();
+    let subcategoryData: { id: string; name: string } | null = null;
 
-    if (subcategoryError || !subcategoryData) {
+    if (subConfig) {
+      subcategoryData = await fetchActiveCategoryBySlug(
+        supabase,
+        subConfig.subcategory.slug,
+        categoryId,
+      );
+      if (!subcategoryData) {
+        subcategoryData = await fetchActiveCategoryByNames(
+          supabase,
+          [subConfig.subcategory.name, ...(subConfig.subcategory.legacyNames ?? [])],
+          categoryId,
+        );
+      }
+    }
+
+    if (!subcategoryData) {
       const { data: partialSubcategory, error: partialSubcategoryError } = await supabase
         .from('job_categories')
         .select('id, name')
@@ -395,11 +434,10 @@ export async function resolveJobFormCategoryIds(
 
       if (!partialSubcategoryError && partialSubcategory) {
         subcategoryData = partialSubcategory;
-        subcategoryError = null;
       }
     }
 
-    if (!subcategoryError && subcategoryData) {
+    if (subcategoryData) {
       subcategoryId = subcategoryData.id;
     }
   }

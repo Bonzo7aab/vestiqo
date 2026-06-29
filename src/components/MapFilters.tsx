@@ -52,7 +52,7 @@ const CustomCheckbox: React.FC<{
         className={`w-4 h-4 border rounded cursor-pointer flex items-center justify-center ${
           checked 
             ? 'bg-primary border-primary' 
-            : 'bg-white border-gray-300 hover:border-gray-400'
+            : 'bg-card border-border hover:border-border/80'
         }`}
       >
         {checked && <Check className="w-3 h-3 text-white" />}
@@ -108,7 +108,7 @@ export const MapFilters: React.FC<MapFiltersProps> = ({
   };
 
   return (
-    <Card className="w-[320px] max-h-[80vh] overflow-hidden shadow-xl bg-white border-border backdrop-blur-sm">
+    <Card className="w-[320px] max-h-[80vh] overflow-hidden shadow-xl bg-card border-border backdrop-blur-sm">
       <CardHeader className="p-4 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-foreground">Filtry</h3>

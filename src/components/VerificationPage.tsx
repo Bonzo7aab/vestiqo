@@ -264,7 +264,7 @@ function VerificationStateBanner({ status, onAction }: StateBannerProps) {
                 weryfikacji.
               </p>
               {submittedAt && (
-                <div className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/30 bg-background px-2 py-1 text-xs text-blue-700">
+                <div className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/30 bg-card px-2 py-1 text-xs text-blue-700">
                   <CalendarClock className="h-3.5 w-3.5" />
                   Przesłano: {formatDateTime(submittedAt)}
                 </div>
@@ -296,7 +296,7 @@ function VerificationStateBanner({ status, onAction }: StateBannerProps) {
             </div>
           </div>
           {reason && (
-            <div className="rounded-md border border-destructive/30 bg-background p-4">
+            <div className="rounded-md border border-destructive/30 bg-card p-4">
               <div className="text-xs font-medium uppercase tracking-wide text-destructive">
                 Powód odrzucenia
               </div>
@@ -408,7 +408,7 @@ function ContractorVerificationStatusStrip({
           </div>
         </div>
         {reason ? (
-          <p className="rounded-lg border border-destructive/20 bg-background/80 px-3 py-2 text-xs text-foreground whitespace-pre-line">
+          <p className="rounded-lg border border-destructive/20 bg-card/80 px-3 py-2 text-xs text-foreground whitespace-pre-line">
             {reason}
           </p>
         ) : null}
@@ -733,7 +733,7 @@ function ExistingDocChip({
       ) : null}
       <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-background border">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card border">
             <FileText className="h-4 w-4 text-primary" />
           </div>
           <div className="min-w-0">
@@ -823,7 +823,7 @@ function ExistingDocChip({
         </div>
       )}
       {reviewState === 'stale' && (
-        <div className="rounded-md border border-amber-500/30 bg-background p-2 text-xs text-muted-foreground">
+        <div className="rounded-md border border-amber-500/30 bg-card p-2 text-xs text-muted-foreground">
           Plik został zaktualizowany po ostatniej ocenie. Administrator oceni go ponownie.
         </div>
       )}
@@ -1377,7 +1377,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                     disabled={isSavingOcDate}
                     required={showVerificationSubmit}
                     aria-required={showVerificationSubmit}
-                    className="max-w-xs bg-background"
+                    className="max-w-xs bg-card"
                   />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1.5">
@@ -1401,7 +1401,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                     disabled={isSavingOcDate}
                     required={showVerificationSubmit}
                     aria-required={showVerificationSubmit}
-                    className="max-w-xs bg-background"
+                    className="max-w-xs bg-card"
                   />
                 </div>
                 <Button
@@ -1498,7 +1498,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                       placeholder="Np. zakres uprawnień, numer polisy..."
                       value={uploads[doc.type]?.description || ''}
                       onChange={e => handleDescriptionChange(doc.type, e.target.value)}
-                      className="h-[5.5rem] min-h-[5.5rem] max-h-40 resize-y bg-background"
+                      className="h-[5.5rem] min-h-[5.5rem] max-h-40 resize-y bg-card"
                       rows={3}
                     />
                   </div>
@@ -1818,7 +1818,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                         onChange={e => setAdditionalInfo(e.target.value)}
                         placeholder="Doświadczenie, dodatkowe kwalifikacje lub kontekst pomocny przy weryfikacji..."
                         rows={3}
-                        className="bg-background"
+                        className="bg-card"
                       />
                     </div>
 
@@ -1833,7 +1833,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                       </ul>
                     </div>
 
-                    <div className="rounded-lg border bg-background/80 p-3 text-xs leading-relaxed text-muted-foreground">
+                    <div className="rounded-lg border bg-card/80 p-3 text-xs leading-relaxed text-muted-foreground">
                       <Info className="mb-1 inline h-3.5 w-3.5 text-primary" />{' '}
                       <strong className="text-foreground">RODO:</strong> dokumenty przetwarzamy wyłącznie
                       w celu weryfikacji (art. 6 ust. 1 lit. f RODO), przechowujemy bezpiecznie i

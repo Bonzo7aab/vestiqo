@@ -132,7 +132,7 @@ export const JobListHeader: React.FC<JobListHeaderProps> = ({
               <ArrowUpDown className="w-4 h-4 mr-2 text-gray-600" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-white shadow-lg rounded-md">
+            <SelectContent className="bg-card shadow-lg rounded-md">
               {sortOptions.map((option) => (
                 <SelectItem 
                   key={option.value} 
@@ -166,7 +166,7 @@ export const JobListHeader: React.FC<JobListHeaderProps> = ({
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg">
+            <DropdownMenuContent align="end" className="bg-card border border-border shadow-lg">
               <DropdownMenuItem className="hover:bg-gray-50 text-gray-900">
                 <Bookmark className="h-4 w-4 mr-2 text-gray-600" />
                 Zapisz wyszukiwanie

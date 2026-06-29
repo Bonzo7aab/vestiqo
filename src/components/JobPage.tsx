@@ -1144,7 +1144,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
@@ -1200,24 +1200,11 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 </div>
                 {job.contestInfo ? (
                   <>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-2 text-xs sm:text-sm md:text-base text-gray-600">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-medium">{job.company}</span>
-                        <span className="hidden sm:inline text-gray-300" aria-hidden>|</span>
-                        <span className="text-gray-500">{formatContestLocation(job.location)}</span>
-                      </div>
-                      {job.contestInfo.entityName ? (
-                        <span className="font-medium text-gray-700 break-words sm:text-right sm:max-w-[45%]">
-                          {job.contestInfo.entityName}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-2">
-                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" aria-hidden />
-                      <span className="break-words">
-                        {job.contestInfo.entityAddress?.trim() || formatContestLocation(job.location)}
-                      </span>
-                    </div>
+                    {job.contestInfo.entityName ? (
+                      <p className="mb-2 text-xs font-medium text-gray-700 break-words sm:text-sm md:text-base">
+                        {job.contestInfo.entityName}
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs md:text-sm">
                         {getCategoryDisplayName({
@@ -1267,7 +1254,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
       </div>
 
       {/* Tabs Navigation */}
-      <nav className="border-b bg-white">
+      <nav className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-1 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {job.contestInfo ? (
@@ -1374,7 +1361,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 </CardHeader>
                 <CardContent className="pb-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                      <div className="bg-background/80 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">
                           Termin składania
                         </div>
@@ -1382,17 +1369,17 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                           {new Date(job.tenderInfo.submissionDeadline).toLocaleDateString('pl-PL')}
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">Wadium</div>
                         <div className="font-bold text-foreground text-sm">{job.tenderInfo.wadium}</div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">Budżet</div>
                         <div className="font-bold text-foreground text-sm">
                           {formatBudget(job.budget)}
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">
                           Czas realizacji
                         </div>
@@ -1400,13 +1387,13 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                           {job.tenderInfo.projectDuration}
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">
                           Złożone oferty
                         </div>
                         <div className="font-bold text-foreground text-sm">{job.applications}</div>
                       </div>
-                      <div className="bg-background/50 rounded-lg p-3 border-2 shadow-sm border-border/50">
+                      <div className="bg-card rounded-lg p-3 border-2 shadow-sm border-border/50">
                         <div className="text-xs text-muted-foreground font-medium mb-1">Status</div>
                         <Badge variant="secondary" className="text-xs">
                           {job.tenderInfo.currentPhase}

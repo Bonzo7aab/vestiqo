@@ -50,7 +50,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const path = buildVerificationDocumentPath(user.id, documentKey, file);
     await uploadObject(STORAGE_BUCKETS.VERIFICATION_DOCUMENTS, path, file);
 
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'verification_document_uploaded',
       properties: { document_key: documentKey },

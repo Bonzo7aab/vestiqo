@@ -59,7 +59,7 @@ export function ContestFlowStepper({
                 </>
               ) : null}
 
-              <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-background text-primary">
+              <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-card text-primary">
                 <StepIcon className="h-4 w-4" aria-hidden />
               </span>
 

@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { createClient } from '../lib/supabase/client';
 import { fetchAllCategoriesWithSubcategories } from '../lib/database/categories';
 import type { Job } from '../types/job';
@@ -36,18 +35,22 @@ import { cn } from './ui/utils';
 
 export type { FilterState } from '../lib/filters/filter-state';
 
-const EXPANDED_SECTIONS = ['categories', 'location', 'deadline', 'formal'] as const;
+function FilterSectionTitle({ title }: { title: string }) {
+  return (
+    <h4 className="text-sm font-semibold text-[hsl(var(--brand-navy))]">{title}</h4>
+  );
+}
 
 function filterOptionLabelClass(count: number, isSelected: boolean, size: 'sm' | 'xs' = 'sm'): string {
   return cn(
     'cursor-pointer font-light',
     size === 'xs' ? 'text-xs' : 'text-sm',
-    isSelected ? 'text-gray-900' : count === 0 ? 'text-gray-400' : 'text-gray-800',
+    isSelected ? 'text-foreground' : count === 0 ? 'text-muted-foreground/60' : 'text-foreground/80',
   );
 }
 
 function filterCountClass(count: number, isSelected: boolean): string {
-  return cn(isSelected || count > 0 ? 'text-gray-500' : 'text-gray-300');
+  return cn(isSelected || count > 0 ? 'text-muted-foreground' : 'text-muted-foreground/40');
 }
 
 interface JobFiltersProps {
@@ -76,32 +79,13 @@ const CustomCheckbox: React.FC<{
       className={`w-4 h-4 border rounded cursor-pointer flex items-center justify-center ${
         checked
           ? 'bg-primary border-primary'
-          : 'bg-white border-gray-300 hover:border-gray-400'
+          : 'bg-card border-border hover:border-border/80'
       }`}
     >
       {checked && <Check className="w-3 h-3 text-white" />}
     </label>
   </div>
 );
-
-function SectionTrigger({
-  title,
-  open,
-}: {
-  title: string;
-  open: boolean;
-}) {
-  return (
-    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-      <Label className="text-sm font-bold text-gray-900 cursor-pointer">{title}</Label>
-      {open ? (
-        <ChevronUp className="w-4 h-4 text-gray-600" />
-      ) : (
-        <ChevronDown className="w-4 h-4 text-gray-600" />
-      )}
-    </CollapsibleTrigger>
-  );
-}
 
 export default function JobFilters({
   onFilterChange,
@@ -110,12 +94,8 @@ export default function JobFilters({
   jobs = [],
   initialFilters,
 }: JobFiltersProps) {
-  const [expandedFilterSections, setExpandedFilterSections] = useState<string[]>([
-    ...EXPANDED_SECTIONS,
-  ]);
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(new Set());
   const [local, setLocal] = useState<FilterState>(initialFilters ?? defaultFilters);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isUpdatingFromSelfRef = useRef(false);
   const previousEmittedRef = useRef<string>('');
   const supabase = createClient();
@@ -234,12 +214,6 @@ export default function JobFilters({
     setLocal((prev) => (typeof next === 'function' ? next(prev) : next));
   };
 
-  const toggleSection = (name: string) => {
-    setExpandedFilterSections((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
-  };
-
   const toggleCategoryExpand = (id: string) => {
     setExpandedCategoryIds((prev) => {
       const next = new Set(prev);
@@ -258,58 +232,47 @@ export default function JobFilters({
   };
 
   return (
-    <div
-      className="flex h-full min-h-0 w-full max-h-full flex-col overflow-hidden bg-white lg:w-80"
-    >
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="flex-shrink-0 px-6 pt-3 lg:pt-3">
-          <div className="mb-2 flex h-8 items-center">
-            <h3 className="text-base font-bold text-gray-900 sm:text-lg">Filtry</h3>
-          </div>
-
-          {onFilterChange && (
-            <ActiveFilterChips filters={local} onFilterChange={handleChipFilterChange} />
-          )}
-
-          {primaryLocation && primaryLocation !== 'Polska' && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span className="font-normal text-blue-900">Aktualna lokalizacja</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-primary font-semibold">{primaryLocation}</span>
-                  {onLocationChange && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onLocationChange}
-                      className="h-6 px-2 py-1 text-xs hover:bg-blue-100 text-blue-600"
-                      title="Zmień lokalizację"
-                    >
-                      <Edit3 className="h-3 w-3 mr-1" />
-                      Zmień
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="w-full rounded-xl border border-border/60 bg-card shadow-sm lg:w-80">
+      <div className="px-6 pt-3 pb-6">
+        <div className="mb-2 flex h-8 items-center">
+          <h3 className="text-base font-semibold text-[hsl(var(--brand-navy))] sm:text-lg">Filtry</h3>
         </div>
 
-        <div
-          ref={scrollContainerRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-32 scroll-pb-32"
-        >
-          {/* Categories — always expanded at first level; subs on chevron */}
-          <Collapsible
-            open={expandedFilterSections.includes('categories')}
-            onOpenChange={() => toggleSection('categories')}
-            className="mb-4"
-          >
-            <SectionTrigger title="Kategorie" open={expandedFilterSections.includes('categories')} />
-            <CollapsibleContent className="mt-3 pl-2">
+        {onFilterChange && (
+          <ActiveFilterChips filters={local} onFilterChange={handleChipFilterChange} />
+        )}
+
+        {primaryLocation && primaryLocation !== 'Polska' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-600" />
+                <span className="font-normal text-blue-900">Aktualna lokalizacja</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-primary font-semibold">{primaryLocation}</span>
+                {onLocationChange && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onLocationChange}
+                    className="h-6 px-2 py-1 text-xs hover:bg-blue-100 text-blue-600"
+                    title="Zmień lokalizację"
+                  >
+                    <Edit3 className="h-3 w-3 mr-1" />
+                    Zmień
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-0">
+          {/* Categories */}
+          <section className="border-b border-border pb-4">
+            <FilterSectionTitle title="Kategorie" />
+            <div className="mt-3 pl-2">
               <div className="space-y-3">
                 {filterCategoryTree.length > 0 ? (
                   filterCategoryTree.map((category) => {
@@ -378,7 +341,7 @@ export default function JobFilters({
                             <button
                               type="button"
                               onClick={() => toggleCategoryExpand(category.id)}
-                              className="p-1 hover:bg-gray-100 rounded"
+                              className="p-1 hover:bg-muted rounded"
                               aria-label={isExpanded ? 'Zwiń' : 'Rozwiń'}
                             >
                               {isExpanded ? (
@@ -454,17 +417,13 @@ export default function JobFilters({
                   <div className="text-xs text-gray-400 pl-2">Brak kategorii</div>
                 )}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </section>
 
           {/* Location — Warsaw only */}
-          <Collapsible
-            open={expandedFilterSections.includes('location')}
-            onOpenChange={() => toggleSection('location')}
-            className="mb-4"
-          >
-            <SectionTrigger title="Lokalizacja" open={expandedFilterSections.includes('location')} />
-            <CollapsibleContent className="mt-3 pl-2">
+          <section className="border-b border-border py-4">
+            <FilterSectionTitle title="Lokalizacja" />
+            <div className="mt-3 pl-2">
               <div className="flex items-center space-x-2 pointer-events-none">
                 <CustomCheckbox
                   id="city-warsaw"
@@ -479,20 +438,13 @@ export default function JobFilters({
                   <span className={filterCountClass(cityCount, true)}>({cityCount})</span>
                 </Label>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </section>
 
           {/* Zakończenie przyjmowania ofert */}
-          <Collapsible
-            open={expandedFilterSections.includes('deadline')}
-            onOpenChange={() => toggleSection('deadline')}
-            className="mb-4"
-          >
-            <SectionTrigger
-              title="Zakończenie przyjmowania ofert"
-              open={expandedFilterSections.includes('deadline')}
-            />
-            <CollapsibleContent className="mt-3 pl-2">
+          <section className="border-b border-border py-4">
+            <FilterSectionTitle title="Zakończenie przyjmowania ofert" />
+            <div className="mt-3 pl-2">
               <div className="space-y-2">
                 {DEADLINE_FILTER_OPTIONS.map(({ value, label }) => {
                   const count = deadlineCounts[value] ?? 0;
@@ -530,20 +482,13 @@ export default function JobFilters({
                   );
                 })}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </section>
 
           {/* Kryteria formalne */}
-          <Collapsible
-            open={expandedFilterSections.includes('formal')}
-            onOpenChange={() => toggleSection('formal')}
-            className="mb-4"
-          >
-            <SectionTrigger
-              title="Kryteria formalne"
-              open={expandedFilterSections.includes('formal')}
-            />
-            <CollapsibleContent className="mt-3 pl-2">
+          <section className="pt-4">
+            <FilterSectionTitle title="Kryteria formalne" />
+            <div className="mt-3 pl-2">
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <CustomCheckbox
@@ -591,8 +536,8 @@ export default function JobFilters({
                   </Label>
                 </div>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </section>
         </div>
       </div>
     </div>

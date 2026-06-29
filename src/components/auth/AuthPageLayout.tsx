@@ -15,7 +15,7 @@ import { BrandLogo } from '../BrandLogo';
 import { BRAND } from '../../lib/brand';
 
 export const authFieldClassName =
-  'h-11 border-border/80 bg-background shadow-sm focus-visible:ring-primary/30';
+  'h-11 border-border/80 bg-card shadow-sm focus-visible:ring-primary/30';
 
 export interface AuthSideFeature {
   icon: LucideIcon;
@@ -70,7 +70,7 @@ function AuthSidePanel({
             {showSideLogo ? (
               <Link
                 href="/"
-                className="inline-flex items-center rounded-xl border border-white/15 bg-white px-4 py-2 shadow-md"
+                className="inline-flex items-center rounded-xl border border-white/15 bg-card px-4 py-2 shadow-md"
               >
                 <BrandLogo variant="full" className="h-7 w-auto" />
               </Link>
@@ -140,7 +140,7 @@ function AuthSidePanel({
           {showSideLogo ? (
             <Link
               href="/"
-              className="inline-flex items-center rounded-2xl border border-white/15 bg-white px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-white/95"
+              className="inline-flex items-center rounded-2xl border border-white/15 bg-card px-4 py-2.5 shadow-lg shadow-black/10 backdrop-blur-md transition-colors hover:bg-card/95"
             >
               <BrandLogo variant="full" className="h-7 w-auto" />
             </Link>

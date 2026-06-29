@@ -645,7 +645,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
   
   const contentClass = isFullPage
     ? "bg-background w-full h-full flex overflow-hidden min-h-0"
-    : "bg-white rounded-lg shadow-xl w-full max-w-6xl h-[80vh] overflow-hidden flex min-h-0";
+    : "bg-card rounded-lg shadow-xl w-full max-w-6xl h-[80vh] overflow-hidden flex min-h-0";
 
   return (
     <div className={containerClass}>
@@ -658,7 +658,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
           )}
         >
           {/* Sidebar header */}
-          <div className="shrink-0 space-y-4 border-b border-border/60 bg-background/80 px-4 pb-4 pt-4 sm:px-5 sm:pt-5">
+          <div className="shrink-0 space-y-4 border-b border-border/60 bg-card/80 px-4 pb-4 pt-4 sm:px-5 sm:pt-5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-0.5">
                 <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
@@ -719,7 +719,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
                 placeholder="Szukaj po osobie, firmie lub zgłoszeniu…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 border-border/80 bg-background pl-9 pr-3 text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/70 focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="h-10 border-border/80 bg-card pl-9 pr-3 text-sm shadow-sm transition-shadow placeholder:text-muted-foreground/70 focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
               />
             </div>
           </div>
@@ -727,7 +727,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
           <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-1 p-2 sm:p-3">
               {sortedConversations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 px-4 py-12 text-center">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/30 px-4 py-12 text-center">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                     <MessagesSquare className="h-7 w-7 text-muted-foreground" aria-hidden />
                   </div>
@@ -770,7 +770,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
                         'relative w-full overflow-hidden rounded-xl border text-left transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                         isSelected
-                          ? 'border-primary/25 bg-background shadow-sm'
+                          ? 'border-primary/25 bg-card shadow-sm'
                           : hasUnread
                             ? 'border-transparent bg-primary/5 hover:bg-primary/10'
                             : 'border-transparent hover:border-border/60 hover:bg-muted/50',
@@ -885,7 +885,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
           {selectedConversation && currentConversation && otherParticipant ? (
             <>
               {/* Chat header — counterparty + linked listing */}
-              <div className="shrink-0 border-b border-border/80 bg-background">
+              <div className="shrink-0 border-b border-border/80 bg-card">
                 <div className="flex items-start gap-3 px-4 py-3 sm:px-5 sm:py-4">
                   {isMobile && (
                     <Button
@@ -1065,7 +1065,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
                                     <div
                                       key={attachment.id}
                                       className={`p-1.5 sm:p-2 rounded border ${
-                                        isOwnMessage ? 'border-white/20 bg-white/10' : 'border-gray-200'
+                                        isOwnMessage ? 'border-white/20 bg-white/10' : 'border-border'
                                       }`}
                                     >
                                       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -1127,7 +1127,7 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
               </div>
 
               {/* Message Input */}
-              <div className="p-2 sm:p-4 border-t sticky bottom-0 bg-background z-10 touch-manipulation">
+              <div className="p-2 sm:p-4 border-t sticky bottom-0 bg-card z-10 touch-manipulation">
                 {isTyping && (
                   <div className="text-[10px] sm:text-xs text-gray-500 mb-1 sm:mb-2">
                     {otherParticipant.name} pisze...

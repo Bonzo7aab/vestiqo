@@ -666,7 +666,7 @@ function HomePageContent() {
       
       {isMapExpanded && (
         <div className="flex w-full min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4rem)]">
-          <div className="hidden lg:flex h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] min-h-0 flex-col lg:w-80 xl:w-96 flex-shrink-0 overflow-hidden lg:sticky lg:top-20 lg:self-start border-r border-border bg-white">
+          <div className="hidden lg:flex max-h-[calc(100vh-5.5rem)] flex-col overflow-y-auto overscroll-y-auto lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
             <JobFilters
               onFilterChange={setFilters}
               initialFilters={filters}
@@ -707,8 +707,8 @@ function HomePageContent() {
           <CategoryIconBar jobs={loadedJobs} />
 
           <div className="max-w-7xl mx-auto sm:px-4 md:px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row lg:items-start min-h-0 lg:min-h-[calc(100vh-12rem)] lg:gap-4">
-              <div className="hidden lg:flex h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] min-h-0 flex-col lg:w-80 xl:w-96 flex-shrink-0 overflow-hidden lg:sticky lg:top-20 lg:self-start">
+            <div className="flex flex-col lg:flex-row lg:items-start min-h-0 lg:gap-4">
+              <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
                 <JobFilters
                   onFilterChange={setFilters}
                   initialFilters={filters}

@@ -290,7 +290,7 @@ export const JobApplicationsList: React.FC<JobApplicationsListProps> = ({
                     {/* List motywacyjny */}
                     <div>
                       <h4 className="font-medium mb-2">List motywacyjny:</h4>
-                      <p className="text-gray-700 bg-white p-3 rounded border">
+                      <p className="text-foreground/80 bg-card p-3 rounded border">
                         {application.coverLetter}
                       </p>
                     </div>
@@ -298,7 +298,7 @@ export const JobApplicationsList: React.FC<JobApplicationsListProps> = ({
                     {/* Doświadczenie */}
                     <div>
                       <h4 className="font-medium mb-2">Doświadczenie:</h4>
-                      <p className="text-gray-700 bg-white p-3 rounded border">
+                      <p className="text-foreground/80 bg-card p-3 rounded border">
                         {application.experience}
                       </p>
                     </div>

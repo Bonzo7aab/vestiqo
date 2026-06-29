@@ -163,7 +163,7 @@ const JobCard = React.memo(function JobCard({
   return (
     <Card 
       className={`cursor-pointer hover:shadow-lg transition-shadow w-full max-w-full ${
-        isExpired ? 'bg-gray-50 opacity-60' : 'bg-white'
+        isExpired ? 'bg-muted/50 opacity-60' : 'bg-card'
       }`}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -187,7 +187,7 @@ const JobCard = React.memo(function JobCard({
                 )}
               </div>
               <div className="flex items-center gap-1.5 md:gap-2">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {(job.applications !== undefined || job.metrics?.applications !== undefined) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -256,7 +256,7 @@ const JobCard = React.memo(function JobCard({
               <div className="flex items-start md:items-center gap-2 md:gap-3 flex-wrap min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
                   <Wrench className="w-4 h-4 text-primary flex-shrink-0" />
-                  <h3 className={`font-semibold text-base md:text-lg truncate ${isExpired ? 'text-gray-500' : ''}`}>{job.title}</h3>
+                  <h3 className={`font-semibold text-base md:text-lg truncate ${isExpired ? 'text-muted-foreground' : ''}`}>{job.title}</h3>
                 </div>
                 <div className="hidden md:flex items-center gap-1.5 md:gap-2 flex-wrap">
                   {isExpired && (
@@ -274,7 +274,7 @@ const JobCard = React.memo(function JobCard({
               
               {/* Action buttons in top right block - desktop only */}
               <div className="hidden md:flex gap-1.5 md:gap-2 flex-shrink-0">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {(job.applications !== undefined || job.metrics?.applications !== undefined) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -339,7 +339,7 @@ const JobCard = React.memo(function JobCard({
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 text-xs text-gray-600 mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-3">
               <div className='flex items-center gap-2 sm:gap-4 min-w-0'>
                 <div className="flex items-center gap-1 min-w-0">
                   <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -353,15 +353,15 @@ const JobCard = React.memo(function JobCard({
                         : 'Unknown'}
                   </span>
                 </div>
-                <span className="hidden sm:inline h-4 border-gray-300 border-r-2 flex-shrink-0" />
-                <span className="font-normal text-gray-500 truncate">{job.company}</span>
+                <span className="hidden sm:inline h-4 border-border border-r-2 flex-shrink-0" />
+                <span className="font-normal text-muted-foreground truncate">{job.company}</span>
               </div>
               <Badge variant="secondary" className="w-fit">
                 {typeof job.category === 'string' ? job.category : job.category?.name || job.type}
               </Badge>
             </div>
             
-            <p className="text-gray-700 text-xs sm:text-sm mb-3 md:mb-0 line-clamp-2">
+            <p className="text-foreground/80 text-xs sm:text-sm mb-3 md:mb-0 line-clamp-2">
               {job.description}
             </p>
 
@@ -407,7 +407,7 @@ const JobCard = React.memo(function JobCard({
                                 +{job.skills.length - (job.subcategory ? 2 : 3)} więcej
                               </Badge>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className='bg-white rounded-sm'>
+                            <TooltipContent side="top" className='bg-card rounded-sm'>
                                 <div className="flex flex-wrap gap-1">
                                   {job.skills.slice(job.subcategory ? 2 : 3).map((skill, index) => (
                                     <Badge key={index} variant="secondary" className="text-xs">
@@ -432,7 +432,7 @@ const JobCard = React.memo(function JobCard({
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-4 text-gray-500">
+                  <div className="flex items-center gap-4 text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4 flex-shrink-0" />
                       <span>Opublikowano: {job.postedTime}</span>
@@ -445,7 +445,7 @@ const JobCard = React.memo(function JobCard({
                             <span>Termin: {formattedDeadline}</span>
                           </div>
                           {deadlineDaysRemaining !== null && (
-                            <span className={`pl-5 sm:pl-0 sm:ml-1 ${isEndingSoon ? 'text-orange-600 font-semibold bg-orange-50 px-1.5 py-0.5 rounded' : 'text-gray-500'}`}>
+                            <span className={`pl-5 sm:pl-0 sm:ml-1 ${isEndingSoon ? 'text-orange-600 font-semibold bg-orange-50 px-1.5 py-0.5 rounded' : 'text-muted-foreground'}`}>
                               ({formatDaysRemaining(deadlineDaysRemaining)} do końca)
                             </span>
                           )}
@@ -455,7 +455,7 @@ const JobCard = React.memo(function JobCard({
                   </div>
 
                   {job.distance && (
-                    <div className="flex items-center gap-1 text-gray-500">
+                    <div className="flex items-center gap-1 text-muted-foreground">
                       <span className="text-xs">
                         {job.distance < 1 ? `${Math.round(job.distance * 1000)}m` : `${job.distance.toFixed(1)}km`}
                       </span>

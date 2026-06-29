@@ -442,7 +442,7 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
               variant="outline"
               size="icon"
               onClick={onToggleExpand}
-              className="w-10 h-10 bg-white shadow-lg"
+              className="w-10 h-10 bg-card shadow-lg"
               title="Powiększ mapę"
               aria-label="Powiększ mapę"
             >
@@ -473,7 +473,7 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
             size="icon"
             onClick={getUserLocation}
             disabled={isGettingLocation}
-            className="w-10 h-10 bg-white shadow-lg"
+            className="w-10 h-10 bg-card shadow-lg"
             title="Użyj mojej lokalizacji"
           >
             <Crosshair className={`w-4 h-4 ${isGettingLocation ? 'animate-spin' : ''}`} />

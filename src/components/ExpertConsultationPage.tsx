@@ -54,7 +54,7 @@ const ExpertConsultationPage: React.FC<ExpertConsultationPageProps> = ({ onBack 
     return (
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b bg-white">
+        <div className="border-b bg-card">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="icon" onClick={onBack}>
@@ -128,7 +128,7 @@ const ExpertConsultationPage: React.FC<ExpertConsultationPageProps> = ({ onBack 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-card">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={onBack}>

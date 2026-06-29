@@ -81,7 +81,7 @@ async function submitContactFormImpl(formData: FormData): Promise<ContactFormRes
     return { success: false, error: 'Nie udało się wysłać wiadomości. Spróbuj ponownie później.' };
   }
 
-  getPostHogClient().capture({
+  getPostHogClient()?.capture({
     distinctId: email,
     event: 'contact_form_submitted',
     properties: { role, subject },

@@ -29,7 +29,7 @@ export function ContractorDashboardNav({
   });
 
   return (
-    <nav className="border-b bg-white">
+    <nav className="border-b bg-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex space-x-1 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {visibleTabs.map((tab) => {

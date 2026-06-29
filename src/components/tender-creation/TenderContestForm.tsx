@@ -1053,7 +1053,7 @@ export function TenderContestForm({
         </CardContent>
       </Card>
 
-      <div className="sticky bottom-0 z-10 -mx-4 mt-2 border-t bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-0 sm:px-0">
+      <div className="sticky bottom-0 z-10 -mx-4 mt-2 border-t bg-card/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-0 sm:px-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button
             type="button"

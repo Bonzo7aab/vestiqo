@@ -566,7 +566,7 @@ export default function LocationAutocomplete({
           {isMounted && showSuggestions && suggestions.length > 0 && (
             <div
               ref={dropdownRef}
-              className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+              className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto"
             >
               {suggestions.map((suggestion, index) => {
                 const prediction = suggestion.placePrediction;

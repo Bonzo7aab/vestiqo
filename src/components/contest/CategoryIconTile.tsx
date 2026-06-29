@@ -23,7 +23,7 @@ export function CategoryIconTile({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background',
+        'flex shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card',
         className ?? 'h-12 w-12',
       )}
       aria-hidden

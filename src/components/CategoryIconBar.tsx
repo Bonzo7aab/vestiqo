@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FileText } from 'lucide-react';
 import { useFilterContext } from '../contexts/FilterContext';
 import { createClient } from '../lib/supabase/client';
 import { fetchAllCategoriesWithSubcategories } from '../lib/database/categories';
@@ -15,7 +15,7 @@ import { cn } from './ui/utils';
 import type { CategoryWithSubcategories } from '../lib/database/categories';
 
 interface CategoryIconBarProps {
-  jobs?: Array<{ 
+  jobs?: Array<{
     category?: string | { name?: string; slug?: string };
     status?: string;
   }>;
@@ -25,9 +25,6 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
   const { filters, setFilters } = useFilterContext();
   const [categoriesFromDb, setCategoriesFromDb] = useState<CategoryWithSubcategories[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -112,149 +109,97 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
     );
   };
 
-  const checkScrollPosition = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-  };
-
-  const scrollLeft = () => {
-    scrollContainerRef.current?.scrollBy({ left: -160, behavior: 'smooth' });
-  };
-
-  const scrollRight = () => {
-    scrollContainerRef.current?.scrollBy({ left: 160, behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    checkScrollPosition();
-    container.addEventListener('scroll', checkScrollPosition);
-    window.addEventListener('resize', checkScrollPosition);
-
-    return () => {
-      container.removeEventListener('scroll', checkScrollPosition);
-      window.removeEventListener('resize', checkScrollPosition);
-    };
-  }, [filterCategoryTree]);
-
   if (isLoading) {
     return (
-      <div className="w-full border-b border-border/60 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex gap-2 sm:gap-2.5 overflow-x-auto md:justify-center">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div
-                key={i}
-                className="flex-shrink-0 size-[4.75rem] sm:size-[5.25rem] rounded-xl bg-muted/50 animate-pulse"
-              />
-            ))}
-          </div>
+      <div className="w-full bg-background">
+        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-4 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="h-10 w-36 shrink-0 animate-pulse rounded-full bg-muted/50"
+            />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full border-b border-border/60 bg-background relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 relative">
-        {canScrollLeft && (
-          <button
-            onClick={scrollLeft}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 md:hidden bg-background/95 backdrop-blur-sm rounded-full p-1 shadow-md border border-border hover:bg-muted/50 transition-colors"
-            aria-label="Przewiń w lewo"
-          >
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
-        
-        {canScrollRight && (
-          <button
-            onClick={scrollRight}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 md:hidden bg-background/95 backdrop-blur-sm rounded-full p-1 shadow-md border border-border hover:bg-muted/50 transition-colors"
-            aria-label="Przewiń w prawo"
-          >
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
+    <div className="w-full bg-background">
+      <div className="mx-auto flex max-w-7xl flex-nowrap items-center gap-2 overflow-x-auto px-4 py-4 sm:gap-2.5 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {filterCategoryTree.map((category) => {
+          const config = getCategoryConfig(category.slug);
+          const Icon = config?.icon ?? FileText;
+          const accentColor = config?.color ?? '#2563EB';
+          const isSelected = isCategorySelected(category.filterKey, category.slug);
+          const count = categoryCounts[category.filterKey] || 0;
+          const isEmpty = count === 0;
+          const accentAtRest = `color-mix(in srgb, ${accentColor} 34%, transparent)`;
 
-        <div 
-          ref={scrollContainerRef}
-          className="flex gap-2 sm:gap-2.5 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        >
-          {filterCategoryTree.map((category) => {
-              const config = getCategoryConfig(category.slug);
-              const Icon = config?.icon ?? FileText;
-              const accentColor = config?.color ?? '#2563EB';
-              const isSelected = isCategorySelected(category.filterKey, category.slug);
-              const count = categoryCounts[category.filterKey] || 0;
-              const label = category.label;
-
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategoryClick(category.filterKey, category.slug)}
-                  title={category.label}
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => handleCategoryClick(category.filterKey, category.slug)}
+              title={category.label}
+              className={cn(
+                'group flex shrink-0 items-center gap-2 rounded-full border bg-card px-3 py-2 text-left transition-all duration-150 sm:gap-2.5 sm:px-4 sm:py-2.5',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+                isSelected ? 'shadow-sm' : 'hover:bg-muted/20',
+                isEmpty && !isSelected && 'opacity-45',
+              )}
+              style={
+                {
+                  borderColor: isSelected ? accentColor : accentAtRest,
+                } as React.CSSProperties
+              }
+              aria-label={`Filtruj po kategorii: ${category.label}`}
+              aria-pressed={isSelected}
+            >
+              <span
                 className={cn(
-                  'group relative flex-shrink-0 flex flex-col items-center justify-center gap-1.5',
-                  'size-[4.75rem] sm:size-[5.25rem] rounded-xl border bg-background p-1.5',
-                  'text-center transition-all duration-150',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-                  isSelected
-                    ? 'shadow-sm'
-                    : 'border-border/70 hover:border-border hover:bg-muted/20'
+                  'flex size-8 shrink-0 items-center justify-center rounded-full',
+                  isSelected && 'bg-primary/10',
+                )}
+                style={
+                  !isSelected
+                    ? { backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)` }
+                    : undefined
+                }
+              >
+                <Icon
+                  className="size-4"
+                  style={{ color: isSelected ? accentColor : accentAtRest }}
+                />
+              </span>
+              <span
+                className={cn(
+                  'max-w-[7rem] truncate text-xs font-medium sm:max-w-[9rem] sm:text-sm',
+                  isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground',
+                )}
+                style={isSelected ? { color: accentColor } : undefined}
+              >
+                {category.label}
+              </span>
+              <span
+                className={cn(
+                  'flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5',
+                  'tabular-nums text-xs font-bold leading-none sm:h-7 sm:min-w-7 sm:px-2 sm:text-sm',
                 )}
                 style={
                   isSelected
-                    ? {
-                        borderColor: accentColor,
-                      } as React.CSSProperties
-                    : undefined
+                    ? { backgroundColor: accentColor, color: '#ffffff' }
+                    : {
+                        backgroundColor: `color-mix(in srgb, ${accentColor} 22%, transparent)`,
+                        color: accentColor,
+                      }
                 }
-                  aria-label={`Filtruj po kategorii: ${category.label}`}
-                aria-pressed={isSelected}
               >
-                {count > 0 && (
-                  <span
-                    className={cn(
-                      'absolute top-1 right-1 tabular-nums text-[9px] font-semibold leading-none min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center',
-                      isSelected ? 'text-white' : 'bg-muted text-muted-foreground'
-                    )}
-                    style={
-                      isSelected
-                        ? { backgroundColor: accentColor }
-                        : undefined
-                    }
-                  >
-                    {count}
-                  </span>
-                )}
-                <span
-                  className="flex items-center justify-center size-8 sm:size-9 rounded-lg"
-                >
-                  <Icon
-                    className="size-4 sm:size-[1.125rem]"
-                    style={{ color: isSelected ? accentColor : undefined }}
-                  />
-                </span>
-                <span
-                  className={cn(
-                    'w-full text-[10px] sm:text-[11px] font-medium leading-tight line-clamp-2 px-0.5',
-                    isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
-                  )}
-                  style={isSelected ? { color: accentColor } : undefined}
-                >
-                  {label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

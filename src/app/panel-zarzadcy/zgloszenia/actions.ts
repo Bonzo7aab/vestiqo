@@ -154,7 +154,7 @@ export async function acceptJobOfferAction(
   });
 
   if (result.success) {
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'job_offer_accepted',
       properties: { job_id: jobId.trim(), application_id: applicationId.trim() },
@@ -206,7 +206,7 @@ export async function acceptTenderOfferAction(
     } catch (notifyError) {
       console.error('notifyContestOfferResolution:', notifyError);
     }
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'contest_offer_accepted',
       properties: { tender_id: tenderId.trim(), bid_id: bidId.trim() },

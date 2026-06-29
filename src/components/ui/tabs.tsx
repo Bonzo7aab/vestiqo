@@ -44,7 +44,7 @@ function TabsTrigger({
       className={cn(
         "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-all",
         "text-muted-foreground hover:text-foreground",
-        "data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border data-[state=active]:font-semibold",
+        "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border data-[state=active]:font-semibold",
         "dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground dark:data-[state=active]:border-input",
         "focus-visible:ring-1 focus-visible:ring-ring/50",
         "disabled:pointer-events-none disabled:opacity-50",

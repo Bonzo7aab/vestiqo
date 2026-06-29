@@ -609,7 +609,7 @@ export const TenderCreationForm: React.FC<TenderCreationFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
             <div>
@@ -995,7 +995,7 @@ export const TenderCreationForm: React.FC<TenderCreationFormProps> = ({
                               const isExpanded = expandedDescriptions.has(criterion.id);
                               const colorClass = getCriterionColor(index);
                               return (
-                                <div key={criterion.id} className={`rounded-lg p-4 space-y-4 bg-white border border-gray-100}`}>
+                                <div key={criterion.id} className={`rounded-lg p-4 space-y-4 bg-card border border-border`}>
                             {/* Main Criterion Fields */}
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                               <div className="md:col-span-4">
@@ -1223,7 +1223,7 @@ export const TenderCreationForm: React.FC<TenderCreationFormProps> = ({
                           return sortedCriteria.map((criterion, index) => {
                             const colorClass = getCriterionColor(index);
                             return (
-                              <div key={criterion.id} className="flex justify-between items-center bg-white rounded-lg p-3 border border-gray-200">
+                              <div key={criterion.id} className="flex justify-between items-center bg-card rounded-lg p-3 border border-border">
                                 <span className="text-sm font-medium text-gray-900">{criterion.name}</span>
                                 <Badge className={`${colorClass} text-white min-w-[60px] justify-center`}>
                                   {criterion.weight.toFixed(1)}%

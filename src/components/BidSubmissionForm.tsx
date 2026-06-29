@@ -226,7 +226,7 @@ export const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -480,7 +480,7 @@ export const BidSubmissionForm: React.FC<BidSubmissionFormProps> = ({
                           />
                           <Label 
                             htmlFor={`upload-${type.value}`}
-                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-card hover:bg-accent hover:text-accent-foreground h-8 px-3"
                           >
                             <Upload className="h-3 w-3 mr-1" />
                             Dodaj

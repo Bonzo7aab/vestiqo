@@ -135,7 +135,7 @@ export default function ManagerBrowsePage({ onBack, onManagerSelect }: ManagerBr
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-12 md:h-16">
             <div className="flex items-center space-x-2 md:space-x-4">
@@ -186,7 +186,7 @@ export default function ManagerBrowsePage({ onBack, onManagerSelect }: ManagerBr
 
             {/* Filter Bar */}
             {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-white rounded-lg border">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-card rounded-lg border">
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                   <SelectTrigger>
                     <SelectValue placeholder="Lokalizacja" />

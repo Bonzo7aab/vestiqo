@@ -780,7 +780,7 @@ const MapComponent: React.FC<{
               )}
             </div>
 
-            <div className="sticky bottom-0 bg-background p-4 pt-4 pb-4">
+            <div className="sticky bottom-0 bg-card p-4 pt-4 pb-4">
               <div className="flex gap-3">
                 <button
                   onClick={() => setSelectedJobForMobile(null)}
@@ -796,7 +796,7 @@ const MapComponent: React.FC<{
                       openListingDetails(selectedJobForMobile.id);
                       setSelectedJobForMobile(null);
                     }}
-                    className="flex-1 py-4 px-6 bg-white text-primary border border-primary rounded-lg font-semibold text-base hover:bg-primary/5 transition-colors"
+                    className="flex-1 py-4 px-6 bg-card text-primary border border-primary rounded-lg font-semibold text-base hover:bg-primary/5 transition-colors"
                     aria-label="Szczegóły konkursu"
                   >
                     Szczegóły

@@ -135,7 +135,7 @@ function AttachmentDownloadButton({
       type="button"
       onClick={() => void handleClick()}
       disabled={isDownloading}
-      className="flex w-full items-center gap-3 rounded-lg border bg-background px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-60"
+      className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-60"
     >
       <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{attachment.name}</span>

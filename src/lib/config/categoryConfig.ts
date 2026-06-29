@@ -255,6 +255,40 @@ export function getCategoryConfig(slug: string): CategoryConfig | undefined {
   return categoryConfigs[resolveCategorySlug(slug)];
 }
 
+/** Find main category config by OPD-105 display name or legacy label. */
+export function findCategoryConfigByDisplayName(name: string): CategoryConfig | undefined {
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+
+  for (const config of getAllCategoryConfigs()) {
+    if (namesMatch(trimmed, config.name, config.legacyNames)) {
+      return config;
+    }
+  }
+
+  return undefined;
+}
+
+/** Find subcategory config under a main category display name. */
+export function findSubcategoryConfigByDisplayName(
+  categoryName: string,
+  subcategoryName: string,
+): { category: CategoryConfig; subcategory: SubcategoryConfig } | undefined {
+  const category = findCategoryConfigByDisplayName(categoryName);
+  if (!category) return undefined;
+
+  const subTrimmed = subcategoryName.trim();
+  if (!subTrimmed) return undefined;
+
+  for (const subcategory of category.subcategories) {
+    if (namesMatch(subTrimmed, subcategory.name, subcategory.legacyNames)) {
+      return { category, subcategory };
+    }
+  }
+
+  return undefined;
+}
+
 export function getSubcategoryConfig(
   categorySlug: string,
   subcategorySlug: string,

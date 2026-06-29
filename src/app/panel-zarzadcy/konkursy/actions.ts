@@ -64,7 +64,7 @@ async function acceptTenderOfferActionImpl(
     } catch (notifyError) {
       console.error('notifyContestOfferResolution:', notifyError);
     }
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'contest_offer_accepted',
       properties: { tender_id: tenderId.trim(), bid_id: bidId.trim() },
@@ -139,7 +139,7 @@ async function cancelContestActionImpl(
     console.error('notifyContestCancelledToContractors:', notifyError);
   }
 
-  getPostHogClient().capture({
+  getPostHogClient()?.capture({
     distinctId: user.id,
     event: 'contest_cancelled',
     properties: { tender_id: tenderId.trim() },
@@ -180,7 +180,7 @@ async function abandonContestDraftActionImpl(
   });
 
   if (result.success) {
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'contest_draft_abandoned',
       properties: { tender_id: tenderId.trim() },

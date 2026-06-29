@@ -160,7 +160,7 @@ export const ApplicationStatusCard: React.FC<ApplicationStatusCardProps> = ({
   };
 
   return (
-    <div className="p-4 border rounded-lg bg-white">
+    <div className="p-4 border rounded-lg bg-card">
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-full ${config.color} bg-opacity-10`}>
           <IconComponent className={`h-5 w-5 ${config.color}`} />

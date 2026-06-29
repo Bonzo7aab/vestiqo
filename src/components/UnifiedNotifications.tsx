@@ -608,7 +608,7 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
         />
 
         {/* Notification Panel */}
-        <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-white flex flex-col">
+        <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-card flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div>
             <CardTitle className="flex items-center space-x-2">

@@ -50,7 +50,7 @@ export async function acceptOrderWorkAction(
   const result = await acceptOrderWork(supabase, orderId.trim(), company.id);
 
   if (result.success) {
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'order_work_accepted',
       properties: { order_id: orderId.trim() },
@@ -100,7 +100,7 @@ export async function cancelOrderAction(
   );
 
   if (result.success) {
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'order_cancelled',
       properties: { order_id: orderId.trim() },

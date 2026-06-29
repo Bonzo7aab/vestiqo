@@ -19,7 +19,7 @@ export function ManagerDashboardNav({ showOrders = false }: ManagerDashboardNavP
   const visibleTabs = showOrders ? tabs : tabs.filter((tab) => tab.id !== 'zamowienia');
 
   return (
-    <nav className="border-b bg-white">
+    <nav className="border-b bg-card">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex space-x-1">
           {visibleTabs.map((tab) => {

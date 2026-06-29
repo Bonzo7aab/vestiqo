@@ -13,7 +13,7 @@ export function HomeHeroSection(): ReactElement {
   return (
     <section
       aria-labelledby="home-hero-heading"
-      className="border-b border-border bg-muted/30"
+      className="bg-muted/30"
     >
       <div className="mx-auto flex min-h-[50vh] max-w-7xl flex-col justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">

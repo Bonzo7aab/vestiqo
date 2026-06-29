@@ -495,7 +495,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
                   
                   {/* Job Count Badge */}
                   {isMultiple && (
-                    <div className="absolute -top-2 -right-2 bg-white text-gray-800 text-xs rounded-full w-6 h-6 flex items-center justify-center border border-gray-200 font-medium">
+                    <div className="absolute -top-2 -right-2 bg-card text-foreground text-xs rounded-full w-6 h-6 flex items-center justify-center border border-border font-medium">
                       {cluster.jobs.length}
                     </div>
                   )}
@@ -596,7 +596,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
             size="icon"
             onClick={getUserLocation}
             disabled={isGettingLocation}
-            className="w-10 h-10 bg-white shadow-lg"
+            className="w-10 h-10 bg-card shadow-lg"
             title="Użyj mojej lokalizacji"
           >
             <Crosshair className={`w-4 h-4 ${isGettingLocation ? 'animate-spin' : ''}`} />
@@ -645,7 +645,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
         )}
 
         {/* Map Stats */}
-        <div className="absolute top-4 right-4 bg-white rounded-lg shadow p-3 text-xs max-w-48">
+        <div className="absolute top-4 right-4 bg-card rounded-lg shadow p-3 text-xs max-w-48">
           <div className="font-medium mb-2">Statystyki</div>
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -678,7 +678,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
         </div>
 
         {/* Map Legend */}
-        <div className="absolute bottom-4 left-16 bg-white rounded-lg shadow p-3 text-xs">
+        <div className="absolute bottom-4 left-16 bg-card rounded-lg shadow p-3 text-xs">
           <div className="font-medium mb-2">Legenda</div>
           <div className="space-y-1">
             <div className="flex items-center space-x-2">

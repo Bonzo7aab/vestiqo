@@ -17,7 +17,7 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
 
   if (isLoading || !user) {
     return (
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="animate-pulse flex items-center gap-4">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-200" />
@@ -32,7 +32,7 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
   }
 
   return (
-    <div className="bg-white border-b">
+    <div className="bg-card border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-6">

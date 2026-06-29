@@ -85,7 +85,7 @@ function RoleOption({
       <Label
         htmlFor={id}
         className={cn(
-          'flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border/60 bg-background p-4 transition-all',
+          'flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border/60 bg-card p-4 transition-all',
           'hover:border-primary/40 peer-checked:border-primary peer-checked:bg-primary/5',
           disabled && 'cursor-not-allowed opacity-50',
         )}

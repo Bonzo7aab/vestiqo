@@ -53,7 +53,7 @@ export const JobStorageDebug: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={() => setIsOpen(true)}
-          className="bg-white shadow-lg border-red-500 text-red-600 hover:bg-red-50"
+          className="bg-card shadow-lg border-red-500 text-red-600 hover:bg-red-50"
         >
           🐛 Debug: Zapisane ({storedJobs.length})
         </Button>

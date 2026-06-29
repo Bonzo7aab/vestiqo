@@ -150,7 +150,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
   const features = isManager ? managerFeatures : contractorFeatures;
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-6xl space-y-12">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -200,7 +200,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
             {features.map((feature, index) => (
               <Card 
                 key={index} 
-                className="border border-slate-200 hover:border-blue-300 transition-colors bg-white"
+                className="border border-border hover:border-primary/30 transition-colors bg-card"
               >
                 <CardHeader>
                   <div className="flex items-center space-x-3">
@@ -229,7 +229,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
             {platformCapabilities.map((capability, index) => (
               <Card 
                 key={index} 
-                className="border border-slate-200 hover:border-blue-300 transition-colors bg-white"
+                className="border border-border hover:border-primary/30 transition-colors bg-card"
               >
                 <CardHeader>
                   <div className="flex items-center space-x-3">
@@ -250,7 +250,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
         </div>
 
         {/* Categories Overview */}
-        <Card className="border border-slate-200 bg-white">
+        <Card className="border border-border bg-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">5 głównych kategorii usług</CardTitle>
             <CardDescription>
@@ -291,7 +291,7 @@ export function WelcomePage({ onBack, onGetStarted, onTutorial }: WelcomePagePro
                 <Button 
                   variant="secondary" 
                   onClick={onGetStarted}
-                  className="bg-white text-primary hover:bg-slate-100"
+                  className="bg-card text-primary hover:bg-muted"
                 >
                   Rozpocznij
                 </Button>

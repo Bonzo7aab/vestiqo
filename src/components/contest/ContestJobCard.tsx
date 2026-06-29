@@ -118,21 +118,16 @@ function ContestStatsSidebar({
   onApplyClick?: (e: React.MouseEvent) => void;
 }): React.ReactElement {
   return (
-    <div className="flex min-h-full flex-col justify-between gap-4 p-4 md:w-40 lg:w-44">
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="text-muted-foreground">Złożone oferty:</span>
-          <span className="shrink-0 font-semibold tabular-nums text-foreground">{offerCount}</span>
-        </div>
-
-        {showBookmark && onBookmark ? (
+    <div className="flex min-h-full flex-col p-4 md:w-40 lg:w-44">
+      {showBookmark && onBookmark ? (
+        <div className="mb-2 flex justify-end">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-8 w-8 shrink-0 -mr-1 text-muted-foreground hover:text-primary',
+                  'h-8 w-8 shrink-0 text-muted-foreground hover:text-primary',
                   isBookmarked && 'text-primary',
                 )}
                 onClick={onBookmark}
@@ -147,7 +142,14 @@ function ContestStatsSidebar({
               <p>{bookmarkTooltip}</p>
             </TooltipContent>
           </Tooltip>
-        ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-center">
+        <span className="text-3xl font-bold leading-none tabular-nums text-foreground sm:text-4xl">
+          {offerCount}
+        </span>
+        <span className="text-xs font-medium text-muted-foreground">Złożone oferty</span>
       </div>
 
       {showApply && onApplyClick ? (
@@ -227,8 +229,8 @@ export function ContestJobCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-muted/25 shadow-sm shadow-black/5 transition-shadow w-full max-w-full',
-        isExpired ? 'bg-muted/40 opacity-70' : 'hover:shadow-md hover:shadow-black/8',
+        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/5 transition-shadow w-full max-w-full',
+        isExpired ? 'bg-muted/50 opacity-70' : 'hover:shadow-md hover:shadow-black/8',
         isHighlighted && 'border-primary shadow-md ring-1 ring-primary/20',
       )}
       style={{

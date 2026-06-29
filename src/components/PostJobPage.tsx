@@ -18,6 +18,11 @@ import { fetchUserPrimaryCompany } from "../lib/database/companies";
 import { kontoCompanyDataHref } from "../lib/konto-tabs";
 import { fetchAllCategoriesWithSubcategories } from "../lib/database/categories";
 import type { CategoryWithSubcategories } from "../lib/database/categories";
+import {
+  buildFilterCategoryTree,
+  getCategoryDisplayName,
+  getSubcategoryDisplayName,
+} from "../lib/config/categoryConfig";
 import { fetchManagerHousingEntities } from "../lib/database/managed-housing-entities";
 import type { ManagedHousingEntity } from "../types/managed-housing-entity";
 import { formatManagedHousingEntitySelectLabel } from "../types/managed-housing-entity";
@@ -109,6 +114,11 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
   const [categoriesFromDb, setCategoriesFromDb] = useState<CategoryWithSubcategories[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
+  const filterCategoryTree = useMemo(
+    () => buildFilterCategoryTree(categoriesFromDb),
+    [categoriesFromDb],
+  );
+
   const sortedManagedEntities = useMemo(
     () =>
       [...managedEntities].sort((a, b) =>
@@ -194,8 +204,15 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
 
       setFormData({
         title: job.title,
-        category: job.category?.name || "",
-        subcategory: subName,
+        category: job.category?.name
+          ? getCategoryDisplayName({ name: job.category.name, slug: job.category.slug })
+          : "",
+        subcategory: subName
+          ? getSubcategoryDisplayName({
+              name: subName,
+              categorySlug: job.category?.slug,
+            }) ?? subName
+          : "",
         description: job.description,
         additionalInfo: job.additional_info || "",
       });
@@ -527,7 +544,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={onBack} className="hidden md:flex items-center gap-2">
@@ -602,9 +619,9 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
                         <SelectValue placeholder="Wybierz kategorię" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categoriesFromDb.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
+                        {filterCategoryTree.map((category) => (
+                          <SelectItem key={category.id} value={category.filterKey}>
+                            {category.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -626,11 +643,11 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
                       </SelectTrigger>
                       <SelectContent>
                         {formData.category &&
-                          categoriesFromDb
-                            .find((c) => c.name === formData.category)
+                          filterCategoryTree
+                            .find((c) => c.filterKey === formData.category)
                             ?.subcategories.map((sub) => (
-                              <SelectItem key={sub.id} value={sub.name}>
-                                {sub.name}
+                              <SelectItem key={sub.id} value={sub.filterKey}>
+                                {sub.label}
                               </SelectItem>
                             ))}
                       </SelectContent>

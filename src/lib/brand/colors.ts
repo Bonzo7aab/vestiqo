@@ -16,8 +16,10 @@ export const BRAND_COLORS = {
   cta: '#2563EB',
   /** Logo mark (asset-specific; slightly deeper than CTA) */
   logo: '#1D4ED8',
-  /** Main platform background */
-  background: '#FFFFFF',
+  /** Main platform background (same as footer `bg-muted`) */
+  background: '#F8FAFC',
+  /** Elevated surfaces — cards, panels, secondary buttons */
+  surface: '#FFFFFF',
   /** Highlighted sections, tiles */
   section: '#F8FAFC',
   /** New/unread notification highlight */
@@ -37,7 +39,8 @@ export const BRAND_COLORS = {
 export const BRAND_COLORS_HSL = {
   navy: '222 47% 11%',
   cta: '217 91% 53%',
-  background: '0 0% 100%',
+  background: '210 40% 98%',
+  surface: '0 0% 100%',
   section: '210 40% 98%',
   unread: '214 100% 97%',
   textBody: '215 19% 35%',

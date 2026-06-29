@@ -46,7 +46,7 @@ async function reportOrderForAcceptanceActionImpl(
   const result = await reportOrderForAcceptance(supabase, orderId.trim(), company.id);
 
   if (result.success) {
-    getPostHogClient().capture({
+    getPostHogClient()?.capture({
       distinctId: user.id,
       event: 'order_reported_for_acceptance',
       properties: { order_id: orderId.trim() },

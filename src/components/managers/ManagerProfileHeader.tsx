@@ -98,7 +98,7 @@ export function ManagerProfileHeader({ profile }: ManagerProfileHeaderProps) {
 
   if (!profile) {
     return (
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-4 lg:py-6">
           <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex flex-col items-center md:flex-row md:items-center gap-3 md:gap-4">
@@ -161,7 +161,7 @@ export function ManagerProfileHeader({ profile }: ManagerProfileHeaderProps) {
   };
 
   return (
-    <div className="bg-white border-b">
+    <div className="bg-card border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-4 lg:py-6 relative">
         {/* Rating - Top Left Corner (Mobile only) */}
         {managerData.rating > 0 && (

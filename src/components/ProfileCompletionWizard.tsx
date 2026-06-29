@@ -474,7 +474,7 @@ export const ProfileCompletionWizard: React.FC<ProfileCompletionWizardProps> = (
                   id="voivodeship"
                   value={profileData.voivodeship}
                   onChange={(e) => handleInputChange('voivodeship', e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                  className="w-full px-3 py-2 border border-input rounded-md bg-card"
                 >
                   <option value="">Wybierz województwo</option>
                   {voivodeships.map(v => (

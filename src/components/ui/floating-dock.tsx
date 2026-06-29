@@ -73,7 +73,7 @@ function FloatingDockMobile({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-white border-t border-gray-200 rounded-t-2xl px-4 py-2 md:hidden",
+        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-card border-t border-border rounded-t-2xl px-4 py-2 md:hidden",
         className
       )}
     >

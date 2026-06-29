@@ -395,7 +395,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Treść ogłoszenia
                   </p>
-                  <div className="max-h-[4.5rem] overflow-y-auto rounded-md border border-border/80 bg-background px-2.5 py-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  <div className="max-h-[4.5rem] overflow-y-auto rounded-md border border-border/80 bg-card px-2.5 py-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                     {String((jobData as { description?: string }).description || '')}
                   </div>
                 </div>
@@ -594,7 +594,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                             </span>
                           </div>
                           {stagedFiles.length > 0 && (
-                            <ul className="mt-2 space-y-1 rounded-md border bg-background p-2 text-sm">
+                            <ul className="mt-2 space-y-1 rounded-md border bg-card p-2 text-sm">
                               {stagedFiles.map((file, index) => (
                                 <li key={`${file.name}-${file.size}-${index}`} className="flex justify-between gap-2">
                                   <span className="truncate">{file.name}</span>

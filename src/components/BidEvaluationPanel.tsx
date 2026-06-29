@@ -482,7 +482,7 @@ export const BidEvaluationPanel: React.FC<BidEvaluationPanelProps> = ({
                               const response = selectedBid.criteriaResponses?.find(r => r.criterionId === criterion.id);
                               
                               return (
-                                <div key={criterion.id} className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+                                <div key={criterion.id} className="border border-border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-gray-900">{criterion.name}</h4>
                                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
