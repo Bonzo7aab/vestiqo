@@ -29,6 +29,8 @@ export interface AuthUser {
   onboardingCompleted: boolean
   avatar?: string
   platformRole?: PlatformRole
+  accountRole?: string | null
+  organizationType?: string | null
 }
 
 // User with profile interface (used by useUser hook)

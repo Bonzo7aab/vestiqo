@@ -45,10 +45,15 @@ export function mergeAuthUsersForDisplay(
   const verificationSubmittedAt =
     sources.find(user => user.verificationSubmittedAt)?.verificationSubmittedAt ?? null;
   const isVerified = sources.some(user => user.isVerified === true);
+  const accountRole = sources.find(user => user.accountRole)?.accountRole ?? base.accountRole ?? null;
+  const organizationType =
+    sources.find(user => user.organizationType)?.organizationType ?? base.organizationType ?? null;
 
   return {
     ...base,
     isVerified,
     verificationSubmittedAt,
+    accountRole,
+    organizationType,
   };
 }

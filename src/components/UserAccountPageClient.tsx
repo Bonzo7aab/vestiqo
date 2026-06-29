@@ -27,6 +27,10 @@ import {
   resolveKontoTabFromUrl,
   type KontoTab,
 } from '../lib/konto-tabs';
+import {
+  resolveAccountRole,
+  shouldShowManagedHousingEntitiesOnAccount,
+} from '../lib/profile/account-role-labels';
 
 interface UserAccountPageClientProps {
   verificationStatus: VerificationStatus;
@@ -149,6 +153,12 @@ export function UserAccountPageClient({
   }
 
   const showDocumentsTabAttention = needsVerificationAttention(user);
+  const accountRole = resolveAccountRole({
+    userType: user.userType,
+    accountRole: user.accountRole,
+    organizationType: user.organizationType,
+  });
+  const showManagedHousingEntities = shouldShowManagedHousingEntitiesOnAccount(accountRole);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -247,7 +257,7 @@ export function UserAccountPageClient({
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
-            {user.userType === 'manager' && (
+            {user.userType === 'manager' && showManagedHousingEntities && (
               <CompanyManagementForm user={user} managedEntitiesOnly />
             )}
           </TabsContent>

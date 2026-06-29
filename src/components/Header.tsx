@@ -48,6 +48,7 @@ import {
   verificationAttentionAriaLabel,
   verificationMenuLabel,
 } from '../lib/verification/needs-verification-attention';
+import { getAccountRoleDisplayLabel } from '../lib/profile/account-role-labels';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../lib/verification/documents-route';
 import { BrandLogo } from './BrandLogo';
 import { BRAND } from '../lib/brand';
@@ -230,8 +231,12 @@ export function Header({
 
   const userRoleLabel = isAdmin
     ? 'ADMIN'
-    : currentUser?.userType === 'manager'
-      ? 'Zarządca'
+    : currentUser
+      ? getAccountRoleDisplayLabel({
+          userType: currentUser.userType,
+          accountRole: currentUser.accountRole,
+          organizationType: currentUser.organizationType,
+        })
       : 'Wykonawca'
 
   const handleZgloszeniaClick = () => {

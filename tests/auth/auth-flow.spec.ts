@@ -36,7 +36,7 @@ test.describe('End-to-End Authentication Flows', () => {
       await page.fill('input[name="password"]', password);
       await page.fill('input[name="confirmPassword"]', password);
       // Click the label since radio button is sr-only (contractor should be default anyway)
-      await page.getByText('Wykonawca').click();
+      await page.getByText('Wykonawca', { exact: true }).click();
       await page.click('button[type="submit"]');
 
       // Wait for redirect after registration

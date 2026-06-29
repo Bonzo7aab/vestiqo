@@ -75,6 +75,8 @@ export default function AuthProvider({
         onboardingCompleted: profile.onboarding_completed,
         avatar: profile.avatar_url || undefined,
         platformRole: profile.platform_role ?? 'user',
+        accountRole: profile.account_role ?? null,
+        organizationType: profile.organization_type ?? null,
       }
     } catch (err) {
       console.error('Error fetching profile:', err)

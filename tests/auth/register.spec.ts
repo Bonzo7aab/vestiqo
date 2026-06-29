@@ -6,8 +6,8 @@ import { ROUTES } from '../config/constants';
 const TEST_NIP = '5261040828';
 
 async function fillNipAndWaitForCompanyName(page: Page, nip = TEST_NIP): Promise<void> {
-  await page.fill('input[name="nip"]', nip);
-  await page.locator('input[name="nip"]').blur();
+  await page.fill('#entityNip', nip);
+  await page.locator('#entityNip').blur();
   await expect(page.locator('[data-testid="register-company-name"]')).not.toHaveText(/^\s*$/, {
     timeout: 15000,
   });
@@ -68,8 +68,9 @@ test.describe('Registration Page', () => {
     await expect(page.locator('input[name="confirmPassword"]')).toBeVisible({ timeout });
     await expect(page.locator('button[type="submit"]')).toBeVisible({ timeout });
 
-    // Check user type selection (radio buttons are sr-only, so check by role)
-    await expect(page.getByRole('radio', { name: 'Zarządca' })).toBeAttached();
+    // Check entity type selection (radio buttons are sr-only, so check by role)
+    await expect(page.getByRole('radio', { name: 'Wspólnota' })).toBeAttached();
+    await expect(page.getByRole('radio', { name: 'Spółdzielnia' })).toBeAttached();
     await expect(page.getByRole('radio', { name: 'Wykonawca' })).toBeAttached();
 
     // Check links
@@ -86,7 +87,7 @@ test.describe('Registration Page', () => {
     await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[name="firstName"]')).toBeVisible({ timeout: 10000 });
 
-    await page.locator('form').getByText('Wykonawca').click();
+    await page.locator('form').getByText('Wykonawca', { exact: true }).click();
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'Contractor');
     await page.fill('input[name="email"]', email);
@@ -129,7 +130,7 @@ test.describe('Registration Page', () => {
     await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[name="firstName"]')).toBeVisible({ timeout: 10000 });
 
-    await page.locator('form').getByText('Zarządca').click();
+    await page.locator('form').getByText('Wspólnota', { exact: true }).click();
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'Manager');
     await page.fill('input[name="email"]', email);
@@ -183,7 +184,7 @@ test.describe('Registration Page', () => {
     await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[name="firstName"]')).toBeVisible({ timeout: 10000 });
 
-    await page.locator('form').getByText('Wykonawca').click();
+    await page.locator('form').getByText('Wykonawca', { exact: true }).click();
     await page.fill('input[name="firstName"]', 'Test');
     await page.fill('input[name="lastName"]', 'User');
     await page.fill('input[name="email"]', 'test@example.com');
@@ -217,7 +218,7 @@ test.describe('Registration Page', () => {
     await expect(firstNameInput).toBeVisible({ timeout: 10000 });
     await expect(firstNameInput).toBeEnabled({ timeout: 10000 });
 
-    await page.locator('form').getByText('Wykonawca').click();
+    await page.locator('form').getByText('Wykonawca', { exact: true }).click();
     await firstNameInput.fill('Test');
     await page.fill('input[name="lastName"]', 'User');
     await page.fill('input[name="email"]', 'test@example.com');
@@ -266,21 +267,38 @@ test.describe('Registration Page', () => {
     expect(isValid).toBe(false);
   });
 
-  test('should allow user type selection', async ({ page }) => {
+  test('should allow entity type selection', async ({ page }) => {
     await page.goto(ROUTES.register);
     
     await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
     const form = page.locator('form');
-    await expect(form.getByText('Zarządca')).toBeVisible({ timeout: 10000 });
+    await expect(form.getByText('Wspólnota', { exact: true })).toBeVisible({ timeout: 10000 });
 
-    const contractorRadio = page.getByRole('radio', { name: 'Wykonawca' });
-    const managerRadio = page.getByRole('radio', { name: 'Zarządca' });
+    const wykonawcaRadio = page.getByRole('radio', { name: 'Wykonawca' });
+    const wspolnotaRadio = page.getByRole('radio', { name: 'Wspólnota' });
+    const spoldzielniaRadio = page.getByRole('radio', { name: 'Spółdzielnia' });
 
-    await form.getByText('Zarządca').click();
-    await expect(managerRadio).toBeChecked();
+    await form.getByText('Wspólnota', { exact: true }).click();
+    await expect(wspolnotaRadio).toBeChecked();
 
-    await form.getByText('Wykonawca').click();
-    await expect(contractorRadio).toBeChecked();
+    await form.getByText('Spółdzielnia', { exact: true }).click();
+    await expect(spoldzielniaRadio).toBeChecked();
+
+    await form.getByText('Wykonawca', { exact: true }).click();
+    await expect(wykonawcaRadio).toBeChecked();
+  });
+
+  test('should show management company NIP when property manager role is selected', async ({ page }) => {
+    await page.goto(ROUTES.register);
+
+    await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
+    await page.locator('form').getByText('Wspólnota', { exact: true }).click();
+
+    await expect(page.locator('#managementNip')).not.toBeVisible();
+
+    await page.getByLabel('Zarządca nieruchomości (powierzony)').click();
+    await expect(page.locator('#managementNip')).toBeVisible();
+    await expect(page.getByText('NIP Firmy Zarządzającej')).toBeVisible();
   });
 
   test('should navigate to login page', async ({ page }) => {

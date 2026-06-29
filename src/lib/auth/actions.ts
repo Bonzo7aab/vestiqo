@@ -24,6 +24,19 @@ import { validatePasswordStrength } from './password-policy'
 import { sendPasswordResetEmail } from '../email/send-password-reset-email'
 import { createAdminClientOrNull } from '../supabase/admin'
 import * as Sentry from '@sentry/nextjs'
+import {
+  ACCOUNT_ROLES,
+  isAccountRole,
+  isRegistrationEntityType,
+  resolveRegistrationAccountRole,
+  resolveRegistrationCompanyType,
+  resolveRegistrationOrganizationType,
+  REGISTRATION_ENTITY_TYPES,
+  type RegistrationEntityType,
+  type SpoldzielniaSubRole,
+  type WspolnotaSubRole,
+} from '../profile/account-role-labels'
+import { createManagedHousingEntity } from '../database/managed-housing-entities'
 
 export interface LoginData {
   email: string
@@ -155,8 +168,53 @@ async function registerActionImpl(
   const vatStatusRaw = (formData.get('vatStatus') as string)?.trim() || null
   const vatStatus =
     vatStatusRaw === 'active_vat' || vatStatusRaw === 'vat_exempt' ? vatStatusRaw : null
+  const organizationTypeRaw = formData.get('organizationType') as string | null
+  const accountRoleRaw = (formData.get('accountRole') as string | null)?.trim() || null
+  const registrationEntityTypeRaw = (formData.get('registrationEntityType') as string | null)?.trim() || null
+  const managedEntityNip = (formData.get('managedEntityNip') as string | null)?.trim() || null
+  const managedEntityName = (formData.get('managedEntityName') as string | null)?.trim() || null
+  const managedEntityRegon = (formData.get('managedEntityRegon') as string | null)?.trim() || null
+  const managedEntityAddress = (formData.get('managedEntityAddress') as string | null)?.trim() || null
+  const managedEntityCity = (formData.get('managedEntityCity') as string | null)?.trim() || null
+  const managedEntityPostalCode = (formData.get('managedEntityPostalCode') as string | null)?.trim() || null
+  const managedEntityBankAccountIban = (formData.get('managedEntityBankAccountIban') as string | null)?.trim() || null
+  const managedEntityVatStatus = (formData.get('managedEntityVatStatus') as string | null)?.trim() || null
+
+  let registrationEntityType: RegistrationEntityType | null = isRegistrationEntityType(
+    registrationEntityTypeRaw,
+  )
+    ? registrationEntityTypeRaw
+    : null
+
+  if (!registrationEntityType) {
+    registrationEntityType =
+      userType === 'contractor'
+        ? REGISTRATION_ENTITY_TYPES.WYKONAWCA
+        : organizationTypeRaw === 'spółdzielnia'
+          ? REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA
+          : REGISTRATION_ENTITY_TYPES.WSPOLNOTA
+  }
+
+  const wspolnotaSubRole = (formData.get('wspolnotaSubRole') as WspolnotaSubRole | null) ?? null
+  const spoldzielniaSubRole = (formData.get('spoldzielniaSubRole') as SpoldzielniaSubRole | null) ?? null
+
+  const accountRole =
+    isAccountRole(accountRoleRaw)
+      ? accountRoleRaw
+      : resolveRegistrationAccountRole(
+          registrationEntityType,
+          registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA
+            ? wspolnotaSubRole
+            : registrationEntityType === REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA
+              ? spoldzielniaSubRole
+              : null,
+        )
+
   const organizationType =
-    (formData.get('organizationType') as 'spółdzielnia' | 'wspólnota' | null) ?? 'wspólnota'
+    resolveRegistrationOrganizationType(registrationEntityType) ??
+    (organizationTypeRaw === 'spółdzielnia' || organizationTypeRaw === 'wspólnota'
+      ? organizationTypeRaw
+      : null)
   if (!acceptTerms || acceptTerms === '0') {
     redirect(`/rejestracja?error=${encodeURIComponent('Musisz zaakceptować regulamin i politykę prywatności')}`)
   }
@@ -167,6 +225,18 @@ async function registerActionImpl(
 
   if (!nip || !companyName) {
     redirect(`/rejestracja?error=${encodeURIComponent('Podaj prawidłowy NIP i poczekaj na pobranie nazwy firmy')}`)
+  }
+
+  if (accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER) {
+    if (!managedEntityNip || !managedEntityName) {
+      redirect(
+        `/rejestracja?error=${encodeURIComponent('Podaj NIP wspólnoty i poczekaj na pobranie nazwy z rejestru GUS')}`,
+      )
+    }
+    const normalizedManagedEntityNip = normalizeNip(managedEntityNip)
+    if (!isValidNip(normalizedManagedEntityNip)) {
+      return { error: 'Podaj prawidłowy numer NIP wspólnoty' }
+    }
   }
 
   if (!phone) {
@@ -280,6 +350,8 @@ async function registerActionImpl(
       last_name: lastName,
       phone: normalizedPhone || null,
       nip: normalizedNip,
+      account_role: accountRole,
+      organization_type: organizationType,
       is_verified: userType === 'manager',
       profile_completed: false,
       onboarding_completed: false,
@@ -290,10 +362,7 @@ async function registerActionImpl(
     return { error: translateRegistrationErrorMessage(profileError.message) }
   }
 
-  const companyType: 'spółdzielnia' | 'wspólnota' | 'contractor' =
-    userType === 'manager'
-      ? (organizationType as 'spółdzielnia' | 'wspólnota')
-      : 'contractor'
+  const companyType = resolveRegistrationCompanyType(accountRole)
 
   const companyPayload = {
     name: resolvedCompanyName,
@@ -347,6 +416,29 @@ async function registerActionImpl(
 
   if (ucError) {
     redirect(`/rejestracja?error=${encodeURIComponent(ucError.message)}`)
+  }
+
+  if (accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER && managedEntityNip && managedEntityName) {
+    const { error: managedEntityError } = await createManagedHousingEntity(admin, companyRow.id, {
+      entity_type: 'wspólnota',
+      nip: managedEntityNip,
+      regon: managedEntityRegon ?? '',
+      name: managedEntityName,
+      address: managedEntityAddress ?? '',
+      city: managedEntityCity ?? '',
+      postal_code: managedEntityPostalCode ?? '',
+      bank_account_iban: managedEntityBankAccountIban ?? '',
+      vat_status: managedEntityVatStatus ?? '',
+    })
+
+    if (managedEntityError) {
+      await admin.auth.admin.deleteUser(userId)
+      return {
+        error: translateRegistrationErrorMessage(
+          managedEntityError.message || 'Nie udało się zapisać danych wspólnoty',
+        ),
+      }
+    }
   }
 
   const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')

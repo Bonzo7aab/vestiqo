@@ -4,6 +4,7 @@ import { Clock, ShieldCheck, ShieldX, User } from 'lucide-react';
 import { useUserProfile } from '../contexts/AuthContext';
 import type { VerificationStatus } from '../lib/database/verification';
 import { verificationStatusBadgeClass, verificationStatusLabel } from '../lib/verification/status';
+import { getAccountRoleDisplayLabel } from '../lib/profile/account-role-labels';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from './ui/utils';
 import { VerificationAttentionIcon } from './VerificationAttentionIcon';
@@ -31,6 +32,12 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
     );
   }
 
+  const roleLabel = getAccountRoleDisplayLabel({
+    userType: user.userType,
+    accountRole: user.accountRole,
+    organizationType: user.organizationType,
+  });
+
   return (
     <div className="bg-card border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -56,9 +63,7 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 lg:gap-6 text-xs sm:text-sm text-gray-500">
                 <div className="flex items-center">
                   <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
-                  <span className="capitalize">
-                    {user.userType === 'manager' ? 'Zarządca' : 'Wykonawca'}
-                  </span>
+                  <span>{roleLabel}</span>
                 </div>
                 {user.userType === 'contractor' && verificationStatus && (
                   <span
