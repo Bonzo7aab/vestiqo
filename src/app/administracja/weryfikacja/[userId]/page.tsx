@@ -28,6 +28,18 @@ interface PageProps {
   params: Promise<{ userId: string }>;
 }
 
+function isMissingProfileError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === 'PGRST116' ||
+    error.message?.includes('0 rows') === true ||
+    error.message?.includes('single JSON object') === true
+  );
+}
+
 export default async function AdminVerificationSubjectPage({ params }: PageProps) {
   const { userId } = await params;
   const { supabase } = await requirePlatformAdmin(`/administracja/weryfikacja/${userId}`);
@@ -72,7 +84,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
     .single();
 
   if (error || !profile) {
-    if (error) {
+    if (error && !isMissingProfileError(error)) {
       console.error('[admin/weryfikacja] user_profiles read failed', {
         userId,
         code: error.code,

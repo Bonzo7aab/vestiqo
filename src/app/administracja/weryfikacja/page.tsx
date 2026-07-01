@@ -1,3 +1,4 @@
+import { ClipboardCheck } from 'lucide-react';
 import { requirePlatformAdmin } from '../../../lib/admin/require-platform-admin';
 import {
   fetchApprovedVerificationQueue,
@@ -7,6 +8,7 @@ import {
 import { createAdminClientOrNull } from '../../../lib/supabase/admin';
 import { fetchEmailConfirmationByUserIds } from '../../../lib/auth/email-confirmation';
 import { VerificationQueueTabs } from '../../../components/admin/VerificationQueueTabs';
+import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 
 function enrichWithEmailConfirmation<T extends { userId: string }>(
   rows: T[],
@@ -41,14 +43,25 @@ export default async function AdminVerificationQueuePage() {
   const rejected = enrichWithEmailConfirmation(rejectedRaw, emailMap);
   const approved = enrichWithEmailConfirmation(approvedRaw, emailMap);
 
+  const totalPending = pending.length;
+  const totalActionable = pending.filter(r => r.emailConfirmed).length;
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Weryfikacja użytkowników</h2>
-      <p className="text-sm text-muted-foreground">
-        Konta bez potwierdzonego adresu email są widoczne w zakładce „Weryfikacja email”. Pozostałe
-        oczekujące na decyzję administracyjną — w zakładce „W toku”, także bez przesłanych
-        dokumentów.
-      </p>
+    <div className="space-y-8">
+      <AdminPageHeader
+        icon={ClipboardCheck}
+        title="Weryfikacja użytkowników"
+        description="Wybierz typ konta i status, a następnie kliknij wiersz w tabeli, aby otworzyć szczegóły użytkownika."
+        aside={
+          <div className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-sm">
+            <span className="text-muted-foreground">Wymaga decyzji</span>
+            <span className="text-2xl font-semibold tabular-nums">{totalActionable}</span>
+            <span className="text-xs text-muted-foreground">
+              {totalPending} łącznie w toku (z email bez potwierdzenia)
+            </span>
+          </div>
+        }
+      />
       <VerificationQueueTabs pending={pending} rejected={rejected} approved={approved} />
     </div>
   );

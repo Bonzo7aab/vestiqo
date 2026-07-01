@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Briefcase, ChevronDown, ChevronRight, Gavel } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   Table,
   TableBody,
@@ -27,6 +26,9 @@ import type { AdminJobApplicationRow, AdminTenderBidRow } from '../../lib/databa
 import { offerEffectiveStatus, statusBadgeClass } from '../../lib/admin/status-labels';
 import { SortableHeader, type SortState } from './SortableHeader';
 import { EditableForm, type FormSection } from './EditableForm';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterChip } from './AdminFilterChip';
+import { AdminPanelCard } from './AdminPanelCard';
 
 interface OffersModerationPanelProps {
   applications: AdminJobApplicationRow[];
@@ -103,20 +105,51 @@ function StatusBadge({ baseStatus, adminModerationStatus }: { baseStatus: string
   );
 }
 
+type OfferView = 'job' | 'tender';
+
 export function OffersModerationPanel({ applications, bids }: OffersModerationPanelProps) {
+  const [view, setView] = useState<OfferView>('job');
+  const activeCount = view === 'job' ? applications.length : bids.length;
+  const activeLabel = view === 'job' ? 'Oferty na zgłoszenia' : 'Oferty przetargowe';
+
   return (
-    <Tabs defaultValue="job">
-      <TabsList className="grid w-full grid-cols-2 md:w-fit">
-        <TabsTrigger value="job">Oferty na zgłoszenia ({applications.length})</TabsTrigger>
-        <TabsTrigger value="tender">Oferty przetargowe ({bids.length})</TabsTrigger>
-      </TabsList>
-      <TabsContent value="job" className="mt-4">
-        <JobApplicationsTable rows={applications} />
-      </TabsContent>
-      <TabsContent value="tender" className="mt-4">
-        <TenderBidsTable rows={bids} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1">
+        <AdminFilterChip
+          label="Na zgłoszenia"
+          count={applications.length}
+          icon={Briefcase}
+          active={view === 'job'}
+          onClick={() => setView('job')}
+        />
+        <AdminFilterChip
+          label="Przetargowe"
+          count={bids.length}
+          icon={Gavel}
+          active={view === 'tender'}
+          onClick={() => setView('tender')}
+        />
+      </div>
+
+      <AdminPanelCard
+        title={
+          <>
+            {activeLabel}
+            <span className="ml-1 font-normal tabular-nums text-muted-foreground">
+              ({activeCount})
+            </span>
+          </>
+        }
+      >
+        <div className="overflow-x-auto">
+          {view === 'job' ? (
+            <JobApplicationsTable rows={applications} />
+          ) : (
+            <TenderBidsTable rows={bids} />
+          )}
+        </div>
+      </AdminPanelCard>
+    </div>
   );
 }
 
@@ -137,12 +170,11 @@ function JobApplicationsTable({ rows }: { rows: AdminJobApplicationRow[] }) {
   );
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">Brak rekordów.</p>;
+    return <AdminEmptyState message="Brak ofert na zgłoszenia do moderacji." />;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
@@ -209,7 +241,6 @@ function JobApplicationsTable({ rows }: { rows: AdminJobApplicationRow[] }) {
           })}
         </TableBody>
       </Table>
-    </div>
   );
 }
 
@@ -334,12 +365,11 @@ function TenderBidsTable({ rows }: { rows: AdminTenderBidRow[] }) {
   );
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">Brak rekordów.</p>;
+    return <AdminEmptyState message="Brak ofert przetargowych do moderacji." />;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
@@ -406,7 +436,6 @@ function TenderBidsTable({ rows }: { rows: AdminTenderBidRow[] }) {
           })}
         </TableBody>
       </Table>
-    </div>
   );
 }
 

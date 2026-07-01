@@ -59,8 +59,7 @@ export function AdminDeleteUserAccountButton({
       toast.success('Konto zostało trwale usunięte.');
       setOpen(false);
       setBusy(false);
-      router.push(redirectTo);
-      router.refresh();
+      router.replace(redirectTo);
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : String(err)) || 'Wystąpił błąd podczas usuwania konta.');
       setBusy(false);

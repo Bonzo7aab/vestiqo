@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Briefcase, ChevronDown, ChevronRight, Landmark } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   Table,
   TableBody,
@@ -30,6 +29,9 @@ import type {
 import { listingEffectiveStatus, statusBadgeClass } from '../../lib/admin/status-labels';
 import { SortableHeader, type SortState } from './SortableHeader';
 import { EditableForm, type FormSection } from './EditableForm';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterChip } from './AdminFilterChip';
+import { AdminPanelCard } from './AdminPanelCard';
 
 interface ListingsModerationPanelProps {
   jobs: AdminJobListingRow[];
@@ -133,20 +135,47 @@ function ListingStatusBadge({ baseStatus }: { baseStatus: string }) {
   );
 }
 
+type ListingView = 'job' | 'tender';
+
 export function ListingsModerationPanel({ jobs, tenders }: ListingsModerationPanelProps) {
+  const [view, setView] = useState<ListingView>('job');
+  const activeCount = view === 'job' ? jobs.length : tenders.length;
+  const activeLabel = view === 'job' ? 'Zgłoszenia' : 'Przetargi';
+
   return (
-    <Tabs defaultValue="job">
-      <TabsList className="grid w-full grid-cols-2 md:w-fit">
-        <TabsTrigger value="job">Zgłoszenia ({jobs.length})</TabsTrigger>
-        <TabsTrigger value="tender">Przetargi ({tenders.length})</TabsTrigger>
-      </TabsList>
-      <TabsContent value="job" className="mt-4">
-        <JobListingsTable rows={jobs} />
-      </TabsContent>
-      <TabsContent value="tender" className="mt-4">
-        <TenderListingsTable rows={tenders} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1">
+        <AdminFilterChip
+          label="Zgłoszenia"
+          count={jobs.length}
+          icon={Briefcase}
+          active={view === 'job'}
+          onClick={() => setView('job')}
+        />
+        <AdminFilterChip
+          label="Przetargi"
+          count={tenders.length}
+          icon={Landmark}
+          active={view === 'tender'}
+          onClick={() => setView('tender')}
+        />
+      </div>
+
+      <AdminPanelCard
+        title={
+          <>
+            {activeLabel}
+            <span className="ml-1 font-normal tabular-nums text-muted-foreground">
+              ({activeCount})
+            </span>
+          </>
+        }
+      >
+        <div className="overflow-x-auto">
+          {view === 'job' ? <JobListingsTable rows={jobs} /> : <TenderListingsTable rows={tenders} />}
+        </div>
+      </AdminPanelCard>
+    </div>
   );
 }
 
@@ -167,12 +196,11 @@ function JobListingsTable({ rows }: { rows: AdminJobListingRow[] }) {
   );
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">Brak rekordów.</p>;
+    return <AdminEmptyState message="Brak zgłoszeń do moderacji." />;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
@@ -246,7 +274,6 @@ function JobListingsTable({ rows }: { rows: AdminJobListingRow[] }) {
           })}
         </TableBody>
       </Table>
-    </div>
   );
 }
 
@@ -401,12 +428,11 @@ function TenderListingsTable({ rows }: { rows: AdminTenderListingRow[] }) {
   );
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">Brak rekordów.</p>;
+    return <AdminEmptyState message="Brak przetargów do moderacji." />;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
@@ -480,7 +506,6 @@ function TenderListingsTable({ rows }: { rows: AdminTenderListingRow[] }) {
           })}
         </TableBody>
       </Table>
-    </div>
   );
 }
 

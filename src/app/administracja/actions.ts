@@ -913,7 +913,6 @@ async function adminDeleteUserAccountActionImpl(
   await logAdminAction(sb, actorId, 'delete_user_account', 'user_profiles', trimmedId, null);
 
   revalidatePath('/administracja/weryfikacja');
-  revalidatePath(`/administracja/weryfikacja/${trimmedId}`);
   revalidatePath('/', 'layout');
 
   return { ok: true };
