@@ -19,7 +19,7 @@ export function RouteChangeLoader() {
 
   useEffect(() => {
     let frameId = 0;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timeoutId: number | undefined;
 
     if (isNavigating) {
       frameId = requestAnimationFrame(() => {
