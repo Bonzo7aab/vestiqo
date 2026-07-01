@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { createClient } from '../../../lib/supabase/server';
+import { resolveEffectiveUserId } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchContractorRatingSummary, fetchContractorReviews } from '../../../lib/database/contractors';
 import { fetchReviewsWrittenByUser } from '../../../lib/database/reviews';
@@ -52,7 +53,8 @@ async function RatingsDataFetcher() {
     return null;
   }
 
-  const ratingsData = await getRatingsData(user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const ratingsData = await getRatingsData(effectiveUserId);
 
   if (!ratingsData) {
     return (

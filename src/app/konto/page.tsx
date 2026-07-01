@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
+import { getEffectiveUserContext } from '../../lib/auth/effective-user';
 import { getUserVerificationStatus } from '../../lib/database/verification-queries';
 import {
   fetchVerificationDocumentReviews,
@@ -20,17 +21,20 @@ export default async function Account() {
     redirect('/logowanie?redirectTo=/konto');
   }
 
+  const effectiveContext = await getEffectiveUserContext();
+  const effectiveUserId = effectiveContext?.effectiveUserId ?? user.id;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data: profileRow } = await sb
     .from('user_profiles')
     .select('user_type')
-    .eq('id', user.id)
+    .eq('id', effectiveUserId)
     .maybeSingle();
 
   const isContractor = profileRow?.user_type === 'contractor';
 
-  const verificationStatus = await getUserVerificationStatus(user.id, supabase);
+  const verificationStatus = await getUserVerificationStatus(effectiveUserId, supabase);
 
   let existingDocuments: VerificationDocumentEntry[] = [];
   let documentReviews: Awaited<ReturnType<typeof fetchVerificationDocumentReviews>> = {};
@@ -42,14 +46,14 @@ export default async function Account() {
       sb
         .from('contractor_account_settings')
         .select('oc_valid_until, oc_policy_scan_path')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .maybeSingle(),
       sb
         .from('user_profiles')
         .select('verification_document_paths')
-        .eq('id', user.id)
+        .eq('id', effectiveUserId)
         .maybeSingle(),
-      fetchUserPrimaryCompany(supabase, user.id),
+      fetchUserPrimaryCompany(supabase, effectiveUserId),
     ]);
     const accountOcPath = (casResult.data?.oc_policy_scan_path as string | null) ?? null;
     const verificationPaths =
@@ -64,7 +68,7 @@ export default async function Account() {
 
     [existingDocuments, documentReviews] = await Promise.all([
       getVerificationDocumentSignedUrls(supabase, docPaths),
-      fetchVerificationDocumentReviews(supabase, user.id),
+      fetchVerificationDocumentReviews(supabase, effectiveUserId),
     ]);
 
     if (primaryCompanyResult.data?.id) {

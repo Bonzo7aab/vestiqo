@@ -1,4 +1,5 @@
 import { createClient } from '../lib/supabase/server';
+import { getEffectiveUserContext } from '../lib/auth/effective-user';
 import { buildEvaluationContext } from '../lib/flagship/context';
 import { isFeatureEnabled } from '../lib/flagship/evaluate';
 import { FLAGSHIP_FLAG_KEYS } from '../lib/flagship/keys';
@@ -12,25 +13,28 @@ export async function HeaderWithSession() {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
+  const effectiveContext = await getEffectiveUserContext();
+  const profileUserId = effectiveContext?.effectiveUserId ?? authUser?.id ?? null;
+
   let initialUser: AuthUser | null = null;
 
-  if (authUser) {
+  if (authUser && profileUserId) {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select(
         'first_name, last_name, user_type, phone, is_verified, verification_submitted_at, profile_completed, onboarding_completed, avatar_url, platform_role, account_role, organization_type'
       )
-      .eq('id', authUser.id)
+      .eq('id', profileUserId)
       .maybeSingle();
 
     if (profile) {
       const registryVerified =
         profile.user_type === 'contractor'
-          ? await getRegistryVerifiedForUser(supabase, authUser.id)
+          ? await getRegistryVerifiedForUser(supabase, profileUserId)
           : undefined;
 
       initialUser = {
-        id: authUser.id,
+        id: profileUserId,
         email: authUser.email ?? '',
         firstName: profile.first_name,
         lastName: profile.last_name,
@@ -42,13 +46,13 @@ export async function HeaderWithSession() {
         profileCompleted: profile.profile_completed,
         onboardingCompleted: profile.onboarding_completed,
         avatar: profile.avatar_url ?? undefined,
-        platformRole: profile.platform_role ?? 'user',
+        platformRole: effectiveContext?.isImpersonating ? 'user' : (profile.platform_role ?? 'user'),
         accountRole: profile.account_role ?? null,
         organizationType: profile.organization_type ?? null,
       };
     } else {
       initialUser = {
-        id: authUser.id,
+        id: profileUserId,
         email: authUser.email ?? '',
         firstName: authUser.user_metadata?.first_name ?? authUser.email?.split('@')[0] ?? 'User',
         lastName: authUser.user_metadata?.last_name ?? '',

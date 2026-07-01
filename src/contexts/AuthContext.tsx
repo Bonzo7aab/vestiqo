@@ -23,8 +23,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export default function AuthProvider({
   children,
+  impersonationSubjectId = null,
 }: {
   children: React.ReactNode
+  impersonationSubjectId?: string | null
 }) {
   const supabase = useMemo(() => createClient(), [])
   const [session, setSession] = useState<Session | null>(null)
@@ -33,18 +35,19 @@ export default function AuthProvider({
   const initialSessionHandled = useRef(false)
 
   const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
+    const profileUserId = impersonationSubjectId ?? authUser.id
     try {
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('id', profileUserId)
         .maybeSingle()
 
       if (profileError || !profile) {
-        console.warn('No profile found for user:', authUser.id, profileError)
+        console.warn('No profile found for user:', profileUserId, profileError)
         // Match HeaderWithSession fallback so protected routes do not loop on session-without-profile.
         return {
-          id: authUser.id,
+          id: profileUserId,
           email: authUser.email ?? '',
           firstName:
             (authUser.user_metadata?.first_name as string | undefined) ??
@@ -58,7 +61,7 @@ export default function AuthProvider({
           verificationSubmittedAt: null,
           profileCompleted: false,
           onboardingCompleted: false,
-          platformRole: 'user',
+          platformRole: impersonationSubjectId ? 'user' : 'user',
         }
       }
 
@@ -69,7 +72,7 @@ export default function AuthProvider({
         const { data: relation } = await sb
           .from('user_companies')
           .select('company_id')
-          .eq('user_id', authUser.id)
+          .eq('user_id', profileUserId)
           .eq('is_primary', true)
           .eq('is_active', true)
           .maybeSingle();
@@ -86,7 +89,7 @@ export default function AuthProvider({
             .select(
               'vat_status, vat_whitelist_account_assigned, finance_registry_status, finance_registry_checked_at',
             )
-            .eq('user_id', authUser.id)
+            .eq('user_id', profileUserId)
             .maybeSingle();
 
           registryVerified = isUserRegistryVerified(company, settings);
@@ -96,7 +99,7 @@ export default function AuthProvider({
       }
 
       return {
-        id: authUser.id,
+        id: profileUserId,
         email: authUser.email!,
         firstName: profile.first_name,
         lastName: profile.last_name,
@@ -109,7 +112,7 @@ export default function AuthProvider({
         profileCompleted: profile.profile_completed,
         onboardingCompleted: profile.onboarding_completed,
         avatar: profile.avatar_url || undefined,
-        platformRole: profile.platform_role ?? 'user',
+        platformRole: impersonationSubjectId ? 'user' : (profile.platform_role ?? 'user'),
         accountRole: profile.account_role ?? null,
         organizationType: profile.organization_type ?? null,
       }
@@ -117,7 +120,7 @@ export default function AuthProvider({
       console.error('Error fetching profile:', err)
       return null
     }
-  }, [supabase])
+  }, [supabase, impersonationSubjectId])
 
   const loadProfileForSession = useCallback(
     async (nextSession: Session | null) => {
@@ -248,7 +251,14 @@ export default function AuthProvider({
       window.clearTimeout(fallbackTimer)
       subscription.unsubscribe()
     }
-  }, [supabase, loadProfileForSession, refreshSession])
+  }, [supabase, loadProfileForSession, refreshSession, impersonationSubjectId])
+
+  useEffect(() => {
+    if (!session?.user) {
+      return
+    }
+    void loadProfileForSession(session)
+  }, [impersonationSubjectId, session, loadProfileForSession])
 
   const contextValue = useMemo(
     () => ({

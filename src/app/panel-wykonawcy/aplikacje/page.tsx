@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { createClient } from '../../../lib/supabase/server';
+import { resolveEffectiveUserId } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchContractorContestOffers } from '../../../lib/database/contractor-contest-offers';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -44,7 +45,8 @@ async function ApplicationsDataFetcher() {
     return null;
   }
 
-  const data = await getContestOffersData(user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const data = await getContestOffersData(effectiveUserId);
 
   if (!data) {
     return (

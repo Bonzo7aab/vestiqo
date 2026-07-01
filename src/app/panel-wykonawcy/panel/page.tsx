@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { createClient } from '../../../lib/supabase/server';
+import { resolveEffectiveUserId } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchContractorDashboardStats, fetchContractorRecentActivities, fetchContractorApplications } from '../../../lib/database/contractors';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -75,7 +76,8 @@ async function DashboardDataFetcher() {
     return null;
   }
 
-  const dashboardData = await getDashboardData(user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const dashboardData = await getDashboardData(effectiveUserId);
 
   if (!dashboardData) {
     return (

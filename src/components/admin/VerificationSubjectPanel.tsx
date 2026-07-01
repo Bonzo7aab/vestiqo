@@ -42,6 +42,7 @@ import type {
   VerificationDocumentEntry,
 } from '../../lib/database/admin-verification';
 import { AdminDeleteUserAccountButton } from './AdminDeleteUserAccountButton';
+import { AdminImpersonateButtons } from './AdminImpersonateButtons';
 import { formatIbanDisplay } from '../../lib/contractor/iban';
 
 interface VerificationSubjectPanelProps {
@@ -334,6 +335,11 @@ export function VerificationSubjectPanel({
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+              <AdminImpersonateButtons
+                subjectUserId={subjectUserId}
+                userType={userType}
+                disabled={busy}
+              />
               <Button
                 type="button"
                 disabled={busy || !canApprove}

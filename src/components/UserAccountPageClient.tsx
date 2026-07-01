@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { useUserProfile } from '../contexts/AuthContext';
+import { useImpersonation } from '../contexts/ImpersonationContext';
 import type { VerificationStatus } from '../lib/database/verification';
 import { PasswordForm } from './PasswordForm';
 import { ProfileForm } from './ProfileForm';
@@ -48,6 +49,7 @@ export function UserAccountPageClient({
   initialServiceSubcategorySlugs,
 }: UserAccountPageClientProps) {
   const { user, isLoading } = useUserProfile();
+  const { isImpersonating } = useImpersonation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = React.useState(false);
@@ -254,6 +256,7 @@ export function UserAccountPageClient({
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <fieldset disabled={isImpersonating} className="min-w-0 space-y-0 border-0 p-0 m-0">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
@@ -292,6 +295,7 @@ export function UserAccountPageClient({
             <InAppNotificationSettingsPanel userId={user.id} userType={user.userType} />
           </TabsContent>
         </Tabs>
+        </fieldset>
       </div>
     </div>
   );

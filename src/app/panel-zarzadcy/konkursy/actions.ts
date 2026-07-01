@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '../../../lib/supabase/server';
+import { assertNotImpersonating, IMPERSONATION_READ_ONLY_ERROR } from '../../../lib/auth/guard-impersonation';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { getPostHogClient } from '../../../lib/posthog-server';
 import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection';
@@ -39,6 +40,12 @@ async function acceptTenderOfferActionImpl(
 
   if (!user) {
     return { success: false, error: 'Wymagane logowanie' };
+  }
+
+  try {
+    await assertNotImpersonating(user.id);
+  } catch {
+    return { success: false, error: IMPERSONATION_READ_ONLY_ERROR };
   }
 
   const { data: company, error: companyError } = await fetchUserPrimaryCompany(
@@ -92,6 +99,12 @@ async function cancelContestActionImpl(
 
   if (!user) {
     return { success: false, error: 'Wymagane logowanie' };
+  }
+
+  try {
+    await assertNotImpersonating(user.id);
+  } catch {
+    return { success: false, error: IMPERSONATION_READ_ONLY_ERROR };
   }
 
   const { data: company, error: companyError } = await fetchUserPrimaryCompany(
@@ -162,6 +175,12 @@ async function abandonContestDraftActionImpl(
 
   if (!user) {
     return { success: false, error: 'Wymagane logowanie' };
+  }
+
+  try {
+    await assertNotImpersonating(user.id);
+  } catch {
+    return { success: false, error: IMPERSONATION_READ_ONLY_ERROR };
   }
 
   const { data: company, error: companyError } = await fetchUserPrimaryCompany(

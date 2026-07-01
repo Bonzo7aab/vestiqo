@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { createClient } from '../../../lib/supabase/server';
+import { getEffectiveUserContext } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchManagerContests } from '../../../lib/database/manager-contests';
 import { ManagerKonkursyContent } from '../../../components/manager-dashboard/ManagerKonkursyContent';
@@ -22,7 +23,10 @@ export default async function KonkursyPage(): Promise<ReactElement> {
     );
   }
 
-  const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
+  const effectiveContext = await getEffectiveUserContext();
+  const effectiveUserId = effectiveContext?.effectiveUserId ?? user.id;
+
+  const { data: company } = await fetchUserPrimaryCompany(supabase, effectiveUserId);
 
   if (!company) {
     return (
@@ -39,7 +43,7 @@ export default async function KonkursyPage(): Promise<ReactElement> {
     );
   }
 
-  const contests = await fetchManagerContests(supabase, company.id, user.id);
+  const contests = await fetchManagerContests(supabase, company.id, effectiveUserId);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

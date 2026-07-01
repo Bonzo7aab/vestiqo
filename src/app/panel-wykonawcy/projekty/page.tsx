@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { createClient } from '../../../lib/supabase/server';
+import { resolveEffectiveUserId } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchPlatformProjectHistory } from '../../../lib/database/contractors';
 import { fetchContractorPortfolio } from '../../../lib/database/contractors-portfolio.server';
@@ -51,7 +52,8 @@ async function ProjectsDataFetcher() {
     return null;
   }
 
-  const projectsData = await getProjectsData(user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const projectsData = await getProjectsData(effectiveUserId);
 
   if (!projectsData) {
     return (

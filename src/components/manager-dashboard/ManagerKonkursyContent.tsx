@@ -31,6 +31,7 @@ import {
   abandonContestDraftAction,
   cancelContestAction,
 } from '../../app/panel-zarzadcy/konkursy/actions';
+import { useImpersonation } from '../../contexts/ImpersonationContext';
 import { ManagerContestOffersDialog } from './ManagerContestOffersDialog';
 import { ManagerContestQuestionsDialog } from './ManagerContestQuestionsDialog';
 import { ManagerContestWinnerDialog } from './ManagerContestWinnerDialog';
@@ -128,6 +129,7 @@ export function ManagerKonkursyContent({
 }: ManagerKonkursyContentProps): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isImpersonating } = useImpersonation();
   const [contests, setContests] = useState(initialContests);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -313,7 +315,7 @@ export function ManagerKonkursyContent({
   };
 
   const renderDraftContinueButton = (row: ManagerContest): ReactElement | null => {
-    if (row.status !== 'draft') return null;
+    if (row.status !== 'draft' || isImpersonating) return null;
 
     return (
       <Button variant="default" size="sm" className="h-8 shrink-0" asChild>
@@ -512,9 +514,11 @@ export function ManagerKonkursyContent({
     const unseen = unseenCounts[row.id] ?? 0;
     const pendingCount = unansweredCounts[row.id] ?? 0;
 
-    const abandonDraftAllowed = canAbandonManagerContestDraft(row.status, row.offersCount);
+    const abandonDraftAllowed =
+      !isImpersonating && canAbandonManagerContestDraft(row.status, row.offersCount);
     const showViewResults = row.status === 'awarded' && row.offersCount > 0;
     const showCooperationReviewEdit =
+      !isImpersonating &&
       row.hasSelectedOffer &&
       Boolean(row.selectedContractorCompanyId) &&
       Boolean(row.selectedContractorName) &&
@@ -522,7 +526,7 @@ export function ManagerKonkursyContent({
     const hasMenuItems =
       showViewResults ||
       abandonDraftAllowed ||
-      canCancelContest(row.status) ||
+      (canCancelContest(row.status) && !isImpersonating) ||
       showQuestions ||
       showCooperationReviewEdit;
 
@@ -575,7 +579,7 @@ export function ManagerKonkursyContent({
               </DropdownMenuItem>
             </>
           ) : null}
-          {canCancelContest(row.status) ? (
+          {canCancelContest(row.status) && !isImpersonating ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem

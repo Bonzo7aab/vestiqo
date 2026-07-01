@@ -3,8 +3,12 @@ import { Inter } from 'next/font/google'
 import { Suspense } from 'react'
 import './globals.css'
 import { Toaster } from '../components/ui/sonner'
-import AuthProvider from '../contexts/AuthContext'
+import { AppProviders } from '../components/AppProviders'
 import { HeaderWithSession } from '../components/HeaderWithSession'
+import {
+  getEffectiveUserContext,
+  toImpersonationClientState,
+} from '../lib/auth/effective-user'
 import { LayoutProvider } from '../components/ConditionalFooter'
 import { FilterProvider } from '../contexts/FilterContext'
 import { JobsProvider } from '../contexts/JobsContext'
@@ -51,17 +55,26 @@ export const metadata: Metadata = {
 // Note: Next.js 15 enables React.StrictMode by default in development
 // This causes useEffect to run twice and components to render twice
 // This is NORMAL and helps catch bugs. It does NOT happen in production.
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const effectiveContext = await getEffectiveUserContext()
+  const impersonationState = toImpersonationClientState(effectiveContext)
+  const impersonationSubjectId = impersonationState.isImpersonating
+    ? impersonationState.subjectUserId
+    : null
+
   return (
     <html lang="pl">
       <body className={inter.className}>
         <ScrollbarManager />
         <ServiceWorkerRegistration />
-        <AuthProvider>
+        <AppProviders
+          impersonationState={impersonationState}
+          impersonationSubjectId={impersonationSubjectId}
+        >
           <NavigationProvider>
             <RouteChangeLoader />
             <Suspense fallback={null}>
@@ -95,7 +108,7 @@ export default function RootLayout({
               </FilterProvider>
             </Suspense>
           </NavigationProvider>
-        </AuthProvider>
+        </AppProviders>
       </body>
     </html>
   )

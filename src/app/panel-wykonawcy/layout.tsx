@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
+import { getEffectiveUserContext, resolveEffectiveUserId } from '../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { getUserVerificationStatus } from '../../lib/database/verification-queries';
 import { buildEvaluationContext } from '../../lib/flagship/context';
@@ -22,25 +23,31 @@ export default async function ContractorDashboardLayout({
     redirect('/logowanie?redirectTo=/panel-wykonawcy');
   }
 
-  const { data: company, error: companyError } = await fetchUserPrimaryCompany(supabase, user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const effectiveContext = await getEffectiveUserContext();
+
+  const { data: company, error: companyError } = await fetchUserPrimaryCompany(
+    supabase,
+    effectiveUserId,
+  );
   
   if (companyError || !company) {
     redirect(kontoCompanyDataHref('contractor'));
   }
 
-  const verificationStatus = await getUserVerificationStatus(user.id, supabase);
+  const verificationStatus = await getUserVerificationStatus(effectiveUserId, supabase);
 
   const { data: userProfile } = await supabase
     .from('user_profiles')
     .select('user_type, platform_role')
-    .eq('id', user.id)
+    .eq('id', effectiveUserId)
     .maybeSingle();
 
   const evaluationContext = buildEvaluationContext({
-    id: user.id,
+    id: effectiveUserId,
     email: user.email,
     userType: userProfile?.user_type,
-    platformRole: userProfile?.platform_role ?? undefined,
+    platformRole: effectiveContext?.isImpersonating ? 'user' : (userProfile?.platform_role ?? undefined),
   });
 
   const [showOrders, showServices] = await Promise.all([

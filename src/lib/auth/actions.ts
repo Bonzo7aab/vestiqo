@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { getRegistrationSettingsForRegister } from '../database/platform-settings'
 import { registrationClosedMessage } from '../registration-settings-shared'
 import { sanitizeRedirectPath } from './redirectPath'
+import { assertNotImpersonating, IMPERSONATION_READ_ONLY_ERROR } from './guard-impersonation'
 import { isRedirectForbiddenForContractor } from './manager-contest-routes'
 import { translateAuthErrorMessage, translateRegistrationErrorMessage, REGISTRATION_ERRORS } from './errorMessages'
 import {
@@ -520,6 +521,12 @@ async function updateUserActionImpl(userData: UpdateUserData) {
     return { error: 'Not authenticated' }
   }
 
+  try {
+    await assertNotImpersonating(user.id)
+  } catch {
+    return { error: IMPERSONATION_READ_ONLY_ERROR }
+  }
+
   const patch: UpdateUserData = {}
 
   if (userData.first_name !== undefined) {
@@ -681,6 +688,12 @@ async function deleteAccountActionImpl(): Promise<DeleteAccountActionResult> {
     
     if (userError || !user) {
       return { error: 'Not authenticated' }
+    }
+
+    try {
+      await assertNotImpersonating(user.id)
+    } catch {
+      return { error: IMPERSONATION_READ_ONLY_ERROR }
     }
 
     const userId = user.id

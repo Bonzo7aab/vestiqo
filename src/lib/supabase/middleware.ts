@@ -2,6 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isInvalidRefreshTokenError } from '../auth/sessionErrors'
 import { isManagerContestPath } from '../auth/manager-contest-routes'
+import {
+  IMPERSONATION_COOKIE_NAME,
+  readImpersonationFromCookieGetter,
+} from '../admin/impersonation'
 import type { Database } from '../../types/database'
 import { supabaseCookieOptions } from './cookie-options'
 
@@ -115,9 +119,33 @@ export async function updateSession(request: NextRequest) {
     const isContractor = profile.user_type === 'contractor'
     const isManager = profile.user_type === 'manager'
 
+    const impersonationCookieValue = request.cookies.get(IMPERSONATION_COOKIE_NAME)?.value
+    const impersonation =
+      user && impersonationCookieValue
+        ? readImpersonationFromCookieGetter(
+            () => impersonationCookieValue,
+            user.id,
+          )
+        : null
+
+    if (impersonationCookieValue && !impersonation) {
+      supabaseResponse.cookies.delete(IMPERSONATION_COOKIE_NAME)
+    }
+
+    const isImpersonating = impersonation !== null
+    const routeAsAdmin = isAdmin && !isImpersonating
+    const effectiveIsContractor = isImpersonating
+      ? impersonation.subjectUserType === 'contractor'
+      : isContractor
+    const effectiveIsManager = isImpersonating
+      ? impersonation.subjectUserType === 'manager'
+      : isManager
+
     const homePathFor = (() => {
-      if (isAdmin) return '/administracja'
-      if (isContractor) return '/panel-wykonawcy'
+      if (routeAsAdmin) return '/administracja'
+      if (effectiveIsContractor) {
+        return isImpersonating ? '/panel-wykonawcy/aplikacje' : '/panel-wykonawcy'
+      }
       return '/panel-zarzadcy'
     })()
 
@@ -129,31 +157,31 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // /panel-zarzadcy is manager-only (contractors/administracjas are sent to their home)
-    if (isManagerDashboardPath && !isAdmin && !isManager) {
+    // /panel-zarzadcy is manager-only (contractors/admins are sent to their home)
+    if (isManagerDashboardPath && !routeAsAdmin && !effectiveIsManager) {
       const url = request.nextUrl.clone()
       url.pathname = homePathFor
       return NextResponse.redirect(url)
     }
-    if ((isManagerDashboardPath || isAccountPath) && isAdmin) {
+    if ((isManagerDashboardPath || isAccountPath) && routeAsAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/administracja'
       return NextResponse.redirect(url)
     }
 
     // /panel-wykonawcy is contractor-only (admin lands on /administracja instead)
-    if (isContractorOnlyPath && !isContractor && !isAdmin) {
+    if (isContractorOnlyPath && !effectiveIsContractor && !routeAsAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = homePathFor
       return NextResponse.redirect(url)
     }
-    if (isContractorOnlyPath && isAdmin) {
+    if (isContractorOnlyPath && routeAsAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/administracja'
       return NextResponse.redirect(url)
     }
 
-    // /administracja is admin-only
+    // /administracja is admin-only (real admin session, not impersonation view)
     if (isAdminPath && !isAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = homePathFor
@@ -161,7 +189,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Contest creation is manager-only (contractors cannot create contests)
-    if (isManagerContestRoute && isContractor && !isAdmin) {
+    if (isManagerContestRoute && effectiveIsContractor && !routeAsAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = homePathFor
       return NextResponse.redirect(url)

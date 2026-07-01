@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
+import { getEffectiveUserContext } from '../../lib/auth/effective-user';
 import { buildEvaluationContext } from '../../lib/flagship/context';
 import { isOrdersFeatureEnabled } from '../../lib/flagship/orders-feature';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
@@ -18,18 +19,21 @@ export default async function ManagerDashboardLayout({
     redirect('/logowanie?redirectTo=/panel-zarzadcy');
   }
 
+  const effectiveContext = await getEffectiveUserContext();
+  const effectiveUserId = effectiveContext?.effectiveUserId ?? user.id;
+
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('user_type, platform_role')
-    .eq('id', user.id)
+    .eq('id', effectiveUserId)
     .maybeSingle();
 
   const showOrders = await isOrdersFeatureEnabled(
     buildEvaluationContext({
-      id: user.id,
+      id: effectiveUserId,
       email: user.email,
       userType: profile?.user_type,
-      platformRole: profile?.platform_role ?? undefined,
+      platformRole: effectiveContext?.isImpersonating ? 'user' : (profile?.platform_role ?? undefined),
     }),
   );
 

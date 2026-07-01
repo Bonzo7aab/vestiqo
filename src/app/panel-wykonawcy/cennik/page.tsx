@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/server';
+import { resolveEffectiveUserId } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchContractorById } from '../../../lib/database/contractors';
 import { isContractorServicesFeatureEnabledForAuthUser } from '../../../lib/flagship/contractor-services-feature';
@@ -48,7 +49,8 @@ async function PricingDataFetcher() {
     return null;
   }
 
-  const pricingData = await getPricingData(user.id);
+  const effectiveUserId = await resolveEffectiveUserId(user.id);
+  const pricingData = await getPricingData(effectiveUserId);
 
   if (!pricingData) {
     return (
