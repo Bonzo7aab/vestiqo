@@ -14,7 +14,8 @@ import { ServiceWorkerRegistration } from '../components/ServiceWorkerRegistrati
 import { CookieConsentBanner } from '../components/CookieConsentBanner'
 import { ScrollbarManager } from '../components/ScrollbarManager'
 import { NavigationProvider } from '../contexts/NavigationContext'
-import { NavigationProgressBar } from '../components/NavigationProgressBar'
+import { RouteChangeLoader } from '../components/RouteChangeLoader'
+import { NavigationRouteTracker } from '../components/NavigationRouteTracker'
 import { BrowserAuthSync } from '../components/BrowserAuthSync'
 
 const inter = Inter({ 
@@ -61,7 +62,10 @@ export default function RootLayout({
         <ServiceWorkerRegistration />
         <AuthProvider>
           <NavigationProvider>
-            <NavigationProgressBar />
+            <RouteChangeLoader />
+            <Suspense fallback={null}>
+              <NavigationRouteTracker />
+            </Suspense>
             <Suspense fallback={null}>
               <BrowserAuthSync />
             </Suspense>

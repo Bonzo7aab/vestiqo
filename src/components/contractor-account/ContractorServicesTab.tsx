@@ -69,6 +69,9 @@ export function ContractorServicesTab({
     setSaving(false);
   }, [companyId, draftSlugs, savedSlugs, saving]);
 
+  const activeSlugs = isEditing ? draftSlugs : savedSlugs;
+  const selectedServicesCount = activeSlugs.size;
+
   if (!companyId) {
     return (
       <Card>
@@ -89,8 +92,11 @@ export function ContractorServicesTab({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-[hsl(var(--brand-navy))]">
-            Wybierz kategorie świadczonych usług
+          <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-[hsl(var(--brand-navy))]">
+            <span>Wybierz kategorie świadczonych usług</span>
+            <span className="text-base font-semibold tabular-nums text-primary">
+              ({selectedServicesCount})
+            </span>
           </h2>
           <p className="text-sm text-muted-foreground max-w-3xl">
             Kliknij w podkategorie, w których specjalizuje się Twoja firma. Wybrane tagi określają

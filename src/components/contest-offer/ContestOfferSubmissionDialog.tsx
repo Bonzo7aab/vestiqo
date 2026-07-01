@@ -423,7 +423,10 @@ export function ContestOfferSubmissionDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[92vh] min-h-0 flex-col gap-0 overflow-hidden p-0 lg:max-w-4xl">
+      <DialogContent
+        className="flex max-h-[92vh] min-h-0 flex-col gap-0 overflow-hidden p-0 lg:max-w-4xl"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader className="shrink-0 space-y-3 border-b bg-muted/30 px-6 py-4 pr-12">
           <div className="space-y-1">
             <DialogTitle className="text-left text-lg leading-snug">

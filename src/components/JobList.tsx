@@ -24,6 +24,7 @@ import { useUserProfile } from '../contexts/AuthContext';
 import { useContractorContestBidStatus } from '../hooks/useContractorContestBidStatus';
 import type { Job } from '../types/job';
 import { cn } from './ui/utils';
+import { AnimatedList } from './ui/animated-list';
 
 interface JobListProps {
   jobs?: Job[];
@@ -219,6 +220,10 @@ export default function JobList({
     return sorted;
   }, [filteredJobs, sortBy]);
 
+  const listRevealKey = useMemo(
+    () => `${sortBy}:${sortedJobs.map((job) => job.id).join(',')}`,
+    [sortBy, sortedJobs],
+  );
 
   return (
     <div className="flex-1 p-2 sm:p-3 lg:px-2 lg:py-3 max-w-full overflow-x-hidden">
@@ -304,24 +309,26 @@ export default function JobList({
         </div>
       )}
 
-      {sortedJobs.length > 0 && (
-        <div className="space-y-2 max-w-full overflow-x-hidden">
-          {sortedJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onClick={() => onJobSelect?.(job.id)}
-              onBookmark={isManager ? undefined : handleBookmark}
-              isBookmarked={!isManager && bookmarkedJobs.includes(job.id)}
-              onApplyClick={onApplyClick}
-              isExpired={false}
-              hasSubmittedOffer={submittedIds.has(job.id)}
-              hasDraftOffer={draftIds.has(job.id)}
-              isCheckingOffer={isLoadingBidStatus}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatedList
+        key={listRevealKey}
+        className="max-w-full overflow-x-hidden"
+        delay={50}
+      >
+        {sortedJobs.map((job) => (
+          <JobCard
+            key={job.id}
+            job={job}
+            onClick={() => onJobSelect?.(job.id)}
+            onBookmark={isManager ? undefined : handleBookmark}
+            isBookmarked={!isManager && bookmarkedJobs.includes(job.id)}
+            onApplyClick={onApplyClick}
+            isExpired={false}
+            hasSubmittedOffer={submittedIds.has(job.id)}
+            hasDraftOffer={draftIds.has(job.id)}
+            isCheckingOffer={isLoadingBidStatus}
+          />
+        ))}
+      </AnimatedList>
     </div>
   );
 }

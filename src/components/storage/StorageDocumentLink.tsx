@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthorizedDownloadUrl } from '../../lib/storage/authorized-download';
@@ -11,6 +11,7 @@ interface StorageDocumentLinkProps {
   /** Legacy public URL — used only when path is missing (old records). */
   url?: string;
   className?: string;
+  leadingIcon?: ReactNode;
 }
 
 /**
@@ -21,6 +22,7 @@ export function StorageDocumentLink({
   path,
   url,
   className,
+  leadingIcon,
 }: StorageDocumentLinkProps): ReactElement {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -60,14 +62,15 @@ export function StorageDocumentLink({
       disabled={isDownloading || (!path && !url)}
       className={
         className ??
-        'text-sm font-medium text-primary hover:underline flex items-center gap-1 disabled:opacity-50'
+        'flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:opacity-50'
       }
     >
-      {name}
+      {leadingIcon}
+      <span className="min-w-0 truncate">{name}</span>
       {isDownloading ? (
-        <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
+        <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden />
       ) : (
-        <Download className="w-3 h-3" aria-hidden />
+        <Download className="h-3 w-3 shrink-0" aria-hidden />
       )}
     </button>
   );

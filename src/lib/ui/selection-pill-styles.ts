@@ -1,8 +1,8 @@
 export const selectionPillBase =
-  'rounded-full border px-3 py-1.5 text-sm transition-colors';
+  'inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-all duration-150';
 
 export const selectionPillUnselected =
-  'border-border bg-muted/50 text-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary';
+  'border-border/80 bg-background text-foreground hover:border-primary/35 hover:bg-primary/5 hover:text-primary';
 
 export const selectionPillSelected =
-  'border-primary bg-primary/10 text-primary font-medium';
+  'border-primary/40 bg-primary/8 text-primary shadow-sm';

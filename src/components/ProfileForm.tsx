@@ -24,7 +24,7 @@ import { useUserProfile } from '../contexts/AuthContext';
 import { ContractorServiceAreaSettings } from './ContractorServiceAreaSettings';
 import { getProfileSectionLabels } from '../lib/profile/account-role-labels';
 import { cn } from './ui/utils';
-import { verifyCompanyRegistryAction } from '../lib/registry/actions';
+import { verifyCompanyRegistryAction, getCompanyRegistrySnapshotAction } from '../lib/registry/actions';
 import { buildCompanyRegistrySnapshot } from '../lib/registry/build-snapshot-from-rows';
 import {
   BUSINESS_STATUS_TOOLTIPS,
@@ -33,6 +33,12 @@ import {
 } from '../lib/registry/resolve-registry-verification-status';
 import type { CompanyRegistrySnapshot } from '../lib/registry/types';
 import { RegistryStatusPill } from './registry/RegistryStatusPill';
+import {
+  getProfileBusinessDataCache,
+  isProfileBusinessDataCacheFresh,
+  setProfileBusinessDataCache,
+  type ProfileBusinessData,
+} from '../lib/profile/profile-business-data-cache';
 
 interface ProfileFormProps {
   user: AuthUser;
@@ -91,11 +97,49 @@ const FINANCE_PILL_LABELS = {
   muted: 'Brak danych',
 } as const;
 
+function applyProfileBusinessData(
+  data: ProfileBusinessData,
+  setters: {
+    setAccountRole: (value: string | null) => void;
+    setOrganizationType: (value: string | null) => void;
+    setCompanyType: (value: string | null) => void;
+    setCompanyName: (value: string) => void;
+    setCompanyNip: (value: string) => void;
+    setCompanyRegon: (value: string) => void;
+    setCompanyKrs: (value: string) => void;
+    setLegalForm: (value: string) => void;
+    setCompanyAddress: (value: string) => void;
+    setCompanyCity: (value: string) => void;
+    setCompanyPostalCode: (value: string) => void;
+    setBankAccountIban: (value: string) => void;
+    setVatStatus: (value: string) => void;
+    setVatWhitelistAssigned: (value: boolean | null) => void;
+    setRegistrySnapshot: (value: CompanyRegistrySnapshot | null) => void;
+  },
+): void {
+  setters.setAccountRole(data.accountRole);
+  setters.setOrganizationType(data.organizationType);
+  setters.setCompanyType(data.companyType);
+  setters.setCompanyName(data.companyName);
+  setters.setCompanyNip(data.companyNip);
+  setters.setCompanyRegon(data.companyRegon);
+  setters.setCompanyKrs(data.companyKrs);
+  setters.setLegalForm(data.legalForm);
+  setters.setCompanyAddress(data.companyAddress);
+  setters.setCompanyCity(data.companyCity);
+  setters.setCompanyPostalCode(data.companyPostalCode);
+  setters.setBankAccountIban(data.bankAccountIban);
+  setters.setVatStatus(data.vatStatus);
+  setters.setVatWhitelistAssigned(data.vatWhitelistAssigned);
+  setters.setRegistrySnapshot(data.registrySnapshot);
+}
+
 export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const { refreshSession } = useUserProfile();
   const showBusinessData =
     Boolean(includeBusinessData) || user.userType === 'manager';
   const isContractor = user.userType === 'contractor';
+  const cachedBusinessData = getProfileBusinessDataCache(user.id);
 
   const [firstName, setFirstName] = useState(user.firstName);
   const [lastName, setLastName] = useState(user.lastName);
@@ -103,22 +147,30 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [isSavingPersonal, setIsSavingPersonal] = useState(false);
 
-  const [isLoadingBusiness, setIsLoadingBusiness] = useState(showBusinessData);
-  const [companyName, setCompanyName] = useState('');
-  const [companyNip, setCompanyNip] = useState('');
-  const [companyRegon, setCompanyRegon] = useState('');
-  const [companyKrs, setCompanyKrs] = useState('');
-  const [legalForm, setLegalForm] = useState('');
-  const [companyAddress, setCompanyAddress] = useState('');
-  const [companyCity, setCompanyCity] = useState('');
-  const [companyPostalCode, setCompanyPostalCode] = useState('');
-  const [bankAccountIban, setBankAccountIban] = useState('');
-  const [vatStatus, setVatStatus] = useState('');
-  const [vatWhitelistAssigned, setVatWhitelistAssigned] = useState<boolean | null>(null);
-  const [registrySnapshot, setRegistrySnapshot] = useState<CompanyRegistrySnapshot | null>(null);
-  const [companyType, setCompanyType] = useState<string | null>(null);
-  const [accountRole, setAccountRole] = useState<string | null>(null);
-  const [organizationType, setOrganizationType] = useState<string | null>(null);
+  const [isLoadingBusiness, setIsLoadingBusiness] = useState(
+    showBusinessData && !cachedBusinessData,
+  );
+  const [companyName, setCompanyName] = useState(cachedBusinessData?.companyName ?? '');
+  const [companyNip, setCompanyNip] = useState(cachedBusinessData?.companyNip ?? '');
+  const [companyRegon, setCompanyRegon] = useState(cachedBusinessData?.companyRegon ?? '');
+  const [companyKrs, setCompanyKrs] = useState(cachedBusinessData?.companyKrs ?? '');
+  const [legalForm, setLegalForm] = useState(cachedBusinessData?.legalForm ?? '');
+  const [companyAddress, setCompanyAddress] = useState(cachedBusinessData?.companyAddress ?? '');
+  const [companyCity, setCompanyCity] = useState(cachedBusinessData?.companyCity ?? '');
+  const [companyPostalCode, setCompanyPostalCode] = useState(cachedBusinessData?.companyPostalCode ?? '');
+  const [bankAccountIban, setBankAccountIban] = useState(cachedBusinessData?.bankAccountIban ?? '');
+  const [vatStatus, setVatStatus] = useState(cachedBusinessData?.vatStatus ?? '');
+  const [vatWhitelistAssigned, setVatWhitelistAssigned] = useState<boolean | null>(
+    cachedBusinessData?.vatWhitelistAssigned ?? null,
+  );
+  const [registrySnapshot, setRegistrySnapshot] = useState<CompanyRegistrySnapshot | null>(
+    cachedBusinessData?.registrySnapshot ?? null,
+  );
+  const [companyType, setCompanyType] = useState<string | null>(cachedBusinessData?.companyType ?? null);
+  const [accountRole, setAccountRole] = useState<string | null>(cachedBusinessData?.accountRole ?? null);
+  const [organizationType, setOrganizationType] = useState<string | null>(
+    cachedBusinessData?.organizationType ?? null,
+  );
 
   useEffect(() => {
     setFirstName(user.firstName);
@@ -187,12 +239,33 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
     }
   };
 
+  const businessDataSetters = useMemo(
+    () => ({
+      setAccountRole,
+      setOrganizationType,
+      setCompanyType,
+      setCompanyName,
+      setCompanyNip,
+      setCompanyRegon,
+      setCompanyKrs,
+      setLegalForm,
+      setCompanyAddress,
+      setCompanyCity,
+      setCompanyPostalCode,
+      setBankAccountIban,
+      setVatStatus,
+      setVatWhitelistAssigned,
+      setRegistrySnapshot,
+    }),
+    [],
+  );
+
   const loadFinanceSettings = useCallback(async () => {
     const finance = await getUserFinanceSettingsAction();
 
     if ('error' in finance) {
       console.error('ProfileForm finance load failed:', finance.error);
-      return;
+      return null;
     }
 
     let { bankAccountIban: iban, vatStatus: vat, vatWhitelistAccountAssigned } = finance.data;
@@ -203,55 +276,81 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
         iban = financeSync.data.bankAccountIban ?? iban;
         vat = financeSync.data.vatStatus ?? vat;
         vatWhitelistAccountAssigned =
-          financeSync.data.vatWhitelistAccountAssigned ?? vatWhitelistAssigned;
+          financeSync.data.vatWhitelistAccountAssigned ?? vatWhitelistAccountAssigned;
       }
     }
 
-    setBankAccountIban(iban ?? '');
-    setVatStatus(vat ?? '');
-    setVatWhitelistAssigned(vatWhitelistAccountAssigned);
+    return {
+      bankAccountIban: iban ?? '',
+      vatStatus: vat ?? '',
+      vatWhitelistAssigned: vatWhitelistAccountAssigned ?? null,
+    };
+  }, []);
 
-    return { vatStatus: vat ?? '', vatWhitelistAccountAssigned };
-  }, [vatWhitelistAssigned]);
+  useEffect(() => {
+    let cancelled = false;
 
-  const loadProfileContext = useCallback(async () => {
-    const supabase = createClient();
+    const fetchProfileBusinessData = async (): Promise<ProfileBusinessData | null> => {
+      const supabase = createClient();
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('account_role, organization_type')
-      .eq('id', user.id)
-      .maybeSingle();
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('account_role, organization_type')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    setAccountRole(profile?.account_role ?? null);
-    setOrganizationType(profile?.organization_type ?? null);
+      const nextData: ProfileBusinessData = {
+        accountRole: profile?.account_role ?? null,
+        organizationType: profile?.organization_type ?? null,
+        companyType: null,
+        companyName: '',
+        companyNip: '',
+        companyRegon: '',
+        companyKrs: '',
+        legalForm: '',
+        companyAddress: '',
+        companyCity: '',
+        companyPostalCode: '',
+        bankAccountIban: '',
+        vatStatus: '',
+        vatWhitelistAssigned: null,
+        registrySnapshot: null,
+      };
 
-    if (!showBusinessData) {
-      return;
-    }
+      if (!showBusinessData) {
+        return nextData;
+      }
 
-    setIsLoadingBusiness(true);
-    try {
       if (isContractor) {
-        const registryResult = await verifyCompanyRegistryAction();
-        if (registryResult.ok) {
-          setRegistrySnapshot(registryResult.snapshot);
+        let snapshot = await getCompanyRegistrySnapshotAction();
+        if (!snapshot) {
+          const registryResult = await verifyCompanyRegistryAction();
+          if (registryResult.ok) {
+            snapshot = registryResult.snapshot;
+          }
         }
+        nextData.registrySnapshot = snapshot;
       }
 
       const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
 
-      setCompanyType(company?.type ?? null);
-      setCompanyName(company?.name || '');
-      setCompanyNip((company?.nip || '').trim());
-      setCompanyRegon((company?.regon || '').trim());
-      setCompanyKrs((company?.krs || '').trim());
-      setLegalForm(company?.legal_form || '');
-      setCompanyAddress(company?.address || '');
-      setCompanyCity(company?.city || '');
-      setCompanyPostalCode(company?.postal_code || '');
+      nextData.companyType = company?.type ?? null;
+      nextData.companyName = company?.name || '';
+      nextData.companyNip = (company?.nip || '').trim();
+      nextData.companyRegon = (company?.regon || '').trim();
+      nextData.companyKrs = (company?.krs || '').trim();
+      nextData.legalForm = company?.legal_form || '';
+      nextData.companyAddress = company?.address || '';
+      nextData.companyCity = company?.city || '';
+      nextData.companyPostalCode = company?.postal_code || '';
 
       const finance = await loadFinanceSettings();
+
+      if (finance) {
+        nextData.bankAccountIban = finance.bankAccountIban;
+        nextData.vatStatus = finance.vatStatus;
+        nextData.vatWhitelistAssigned = finance.vatWhitelistAssigned;
+      }
 
       if (!isContractor && company) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -264,32 +363,58 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        setRegistrySnapshot(
-          buildCompanyRegistrySnapshot(company, {
-            vat_status: finance?.vatStatus ?? settings?.vat_status,
-            vat_whitelist_account_assigned:
-              finance?.vatWhitelistAccountAssigned ?? settings?.vat_whitelist_account_assigned,
-            finance_registry_status: settings?.finance_registry_status,
-            finance_registry_checked_at: settings?.finance_registry_checked_at,
-          }),
-        );
-      } else if (company && finance) {
-        setRegistrySnapshot(prev =>
-          prev ??
-          buildCompanyRegistrySnapshot(company, {
-            vat_status: finance.vatStatus,
-            vat_whitelist_account_assigned: finance.vatWhitelistAccountAssigned,
-          }),
-        );
+        nextData.registrySnapshot = buildCompanyRegistrySnapshot(company, {
+          vat_status: finance?.vatStatus ?? settings?.vat_status,
+          vat_whitelist_account_assigned:
+            finance?.vatWhitelistAssigned ?? settings?.vat_whitelist_account_assigned,
+          finance_registry_status: settings?.finance_registry_status,
+          finance_registry_checked_at: settings?.finance_registry_checked_at,
+        });
+      } else if (company && finance && !nextData.registrySnapshot) {
+        nextData.registrySnapshot = buildCompanyRegistrySnapshot(company, {
+          vat_status: finance.vatStatus,
+          vat_whitelist_account_assigned: finance.vatWhitelistAssigned,
+        });
       }
-    } finally {
-      setIsLoadingBusiness(false);
-    }
-  }, [isContractor, loadFinanceSettings, showBusinessData, user.id]);
 
-  useEffect(() => {
+      return nextData;
+    };
+
+    const loadProfileContext = async () => {
+      const cached = getProfileBusinessDataCache(user.id);
+      if (cached) {
+        applyProfileBusinessData(cached, businessDataSetters);
+        setIsLoadingBusiness(false);
+        if (isProfileBusinessDataCacheFresh(user.id)) {
+          return;
+        }
+      } else if (showBusinessData) {
+        setIsLoadingBusiness(true);
+      }
+
+      try {
+        const data = await fetchProfileBusinessData();
+        if (cancelled || !data) {
+          return;
+        }
+
+        applyProfileBusinessData(data, businessDataSetters);
+        if (showBusinessData) {
+          setProfileBusinessDataCache(user.id, data);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingBusiness(false);
+        }
+      }
+    };
+
     void loadProfileContext();
-  }, [loadProfileContext]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessDataSetters, isContractor, loadFinanceSettings, showBusinessData, user.id]);
 
   const vatLabel =
     VAT_STATUS_OPTIONS.find(option => option.value === vatStatus)?.label ??

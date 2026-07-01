@@ -228,7 +228,7 @@ export function MobileMenuDock() {
               <DrawerTitle>Szukaj ogłoszeń</DrawerTitle>
             </DrawerHeader>
             <div className="p-4 pb-8">
-              <HeaderJobSearch className="flex-col sm:flex-row w-full max-w-none" />
+              <HeaderJobSearch className="w-full max-w-none" />
             </div>
           </DrawerContent>
         </Drawer>

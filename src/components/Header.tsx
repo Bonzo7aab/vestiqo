@@ -2,17 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Search,
   User,
   MessagesSquare,
-  GraduationCap,
-  Play,
-  Bookmark,
   Star,
-  LogOut,
-  ClipboardList,
   ChevronDown,
-  Package,
   UserPlus,
 } from 'lucide-react';
 import { VerificationAttentionIcon } from './VerificationAttentionIcon';
@@ -24,16 +17,11 @@ import { createClient } from '../lib/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
   Drawer,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
   DrawerTrigger,
 } from './ui/drawer';
 import { AuthPromptPopover, AUTH_PROMPT_FAVORITES, AUTH_PROMPT_MESSAGES } from './AuthPromptPopover';
@@ -52,6 +40,9 @@ import { getAccountRoleDisplayLabel } from '../lib/profile/account-role-labels';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../lib/verification/documents-route';
 import { BrandLogo } from './BrandLogo';
 import { BRAND } from '../lib/brand';
+import { cn } from './ui/utils';
+import { AccountMenuPanel } from './account/AccountMenuPanel';
+import { buildAccountMenuSections } from '../lib/account-menu-sections';
 
 function GuestAuthDropdown({
   onLogin,
@@ -83,7 +74,7 @@ function GuestAuthDropdown({
             onClick={onLogin}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <User className="h-4 w-4" />
             </span>
             <span className="min-w-0">
@@ -96,7 +87,7 @@ function GuestAuthDropdown({
             onClick={onRegister}
             className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <UserPlus className="h-4 w-4" />
             </span>
             <span className="min-w-0">
@@ -309,17 +300,69 @@ export function Header({
     router.push('/uzupelnianie-profilu')
   }
 
-  const renderAvatarTrigger = (className?: string) => (
+  const accountMenuHandlers = {
+    onAdminPanel: handleAdminPanelClick,
+    onAccount: handleAccountClick,
+    onVerification: handleVerificationClick,
+    onZamowienia: handleZamowieniaClick,
+    onOffers: handleOffersClick,
+    onZgloszenia: handleZgloszeniaClick,
+    onBookmarkedJobs: handleBookmarkedJobsClick,
+    onMessaging: handleMessagingClick,
+    onWelcome: handleWelcomeClick,
+    onTutorial: handleTutorialClick,
+    onProfileCompletion: handleProfileCompletionClick,
+  };
+
+  const accountMenuSections = buildAccountMenuSections({
+    isAdmin,
+    userType: currentUser?.userType,
+    showOrders,
+    showVerificationAttention,
+    verificationLabel: verificationMenuLabel(userForVerificationUi),
+    showProfileCompletion: !currentUser?.profileCompleted,
+    handlers: accountMenuHandlers,
+  });
+
+  const accountMenuPanelProps = {
+    firstName: currentUser?.firstName ?? '',
+    lastName: currentUser?.lastName ?? '',
+    email: currentUser?.email,
+    roleLabel: userRoleLabel,
+    showEmail: currentUser?.userType !== 'manager',
+    showVerificationAttention,
+    sections: accountMenuSections,
+    onLogout: handleLogout,
+  };
+
+  const renderAvatarTrigger = (className?: string, showLabel = false) => (
     <Button
-      variant="ghost"
-      className={`relative h-8 w-8 rounded-full bg-gray-200 hover:bg-gray-300 ${className ?? ''}`}
+      variant="outline"
+      className={cn(
+        'group relative h-auto gap-2 rounded-lg border border-[hsl(var(--brand-navy)/0.1)] bg-card px-1.5 py-1',
+        'shadow-[0_1px_2px_hsl(var(--brand-navy)/0.06),0_3px_10px_hsl(var(--brand-navy)/0.06)]',
+        'ring-1 ring-inset ring-white/75',
+        'transition-all duration-150',
+        'hover:border-primary/25 hover:bg-primary/5 hover:shadow-[0_1px_3px_hsl(var(--primary)/0.1),0_4px_14px_hsl(var(--brand-navy)/0.06)]',
+        'focus-visible:ring-2 focus-visible:ring-primary/30',
+        showLabel && 'pr-2.5',
+        className,
+      )}
     >
-      <Avatar className="h-8 w-8">
-        <AvatarFallback className="bg-primary text-primary-foreground">
+      <Avatar className="h-8 w-8 rounded-lg ring-1 ring-primary/15">
+        <AvatarFallback className="rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
           {currentUser?.firstName?.[0]}
           {currentUser?.lastName?.[0]}
         </AvatarFallback>
       </Avatar>
+      {showLabel && currentUser ? (
+        <>
+          <span className="hidden max-w-[7rem] truncate text-sm font-medium text-foreground md:inline">
+            {currentUser.firstName}
+          </span>
+          <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:text-primary md:inline group-data-[state=open]:rotate-180" />
+        </>
+      ) : null}
       {showVerificationAttention && (
         <span className="absolute -top-1 -right-1" aria-label={verificationAttentionLabel}>
           <VerificationAttentionIcon className="h-4 w-4 fill-amber-50" />
@@ -336,7 +379,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-card border-b border-border">
+    <header className="sticky top-0 z-50 w-full bg-card">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* 1. Logo Section - Left */}
@@ -453,7 +496,7 @@ export function Header({
             {/* User Actions */}
             {((isMounted && isLoading && !currentUser) || (!isMounted && !initialUser)) ? (
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+                <div className="h-8 w-8 rounded-lg bg-gray-200 animate-pulse"></div>
                 <span className="text-sm text-gray-500">Ładowanie...</span>
               </div>
             ) : userIsAuthenticated ? (
@@ -462,339 +505,25 @@ export function Header({
                 <div className="md:hidden">
                   <Drawer>
                     <DrawerTrigger asChild>{renderAvatarTrigger()}</DrawerTrigger>
-                  <DrawerContent>
-                    <DrawerHeader className="border-b">
-                      <DrawerTitle>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none flex items-center gap-1.5">
-                            <span>
-                              {currentUser?.firstName} {currentUser?.lastName}
-                            </span>
-                            {showVerificationAttention && (
-                              <VerificationAttentionIcon className="h-4 w-4 shrink-0" />
-                            )}
-                          </p>
-                          {currentUser?.userType !== 'manager' && (
-                            <p className="text-xs leading-none text-muted-foreground">
-                              {currentUser?.email}
-                            </p>
-                          )}
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {userRoleLabel}
-                          </p>
-                        </div>
-                      </DrawerTitle>
-                    </DrawerHeader>
-                    <div className="overflow-y-auto flex-1 p-4">
-                      <div className="space-y-1">
-                        {isAdmin ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleAdminPanelClick}
-                            >
-                              <User className="mr-2 h-4 w-4" />
-                              <span>Panel administracyjny</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start text-destructive"
-                              onClick={handleLogout}
-                            >
-                              <LogOut className="mr-2 h-4 w-4" />
-                              <span>Wyloguj się</span>
-                            </Button>
-                          </>
-                        ) : currentUser?.userType === 'contractor' ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleAccountClick}
-                            >
-                              <User className="mr-2 h-4 w-4" />
-                              <span>Konto</span>
-                            </Button>
-                            {showVerificationAttention && (
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-start text-amber-700"
-                                onClick={handleVerificationClick}
-                              >
-                                <VerificationAttentionIcon className="mr-2 h-4 w-4" />
-                                <span>{verificationMenuLabel(userForVerificationUi)}</span>
-                              </Button>
-                            )}
-                            {showOrders ? (
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-start"
-                                onClick={handleZamowieniaClick}
-                              >
-                                <Package className="mr-2 h-4 w-4" />
-                                <span>Zamówienia</span>
-                              </Button>
-                            ) : null}
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleOffersClick}
-                            >
-                              <Bookmark className="mr-2 h-4 w-4" />
-                              <span>Oferty</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start text-destructive"
-                              onClick={handleLogout}
-                            >
-                              <LogOut className="mr-2 h-4 w-4" />
-                              <span>Wyloguj się</span>
-                            </Button>
-                          </>
-                        ) : currentUser?.userType === 'manager' ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleAccountClick}
-                            >
-                              <User className="mr-2 h-4 w-4" />
-                              <span>Konto</span>
-                            </Button>
-                            {showOrders ? (
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-start"
-                                onClick={handleZamowieniaClick}
-                              >
-                                <Package className="mr-2 h-4 w-4" />
-                                <span>Zamówienia</span>
-                              </Button>
-                            ) : null}
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleZgloszeniaClick}
-                            >
-                              <ClipboardList className="mr-2 h-4 w-4" />
-                              <span>Konkursy</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start text-destructive"
-                              onClick={handleLogout}
-                            >
-                              <LogOut className="mr-2 h-4 w-4" />
-                              <span>Wyloguj się</span>
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleBookmarkedJobsClick}
-                            >
-                              <Star className="mr-2 h-4 w-4" />
-                              <span>Zapisane zgłoszenia</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleMessagingClick}
-                            >
-                              <MessagesSquare className="mr-2 h-4 w-4" />
-                              <span>Wiadomości</span>
-                            </Button>
-
-                            <div className="h-px bg-border my-2" />
-
-                            {/* Help and Learning Section */}
-                            <div className="px-2 py-1.5">
-                              <p className="text-xs text-muted-foreground font-medium">POMOC I NAUKA</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleWelcomeClick}
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              <span>Strona powitalna</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleTutorialClick}
-                            >
-                              <GraduationCap className="mr-2 h-4 w-4" />
-                              <span>Tutorial</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start"
-                              onClick={handleProfileCompletionClick}
-                            >
-                              <User className="mr-2 h-4 w-4" />
-                              <span>Uzupełnij profil</span>
-                            </Button>
-
-                            <div className="h-px bg-border my-2" />
-
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start text-destructive"
-                              onClick={handleLogout}
-                            >
-                              <LogOut className="mr-2 h-4 w-4" />
-                              <span>Wyloguj się</span>
-                            </Button>
-                          </>
-                        )}
+                    <DrawerContent className="max-h-[85vh]">
+                      <div className="overflow-y-auto pb-6">
+                        <AccountMenuPanel {...accountMenuPanelProps} />
                       </div>
-                    </div>
-                  </DrawerContent>
+                    </DrawerContent>
                   </Drawer>
                 </div>
 
                 {/* Desktop: DropdownMenu */}
                 <div className="hidden md:block">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>{renderAvatarTrigger()}</DropdownMenuTrigger>
-                    <DropdownMenuContent 
-                      className="w-56 border border-gray-200 shadow-lg" 
-                      align="end" 
+                    <DropdownMenuTrigger asChild>{renderAvatarTrigger(undefined, true)}</DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      className="w-72 overflow-hidden rounded-lg border border-[hsl(var(--brand-navy)/0.1)] bg-card p-0 shadow-[0_4px_20px_hsl(var(--brand-navy)/0.08)] ring-1 ring-inset ring-white/50"
+                      align="end"
                       forceMount
-                      style={{ backgroundColor: '#f8fafc' }}
                     >
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none flex items-center gap-1.5">
-                          <span>
-                            {currentUser?.firstName} {currentUser?.lastName}
-                          </span>
-                          {showVerificationAttention && (
-                            <VerificationAttentionIcon className="h-4 w-4 shrink-0" />
-                          )}
-                        </p>
-                        {currentUser?.userType !== 'manager' && (
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {currentUser?.email}
-                          </p>
-                        )}
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {userRoleLabel}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {isAdmin ? (
-                      <>
-                        <DropdownMenuItem onClick={handleAdminPanelClick}>
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Panel administracyjny</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Wyloguj się</span>
-                        </DropdownMenuItem>
-                      </>
-                    ) : currentUser?.userType === 'contractor' ? (
-                      <>
-                        <DropdownMenuItem onClick={handleAccountClick}>
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Konto</span>
-                        </DropdownMenuItem>
-                        {showVerificationAttention && (
-                          <DropdownMenuItem onClick={handleVerificationClick}>
-                            <VerificationAttentionIcon className="mr-2 h-4 w-4" />
-                            <span>{verificationMenuLabel(userForVerificationUi)}</span>
-                          </DropdownMenuItem>
-                        )}
-                        {showOrders ? (
-                          <DropdownMenuItem onClick={handleZamowieniaClick}>
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Zamówienia</span>
-                          </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuItem onClick={handleOffersClick}>
-                          <Bookmark className="mr-2 h-4 w-4" />
-                          <span>Oferty</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Wyloguj się</span>
-                        </DropdownMenuItem>
-                      </>
-                    ) : currentUser?.userType === 'manager' ? (
-                      <>
-                        <DropdownMenuItem onClick={handleAccountClick}>
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Konto</span>
-                        </DropdownMenuItem>
-                        {showOrders ? (
-                          <DropdownMenuItem onClick={handleZamowieniaClick}>
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Zamówienia</span>
-                          </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuItem onClick={handleZgloszeniaClick}>
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          <span>Konkursy</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Wyloguj się</span>
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <>
-                        <DropdownMenuItem onClick={handleAccountClick}>
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Profil</span>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem onClick={handleBookmarkedJobsClick}>
-                          <Star className="mr-2 h-4 w-4" />
-                          <span>Zapisane zgłoszenia</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleMessagingClick}>
-                          <MessagesSquare className="mr-2 h-4 w-4" />
-                          <span>Wiadomości</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-
-                        {/* Help and Learning Section */}
-                        <DropdownMenuLabel className="text-xs text-muted-foreground">
-                          POMOC I NAUKA
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem onClick={handleWelcomeClick}>
-                          <Play className="mr-2 h-4 w-4" />
-                          <span>Strona powitalna</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleTutorialClick}>
-                          <GraduationCap className="mr-2 h-4 w-4" />
-                          <span>Tutorial</span>
-                        </DropdownMenuItem>
-                        {!currentUser?.profileCompleted && (
-                          <DropdownMenuItem onClick={handleProfileCompletionClick}>
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Uzupełnij profil</span>
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Wyloguj się</span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
+                      <AccountMenuPanel {...accountMenuPanelProps} />
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </>

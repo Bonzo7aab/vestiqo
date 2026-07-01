@@ -265,13 +265,13 @@ function RegisterEntityTile({
       <Label
         htmlFor={id}
         className={cn(
-          'flex h-full cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-border/60 bg-card p-4 text-center transition-all sm:p-5',
-          'hover:border-primary/40 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:shadow-sm',
+          'flex h-full cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-border bg-card p-4 text-center shadow-sm transition-all sm:p-5',
+          'hover:border-primary/50 hover:shadow-md peer-checked:border-primary peer-checked:bg-primary/8 peer-checked:shadow-md peer-checked:ring-2 peer-checked:ring-primary/20',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/12 ring-1 ring-primary/15 peer-checked:bg-primary/15">
+          <Icon className="h-6 w-6 text-primary" strokeWidth={2.25} />
         </span>
         <span className="space-y-1">
           <span className="block font-semibold text-foreground">{label}</span>
@@ -311,8 +311,8 @@ function RegisterRoleOption({
       <Label
         htmlFor={id}
         className={cn(
-          'flex cursor-pointer items-center rounded-xl border-2 border-border/60 bg-card px-4 py-3 text-sm font-medium transition-all',
-          'hover:border-primary/40 peer-checked:border-primary peer-checked:bg-primary/5',
+          'flex cursor-pointer items-center rounded-xl border-2 border-border bg-card px-4 py-3 text-sm font-medium shadow-sm transition-all',
+          'hover:border-primary/50 hover:bg-muted/30 peer-checked:border-primary peer-checked:bg-primary/8 peer-checked:shadow-sm peer-checked:ring-2 peer-checked:ring-primary/15',
         )}
       >
         {label}

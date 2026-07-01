@@ -1,6 +1,9 @@
-import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
+import { Layers } from 'lucide-react';
 import { CategoryDirectory } from '../../components/content/CategoryDirectory';
+import { MarketingHeroIntro } from '../../components/content/marketing-primitives';
+import { MarketingPageLayout } from '../../components/content/MarketingPageLayout';
 import { serviceCategoriesIntro } from '../../lib/content/dla-uzytkownikow';
+import { staticInfoMetadata } from '../../components/StaticInfoPage';
 
 export const metadata = staticInfoMetadata(
   'Kategorie usług',
@@ -9,8 +12,11 @@ export const metadata = staticInfoMetadata(
 
 export default function ServiceCategoriesPage() {
   return (
-    <StaticInfoPage title="Kategorie usług" description={serviceCategoriesIntro}>
+    <MarketingPageLayout title="Kategorie usług" description={serviceCategoriesIntro}>
+      <MarketingHeroIntro icon={Layers}>
+        {serviceCategoriesIntro}
+      </MarketingHeroIntro>
       <CategoryDirectory />
-    </StaticInfoPage>
+    </MarketingPageLayout>
   );
 }

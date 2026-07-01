@@ -15,11 +15,17 @@ interface FaqAccordionProps {
 
 export function FaqAccordion({ items }: FaqAccordionProps) {
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="single" collapsible className="w-full space-y-2">
       {items.map((item) => (
-        <AccordionItem key={item.id} value={item.id}>
-          <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
-          <AccordionContent className="text-muted-foreground leading-relaxed">
+        <AccordionItem
+          key={item.id}
+          value={item.id}
+          className="overflow-hidden rounded-xl border border-border/70 border-b border-b-border/70 bg-muted/15 px-0 last:border-b"
+        >
+          <AccordionTrigger className="px-4 py-3.5 text-left text-sm font-medium hover:no-underline sm:px-5 sm:py-4 sm:text-base [&[data-state=open]]:bg-card">
+            {item.question}
+          </AccordionTrigger>
+          <AccordionContent className="border-t border-border/50 bg-card px-4 pb-4 text-sm leading-relaxed text-muted-foreground sm:px-5">
             {item.answer}
           </AccordionContent>
         </AccordionItem>
@@ -30,14 +36,16 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
 
 interface FaqSectionProps {
   id: string;
-  title: string;
+  title?: string;
   items: FaqItem[];
 }
 
 export function FaqSection({ id, title, items }: FaqSectionProps) {
   return (
     <section id={id} className="scroll-mt-24 space-y-4">
-      <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">{title}</h2>
+      {title ? (
+        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">{title}</h2>
+      ) : null}
       <FaqAccordion items={items} />
     </section>
   );

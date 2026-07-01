@@ -4,8 +4,8 @@ import React from 'react';
 import {
   Building2,
   Clock,
-  Heart,
   MapPin,
+  Star,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -133,7 +133,7 @@ function ContestStatsSidebar({
                 onClick={onBookmark}
                 aria-label={bookmarkTooltip}
               >
-                <Heart
+                <Star
                   className={cn('h-4 w-4', isBookmarked && 'fill-current text-primary')}
                 />
               </Button>
@@ -229,8 +229,11 @@ export function ContestJobCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/5 transition-shadow w-full max-w-full',
-        isExpired ? 'bg-muted/50 opacity-70' : 'hover:shadow-md hover:shadow-black/8',
+        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/5 w-full max-w-full',
+        'transition-all duration-200 ease-out',
+        isExpired
+          ? 'bg-muted/50 opacity-70'
+          : 'hover:-translate-y-0.5 hover:shadow-md hover:shadow-black/10 active:translate-y-0 active:shadow-sm',
         isHighlighted && 'border-primary shadow-md ring-1 ring-primary/20',
       )}
       style={{

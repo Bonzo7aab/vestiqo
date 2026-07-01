@@ -1,10 +1,7 @@
-import { StaticInfoPage, staticInfoMetadata } from '../../components/StaticInfoPage';
-import { HelpTimeline } from '../../components/content/MarketingPageLayout';
-import {
-  managerHelpIntro,
-  managerHelpSteps,
-  managerSecurityStandards,
-} from '../../lib/content/support-pages';
+import { ManagerHelpPageContent } from '../../components/content/ManagerHelpPageContent';
+import { MarketingPageLayout } from '../../components/content/MarketingPageLayout';
+import { managerHelpIntro } from '../../lib/content/support-pages';
+import { staticInfoMetadata } from '../../components/StaticInfoPage';
 
 export const metadata = staticInfoMetadata(
   'Pomoc dla Zarządców',
@@ -13,27 +10,11 @@ export const metadata = staticInfoMetadata(
 
 export default function ManagerHelpPage() {
   return (
-    <StaticInfoPage
+    <MarketingPageLayout
       title="Pomoc dla Zarządcy, Spółdzielni i Wspólnot Mieszkaniowych"
       description={managerHelpIntro}
     >
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">
-          Przewodnik: Jak sprawnie przeprowadzić konkurs ofert w 4 krokach
-        </h2>
-        <HelpTimeline steps={managerHelpSteps} />
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">
-          Standardy bezpieczeństwa i transparentności
-        </h2>
-        <ul className="list-disc space-y-2 pl-6">
-          {managerSecurityStandards.map((item) => (
-            <li key={item.slice(0, 40)}>{item}</li>
-          ))}
-        </ul>
-      </section>
-    </StaticInfoPage>
+      <ManagerHelpPageContent />
+    </MarketingPageLayout>
   );
 }

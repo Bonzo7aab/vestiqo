@@ -1,14 +1,16 @@
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { getAllCategoryConfigs } from '../../lib/config/categoryConfig';
 import {
   buildCategoryFilterUrl,
   buildSubcategoryFilterUrl,
 } from '../../lib/content/category-filter-url';
 import {
-  selectionPillBase,
-  selectionPillSelected,
-  selectionPillUnselected,
-} from '../../lib/ui/selection-pill-styles';
+  CategoryIconBadge,
+  subcategoryTagBase,
+  subcategoryTagRest,
+  subcategoryTagSelected,
+} from '../categories/category-visual';
 import { cn } from '../ui/utils';
 
 interface CategoryDirectoryLinkProps {
@@ -28,6 +30,7 @@ export type CategoryDirectoryContentProps =
 
 function renderSubcategory(
   subcategory: { slug: string; name: string },
+  categoryColor: string,
   props: CategoryDirectoryContentProps,
 ) {
   if (props.mode === 'link') {
@@ -35,7 +38,7 @@ function renderSubcategory(
       <Link
         key={subcategory.slug}
         href={buildSubcategoryFilterUrl(subcategory.name)}
-        className={cn(selectionPillBase, selectionPillUnselected)}
+        className={cn(subcategoryTagBase, subcategoryTagRest)}
       >
         {subcategory.name}
       </Link>
@@ -51,13 +54,74 @@ function renderSubcategory(
       disabled={props.disabled}
       onClick={() => props.onToggle(subcategory.slug)}
       className={cn(
-        selectionPillBase,
-        isSelected ? selectionPillSelected : selectionPillUnselected,
+        subcategoryTagBase,
+        isSelected ? subcategoryTagSelected : subcategoryTagRest,
         props.disabled && 'pointer-events-none opacity-60',
       )}
+      style={
+        isSelected
+          ? {
+              borderColor: `color-mix(in srgb, ${categoryColor} 40%, transparent)`,
+              backgroundColor: `color-mix(in srgb, ${categoryColor} 8%, transparent)`,
+              color: categoryColor,
+            }
+          : undefined
+      }
     >
       {subcategory.name}
     </button>
+  );
+}
+
+function CategoryCardHeader({
+  category,
+  props,
+  selectedCount,
+}: {
+  category: ReturnType<typeof getAllCategoryConfigs>[number];
+  props: CategoryDirectoryContentProps;
+  selectedCount?: number;
+}) {
+  const headerContent = (
+    <>
+      <CategoryIconBadge slug={category.slug} color={category.color} size="lg" />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-base font-semibold text-[hsl(var(--brand-navy))]">
+          <span>{category.name}</span>
+          {props.mode === 'select' && selectedCount !== undefined && selectedCount > 0 ? (
+            <span
+              className="text-sm font-semibold tabular-nums"
+              style={{ color: category.color }}
+            >
+              ({selectedCount})
+            </span>
+          ) : null}
+        </p>
+        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          {category.description}
+        </p>
+      </div>
+      {props.mode === 'link' ? (
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+      ) : null}
+    </>
+  );
+
+  if (props.mode === 'link') {
+    return (
+      <Link
+        href={buildCategoryFilterUrl(category.name)}
+        className="group flex items-start gap-3 border-b border-border/60 px-4 py-4 transition-colors hover:bg-muted/20 sm:px-5"
+      >
+        {headerContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
+      {headerContent}
+    </div>
   );
 }
 
@@ -65,76 +129,36 @@ export function CategoryDirectoryContent(props: CategoryDirectoryContentProps) {
   const categories = getAllCategoryConfigs();
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:hidden">
-        {categories.map((category) => (
-          <section
-            key={category.slug}
-            className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
-          >
-            {props.mode === 'link' ? (
-              <Link
-                href={buildCategoryFilterUrl(category.name)}
-                className="text-base font-semibold text-[hsl(var(--brand-navy))] hover:text-primary"
-              >
-                {category.name}
-              </Link>
-            ) : (
-              <p className="text-base font-semibold text-[hsl(var(--brand-navy))]">
-                {category.name}
-              </p>
-            )}
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {categories.map((category) => {
+        const selectedCount =
+          props.mode === 'select'
+            ? category.subcategories.filter((subcategory) =>
+                props.selectedSlugs.has(subcategory.slug),
+              ).length
+            : 0;
 
-            <div className="mt-4 flex flex-wrap gap-2">
+        return (
+          <article
+            key={category.slug}
+            className="overflow-hidden rounded-xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/5 transition-shadow hover:shadow-md hover:shadow-black/8"
+            style={{
+              borderLeftColor: `color-mix(in srgb, ${category.color} 38%, transparent)`,
+            }}
+          >
+            <CategoryCardHeader
+              category={category}
+              props={props}
+              selectedCount={selectedCount}
+            />
+            <div className="flex flex-wrap gap-1.5 px-4 py-3 sm:px-5 sm:py-4">
               {category.subcategories.map((subcategory) =>
-                renderSubcategory(subcategory, props),
+                renderSubcategory(subcategory, category.color, props),
               )}
             </div>
-          </section>
-        ))}
-      </div>
-
-      <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:block">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-muted/60">
-            <tr>
-              <th className="px-5 py-4 font-semibold text-[hsl(var(--brand-navy))]">
-                Główna kategoria
-              </th>
-              <th className="px-5 py-4 font-semibold text-[hsl(var(--brand-navy))]">
-                Podkategorie
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((category) => (
-              <tr key={category.slug} className="border-t border-border/70 align-top">
-                <td className="px-5 py-4">
-                  {props.mode === 'link' ? (
-                    <Link
-                      href={buildCategoryFilterUrl(category.name)}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {category.name}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-[hsl(var(--brand-navy))]">
-                      {category.name}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    {category.subcategories.map((subcategory) =>
-                      renderSubcategory(subcategory, props),
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          </article>
+        );
+      })}
     </div>
   );
 }
