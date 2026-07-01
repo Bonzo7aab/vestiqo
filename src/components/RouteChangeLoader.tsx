@@ -124,7 +124,7 @@ export function RouteChangeLoader() {
           </div>
 
           <div className="space-y-1.5 text-center">
-            <p className="text-sm font-semibold tracking-tight text-[hsl(var(--brand-navy))]">
+            <p className="text-sm font-semibold tracking-tight text-brand-navy">
               Vestiqo
             </p>
             <p className="text-xs text-muted-foreground">Przechodzenie do strony...</p>

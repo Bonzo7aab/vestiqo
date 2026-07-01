@@ -86,7 +86,7 @@ function CategoryCardHeader({
     <>
       <CategoryIconBadge slug={category.slug} color={category.color} size="lg" />
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-base font-semibold text-[hsl(var(--brand-navy))]">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-base font-semibold text-brand-navy">
           <span>{category.name}</span>
           {props.mode === 'select' && selectedCount !== undefined && selectedCount > 0 ? (
             <span

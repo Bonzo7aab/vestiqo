@@ -1,5 +1,9 @@
+'use client';
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MapPin, Maximize2, Minimize2, Plus, Minus, Crosshair, Filter, Users, X } from 'lucide-react';
+import { readThemeColors } from '../lib/theme/read-theme-colors';
+import { usePaletteVersion } from '../lib/theme/use-palette-version';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -143,6 +147,8 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
   searchRadius = 25,
   onRadiusChange
 }) => {
+  const paletteVersion = usePaletteVersion();
+  const theme = useMemo(() => readThemeColors(), [paletteVersion]);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -259,9 +265,9 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
   // }, [userLocation, onLocationChange]);
 
   return (
-    <div className={`relative ${isExpanded ? 'fixed inset-0 z-50' : 'w-96'}`} style={{ backgroundColor: '#ffffff', borderLeft: '1px solid #e2e8f0' }}>
+    <div className={`relative border-l border-border bg-card ${isExpanded ? 'fixed inset-0 z-50' : 'w-96'}`}>
       {/* Map Header */}
-      <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e2e8f0' }}>
+      <div className="flex items-center justify-between border-b border-border p-4">
         <h3 className="font-semibold">Mapa Zgłoszeń</h3>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary" className="text-xs">
@@ -386,7 +392,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
               {/* Vistula River */}
               <path
                 d="M 100 400 Q 200 350 300 380 Q 400 360 500 340 Q 600 320 700 300"
-                stroke="#4f9eff"
+                stroke={theme.primary}
                 strokeWidth="3"
                 fill="none"
                 opacity="0.6"
@@ -394,7 +400,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
               {/* Oder River */}
               <path
                 d="M 50 450 Q 100 400 150 380 Q 200 360 250 340 Q 300 320 350 300"
-                stroke="#4f9eff"
+                stroke={theme.primary}
                 strokeWidth="2"
                 fill="none"
                 opacity="0.4"
@@ -436,6 +442,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
             const hasUrgent = cluster.jobs.some(job => job.urgent);
             const hasPremium = cluster.jobs.some(job => job.premium);
             const isMultiple = cluster.jobs.length > 1;
+            const markerColor = hasUrgent ? theme.destructive : hasPremium ? '#7C3AED' : theme.primary;
             
             return (
               <div
@@ -473,7 +480,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
                       ${isMultiple ? 'w-10 h-10' : 'w-8 h-8'}
                     `}
                     style={{ 
-                      backgroundColor: hasUrgent ? '#dc2626' : hasPremium ? '#7c3aed' : '#1e40af'
+                      backgroundColor: markerColor
                     }}
                   >
                     {isMultiple ? (
@@ -487,7 +494,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
                   <div 
                     className="absolute inset-0 rounded-full animate-ping opacity-30"
                     style={{ 
-                      backgroundColor: hasUrgent ? '#dc2626' : hasPremium ? '#7c3aed' : '#1e40af',
+                      backgroundColor: markerColor,
                       width: isMultiple ? '40px' : '32px',
                       height: isMultiple ? '40px' : '32px'
                     }}
@@ -567,7 +574,7 @@ export const EnhancedMapView: React.FC<EnhancedMapViewProps> = ({
         </div>
 
         {/* Zoom Controls */}
-        <div className="absolute bottom-4 right-4 flex flex-col space-y-1 rounded-lg shadow-lg z-[1000]" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col space-y-1 rounded-lg border border-border bg-card shadow-lg">
           <Button
             variant="ghost"
             size="icon"

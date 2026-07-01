@@ -49,42 +49,16 @@ export const lightenColor = (hex: string, percent: number = 30): string => {
   return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
 };
 
-// Marker colors - Priority determines background, job type determines icon
-export const markerColors = {
-  // Priority background colors
-  priority: {
-    low: '#10b981', // emerald-500 - green background
-    medium: '#3b82f6', // blue-500 - blue background
-    high: '#ef4444', // red-500 - red background
-  },
-  // Job type icon colors
-  job: {
-    glyphColor: '#3b82f6', // blue icon color for jobs
-  },
-  tender: {
-    glyphColor: '#f97316', // orange icon color for tenders
-  },
-  // Selected state
-  selected: {
-    background: '#3b82f6', // blue-500 - blue for selected state
-    borderColor: '#3b82f6', // Same as background (no visible border)
-    glyphColor: '#ffffff',
-  },
-  // Legacy support
-  default: {
-    background: '#3b82f6', // blue
-    borderColor: '#ffffff',
-    glyphColor: '#ffffff',
-  },
-  urgent: {
-    background: '#dc2626', // dark red
-    borderColor: '#ffffff',
-    glyphColor: '#ffffff',
-  },
-};
+import { readThemeColors } from '../theme/read-theme-colors';
+
+export { getMarkerColors, type MarkerColorSet } from './marker-colors';
 
 // SVG glyph cache - cache SVG elements by postType + backgroundColor combination
 const glyphCache = new Map<string, SVGSVGElement>();
+
+export function clearMarkerGlyphCache(): void {
+  glyphCache.clear();
+}
 
 // Helper function to clone SVG element (required for reuse)
 const cloneSVG = (svg: SVGSVGElement): SVGSVGElement => {
@@ -99,7 +73,7 @@ function appendMarkerStrokePath(
 ): void {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', d);
-  path.setAttribute('fill', '#ffffff');
+  path.setAttribute('fill', readThemeColors().white);
   path.setAttribute('stroke', backgroundColor);
   path.setAttribute('stroke-width', strokeWidth);
   path.setAttribute('stroke-linecap', 'round');
@@ -120,7 +94,7 @@ function appendFileSearchGlyph(svg: SVGSVGElement, strokeColor: string): void {
   circle.setAttribute('cx', '11.5');
   circle.setAttribute('cy', '11.5');
   circle.setAttribute('r', '2.5');
-  circle.setAttribute('fill', '#ffffff');
+  circle.setAttribute('fill', readThemeColors().white);
   circle.setAttribute('stroke', strokeColor);
   circle.setAttribute('stroke-width', '2');
   svg.appendChild(circle);

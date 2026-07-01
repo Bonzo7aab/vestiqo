@@ -29,7 +29,7 @@ export function ContestFlowStepper({
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <TitleIcon className="h-4 w-4" aria-hidden />
         </span>
-        <h3 className="text-sm font-semibold text-[hsl(var(--brand-navy))] sm:text-base">
+        <h3 className="text-sm font-semibold text-brand-navy sm:text-base">
           {title}
         </h3>
       </div>

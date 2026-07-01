@@ -4,26 +4,28 @@
  *
  * Usage:
  * - UI components: prefer Tailwind tokens (`bg-primary`, `text-brand-navy`) backed by CSS vars
- * - JS/inline styles: import `BRAND_COLORS` hex values
- * - CSS authoring: use `BRAND_COLORS_HSL` values in `globals.css`
+ * - JS/inline styles: import `BRAND_COLORS` hex values or `readThemeColors()` for runtime
+ * - CSS authoring: palette slots in `globals.css` (--palette-1 … --palette-5)
  */
 
-/** OPD-26 semantic color tokens (hex). */
+import { DEFAULT_PALETTE_HEX, hexToHslComponents } from '../theme/palette';
+
+/** OPD-26 semantic color tokens (hex) — synced with default palette slots. */
 export const BRAND_COLORS = {
   /** Headings, titles, authority elements */
-  navy: '#0F172A',
+  navy: DEFAULT_PALETTE_HEX.headings,
   /** CTA buttons, links, active toggles, notification dots */
-  cta: '#2563EB',
+  cta: DEFAULT_PALETTE_HEX.cta,
   /** Logo mark (asset-specific; slightly deeper than CTA) */
   logo: '#1D4ED8',
   /** Main platform background (same as footer `bg-muted`) */
-  background: '#F8FAFC',
+  background: DEFAULT_PALETTE_HEX.background,
   /** Elevated surfaces — cards, panels, secondary buttons */
-  surface: '#FFFFFF',
+  surface: DEFAULT_PALETTE_HEX.surface,
   /** Highlighted sections, tiles */
-  section: '#F8FAFC',
+  section: DEFAULT_PALETTE_HEX.background,
   /** New/unread notification highlight */
-  unread: '#EFF6FF',
+  unread: DEFAULT_PALETTE_HEX.accent,
   /** Body copy — not pure black */
   textBody: '#334155',
   /** Placeholders, helper text */
@@ -37,12 +39,12 @@ export const BRAND_COLORS = {
  * Format: "H S% L%" without the hsl() wrapper.
  */
 export const BRAND_COLORS_HSL = {
-  navy: '222 47% 11%',
-  cta: '217 91% 53%',
-  background: '210 40% 98%',
-  surface: '0 0% 100%',
-  section: '210 40% 98%',
-  unread: '214 100% 97%',
+  navy: hexToHslComponents(BRAND_COLORS.navy),
+  cta: hexToHslComponents(BRAND_COLORS.cta),
+  background: hexToHslComponents(BRAND_COLORS.background),
+  surface: hexToHslComponents(BRAND_COLORS.surface),
+  section: hexToHslComponents(BRAND_COLORS.section),
+  unread: hexToHslComponents(BRAND_COLORS.unread),
   textBody: '215 19% 35%',
   textMuted: '215 16% 47%',
   error: '0 72% 51%',

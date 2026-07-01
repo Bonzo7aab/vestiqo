@@ -53,7 +53,7 @@ export function HelpTimeline({ steps }: HelpTimelineProps) {
               </div>
 
               <div className="min-w-0 flex-1 pb-8 pt-0.5">
-                <StepperTitle className="text-base font-semibold text-[hsl(var(--brand-navy))]">
+                <StepperTitle className="text-base font-semibold text-brand-navy">
                   {step.title}
                 </StepperTitle>
                 <StepperDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">

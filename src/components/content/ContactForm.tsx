@@ -57,7 +57,7 @@ export function ContactForm({ className }: ContactFormProps) {
   if (success) {
     return (
       <div className="rounded-lg border border-border bg-muted/40 p-8 text-center">
-        <p className="text-lg font-medium text-[hsl(var(--brand-navy))]">
+        <p className="text-lg font-medium text-brand-navy">
           {contactSuccessMessage}
         </p>
       </div>
@@ -202,7 +202,7 @@ export function ContactForm({ className }: ContactFormProps) {
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <div className="flex items-center gap-2">
               <Shield className="size-4 shrink-0 text-primary" aria-hidden />
-              <span className="text-sm font-semibold text-[hsl(var(--brand-navy))]">
+              <span className="text-sm font-semibold text-brand-navy">
                 Zgoda na przetwarzanie danych
                 <RequiredMark />
               </span>

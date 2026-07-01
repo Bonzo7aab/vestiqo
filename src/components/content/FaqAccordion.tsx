@@ -44,7 +44,7 @@ export function FaqSection({ id, title, items }: FaqSectionProps) {
   return (
     <section id={id} className="scroll-mt-24 space-y-4">
       {title ? (
-        <h2 className="text-2xl font-semibold text-[hsl(var(--brand-navy))]">{title}</h2>
+        <h2 className="text-2xl font-semibold text-brand-navy">{title}</h2>
       ) : null}
       <FaqAccordion items={items} />
     </section>
@@ -59,11 +59,11 @@ interface HelpPageCtaProps {
 
 export function HelpPageCta({ text, buttonLabel, href }: HelpPageCtaProps) {
   return (
-    <div className="rounded-lg border border-[hsl(var(--brand-navy))]/20 bg-muted/50 p-6 text-center">
+    <div className="rounded-lg border border-brand-navy/20 bg-muted/50 p-6 text-center">
       <p className="mb-4 text-muted-foreground">{text}</p>
       <Link
         href={href}
-        className="inline-flex items-center justify-center rounded-md bg-[hsl(var(--brand-navy))] px-6 py-3 text-sm font-medium text-white hover:opacity-90"
+        className="inline-flex items-center justify-center rounded-md bg-brand-navy px-6 py-3 text-sm font-medium text-white hover:opacity-90"
       >
         {buttonLabel}
       </Link>

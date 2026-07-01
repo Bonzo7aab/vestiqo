@@ -23,12 +23,12 @@ export function ContentSection({
         'space-y-4 rounded-lg',
         variant === 'muted' && 'bg-muted/60 p-6',
         variant === 'accent-border' &&
-          'border-l-4 border-[hsl(var(--brand-navy))] bg-muted/40 py-2 pl-6',
+          'border-l-4 border-brand-navy bg-muted/40 py-2 pl-6',
         className,
       )}
     >
       {title ? (
-        <h2 className="text-xl font-semibold text-[hsl(var(--brand-navy))] md:text-2xl">
+        <h2 className="text-xl font-semibold text-brand-navy md:text-2xl">
           {title}
         </h2>
       ) : null}

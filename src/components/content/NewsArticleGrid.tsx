@@ -18,7 +18,7 @@ function NewsArticleCard({ article }: NewsArticleCardProps) {
       >
         {article.category}
       </span>
-      <h2 className="text-lg font-semibold text-[hsl(var(--brand-navy))]">{article.title}</h2>
+      <h2 className="text-lg font-semibold text-brand-navy">{article.title}</h2>
       <p className="mt-2 flex-1 text-sm text-muted-foreground leading-relaxed">
         {article.excerpt}
       </p>

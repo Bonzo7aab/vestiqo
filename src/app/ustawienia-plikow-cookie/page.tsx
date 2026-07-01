@@ -32,7 +32,7 @@ export default function CookieSettingsPage() {
               className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-semibold text-[hsl(var(--brand-navy))]">
+                <h2 className="text-base font-semibold text-brand-navy">
                   {category.name}
                 </h2>
                 {category.required ? (
@@ -52,7 +52,7 @@ export default function CookieSettingsPage() {
         </div>
       </ContentSection>
 
-      <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-[hsl(var(--brand-navy))] sm:text-base">
+      <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-brand-navy sm:text-base">
         {content.manageHint} Szczegółowe informacje o przetwarzaniu danych znajdziesz w{' '}
         <Link href={content.privacyLink} className="font-medium text-primary hover:underline">
           Polityce prywatności i RODO

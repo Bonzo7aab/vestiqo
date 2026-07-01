@@ -1,3 +1,5 @@
+import { readThemeColors } from '../theme/read-theme-colors';
+
 export const MARKER_PIN_SCALE = {
   default: 1.42,
   hovered: 1.58,
@@ -55,10 +57,16 @@ export function getDomioMarkerPinElement(markerContent: HTMLElement | null | und
 const DOMIO_MARKER_STYLE_ID = 'domio-marker-pulse-style';
 
 export function ensureDomioMarkerStyles(): void {
-  if (typeof document === 'undefined' || document.getElementById(DOMIO_MARKER_STYLE_ID)) {
+  if (typeof document === 'undefined') {
     return;
   }
 
+  const existing = document.getElementById(DOMIO_MARKER_STYLE_ID);
+  if (existing) {
+    existing.remove();
+  }
+
+  const theme = readThemeColors();
   const style = document.createElement('style');
   style.id = DOMIO_MARKER_STYLE_ID;
   style.textContent = `
@@ -95,8 +103,8 @@ export function ensureDomioMarkerStyles(): void {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: var(--domio-marker-accent, #3b82f6);
-      border: 2px solid #ffffff;
+      background: var(--domio-marker-accent, ${theme.primary});
+      border: 2px solid ${theme.white};
       box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.18);
       position: relative;
       z-index: 2;
@@ -107,7 +115,7 @@ export function ensureDomioMarkerStyles(): void {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: var(--domio-marker-accent, #3b82f6);
+      background: var(--domio-marker-accent, ${theme.primary});
       opacity: 0.45;
       animation: domio-marker-pulse 2.2s ease-out infinite;
     }

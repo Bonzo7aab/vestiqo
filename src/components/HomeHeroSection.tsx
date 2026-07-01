@@ -20,7 +20,7 @@ export function HomeHeroSection(): ReactElement {
           <div className="space-y-4 lg:space-y-6">
             <h1
               id="home-hero-heading"
-              className="text-2xl font-bold leading-tight text-[hsl(var(--brand-navy))] sm:text-3xl lg:text-4xl"
+              className="text-2xl font-bold leading-tight text-brand-navy sm:text-3xl lg:text-4xl"
             >
               {headline}
             </h1>

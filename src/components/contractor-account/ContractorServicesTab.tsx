@@ -92,7 +92,7 @@ export function ContractorServicesTab({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-[hsl(var(--brand-navy))]">
+          <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-brand-navy">
             <span>Wybierz kategorie świadczonych usług</span>
             <span className="text-base font-semibold tabular-nums text-primary">
               ({selectedServicesCount})

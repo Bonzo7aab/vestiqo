@@ -57,7 +57,7 @@ export function FeatureCard({
     <article
       className={cn(
         'rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6',
-        accent === 'navy' && 'border-[hsl(var(--brand-navy))]/15',
+        accent === 'navy' && 'border-brand-navy/15',
       )}
     >
       <div
@@ -65,12 +65,12 @@ export function FeatureCard({
           'mb-4 flex h-11 w-11 items-center justify-center rounded-xl',
           accent === 'primary'
             ? 'bg-primary/10 text-primary'
-            : 'bg-[hsl(var(--brand-navy))]/10 text-[hsl(var(--brand-navy))]',
+            : 'bg-brand-navy/10 text-brand-navy',
         )}
       >
         <Icon className="h-5 w-5" strokeWidth={2.25} />
       </div>
-      <h3 className="text-base font-semibold text-[hsl(var(--brand-navy))] sm:text-lg">{title}</h3>
+      <h3 className="text-base font-semibold text-brand-navy sm:text-lg">{title}</h3>
       <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]">
         {children}
       </div>
@@ -94,7 +94,7 @@ export function AudienceCard({
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
           <Icon className="h-6 w-6" strokeWidth={2.25} />
         </div>
-        <h3 className="text-lg font-semibold text-[hsl(var(--brand-navy))] sm:text-xl">{title}</h3>
+        <h3 className="text-lg font-semibold text-brand-navy sm:text-xl">{title}</h3>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">{children}</p>
       </div>
     </article>
@@ -103,7 +103,7 @@ export function AudienceCard({
 
 export function HighlightCallout({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-[hsl(var(--brand-navy))] sm:text-base">
+    <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-brand-navy sm:text-base">
       {children}
     </p>
   );

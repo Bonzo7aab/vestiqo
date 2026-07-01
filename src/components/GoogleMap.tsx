@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
-import { googleMapsConfig, mapOptions, markerColors, createMarkerGlyph, lightenColor } from '../lib/google-maps/config';
+import { googleMapsConfig, mapOptions, getMarkerColors, createMarkerGlyph, lightenColor, clearMarkerGlyphCache } from '../lib/google-maps/config';
 import { suppressNonDomioMapFeatures } from '../lib/google-maps/map-features';
 import {
   ensureDomioMarkerStyles,
@@ -12,7 +12,12 @@ import {
   wrapDomioMarkerContent,
 } from '../lib/google-maps/marker-content';
 import { getCategoryColor } from '../lib/config/categoryConfig';
-import { generateInfoWindowContent, generateMobileDrawerContent, bindMapInfoWindowDetailsButton } from '../lib/google-maps/infoWindowContent';
+import {
+  generateInfoWindowContent,
+  generateMobileDrawerContent,
+  bindMapInfoWindowDetailsButton,
+  clearInfoWindowCache,
+} from '../lib/google-maps/infoWindowContent';
 import { getListingDetailHref } from '../lib/listing/listing-detail-url';
 import { Job } from '../types/job';
 import {
@@ -24,6 +29,7 @@ import {
 import { useIsMobile } from './ui/use-mobile';
 import { useUserProfile } from '../contexts/AuthContext';
 import { AuthPromptPopover, AUTH_PROMPT_APPLY_OFFER } from './AuthPromptPopover';
+import { usePaletteVersion } from '../lib/theme/use-palette-version';
 
 interface GoogleMapProps {
   markers?: MapMarker[];
@@ -97,6 +103,7 @@ class MarkerPool {
     config: MarkerConfig,
     map: google.maps.Map
   ): void {
+    const colors = getMarkerColors();
     // OPD-105: contest markers use white pin + category-colored icon
     let backgroundColor: string;
     let glyphColor: string;
@@ -104,16 +111,16 @@ class MarkerPool {
 
     if (config.postType === 'contest' && config.categorySlug) {
       const categoryColor = getCategoryColor(config.categorySlug);
-      backgroundColor = '#ffffff';
+      backgroundColor = colors.default.borderColor;
       glyphColor = categoryColor;
       borderColor = categoryColor;
     } else if (config.urgency && ['low', 'medium', 'high'].includes(config.urgency)) {
-      backgroundColor = markerColors.priority[config.urgency];
-      glyphColor = '#ffffff';
+      backgroundColor = colors.priority[config.urgency];
+      glyphColor = colors.default.glyphColor;
       borderColor = lightenColor(backgroundColor, 30);
     } else {
-      backgroundColor = markerColors.priority.medium;
-      glyphColor = '#ffffff';
+      backgroundColor = colors.priority.medium;
+      glyphColor = colors.default.glyphColor;
       borderColor = lightenColor(backgroundColor, 30);
     }
 
@@ -124,7 +131,7 @@ class MarkerPool {
     const pinElement = new google.maps.marker.PinElement({
       background: backgroundColor,
       borderColor: borderColor,
-      glyphColor: '#ffffff',
+      glyphColor: colors.default.glyphColor,
       glyph: glyph,
       scale: baseScale,
     });
@@ -247,6 +254,7 @@ const MapComponent: React.FC<{
     new WeakMap<google.maps.marker.AdvancedMarkerElement, AbortController>(),
   );
   const isMobile = useIsMobile();
+  const paletteVersion = usePaletteVersion();
 
   const openListingDetails = useCallback((listingId: string) => {
     router.push(getListingDetailHref({ id: listingId }));
@@ -576,6 +584,16 @@ const MapComponent: React.FC<{
     }
   }, [isMobile, isSmallMap, bindInfoWindowInteractions]);
 
+  // Rebuild markers when dev palette changes
+  useEffect(() => {
+    if (!markerPoolRef.current) return;
+    ensureDomioMarkerStyles();
+    clearMarkerGlyphCache();
+    clearInfoWindowCache();
+    markerPoolRef.current.releaseAll();
+    mapMarkersRef.current.clear();
+  }, [paletteVersion]);
+
   // Update markers with pooling, viewport culling, and incremental loading
   useEffect(() => {
     if (!map || !infoWindow || !markerPoolRef.current) return;
@@ -692,7 +710,7 @@ const MapComponent: React.FC<{
     if (chunks.length > 0) {
       processChunk(chunks[0], 0);
     }
-  }, [map, infoWindow, markers, createMarkerHandlers]);
+  }, [map, infoWindow, markers, createMarkerHandlers, paletteVersion]);
 
   // Handle programmatic hover state changes
   useEffect(() => {

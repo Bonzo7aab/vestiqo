@@ -6,23 +6,47 @@
 
 :root {
   --font-size: 16px;
-  --background: 210 40% 98%; /* matches footer bg-muted (#F8FAFC) */
+
+  /* Five-slot palette (Coolors-friendly) — overridden by dev picker via JS */
+  --palette-1: 210 40% 98%; /* background #F8FAFC */
+  --palette-2: 222 47% 11%; /* headings #0F172A */
+  --palette-3: 217 91% 53%; /* CTA #2563EB */
+  --palette-4: 0 0% 100%; /* surface #FFFFFF */
+  --palette-5: 214 100% 97%; /* accent #EFF6FF */
+
+  /* Hex companions for JS consumers (maps, inline styles) */
+  --palette-1-hex: #F8FAFC;
+  --palette-2-hex: #0F172A;
+  --palette-3-hex: #2563EB;
+  --palette-4-hex: #FFFFFF;
+  --palette-5-hex: #EFF6FF;
+  --primary-hex: #2563EB;
+  --background-hex: #F8FAFC;
+  --card-hex: #FFFFFF;
+  --brand-navy-hex: #0F172A;
+  --accent-hex: #EFF6FF;
+  --destructive-hex: #DC2626;
+  --success-hex: #10B981;
+  --border-hex: #E2E8F0;
+  --foreground-hex: #334155;
+  --white-hex: #FFFFFF;
+
+  /* Semantic tokens derived from palette slots */
+  --background: var(--palette-1);
   --foreground: 215 19% 35%;
-  --card: 0 0% 100%;
+  --card: var(--palette-4);
   --card-foreground: 215 19% 35%;
-  --popover: 0 0% 100%;
+  --popover: var(--palette-4);
   --popover-foreground: 215 19% 35%;
-  /* OPD-26 CTA / accent blue (#2563EB) */
-  --primary: 217 91% 53%;
+  --primary: var(--palette-3);
   --primary-foreground: 0 0% 100%;
-  /* OPD-26 navy (#0F172A) — headings, authority */
-  --brand-navy: 222 47% 11%;
-  --secondary: 0 0% 100%; /* white elevated surface — buttons, badges */
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 98%;
+  --brand-navy: var(--palette-2);
+  --secondary: var(--palette-4);
+  --secondary-foreground: var(--palette-2);
+  --muted: var(--palette-1);
   --muted-foreground: 215 16% 47%;
-  --accent: 214 100% 97%;
-  --accent-foreground: 222 47% 11%;
+  --accent: var(--palette-5);
+  --accent-foreground: var(--palette-2);
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
   --success: 160 84% 39%;
@@ -33,26 +57,26 @@
   --info-foreground: 0 0% 100%;
   --border: 214 32% 91%;
   --input: 0 0% 0% / 0;
-  --input-background: 210 40% 98%;
+  --input-background: var(--palette-1);
   --switch-background: 214 32% 82%;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --font-weight-bold: 700;
-  --ring: 217 91% 53%;
-  --chart-1: 217 91% 53%;
+  --ring: var(--palette-3);
+  --chart-1: var(--palette-3);
   --chart-2: 160 84% 39%;
   --chart-3: 32 95% 44%;
   --chart-4: 0 72% 51%;
   --chart-5: 258 90% 66%;
   --radius: 0.625rem;
-  --sidebar: 0 0% 100%;
+  --sidebar: var(--palette-4);
   --sidebar-foreground: 215 19% 35%;
-  --sidebar-primary: 217 91% 53%;
+  --sidebar-primary: var(--palette-3);
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 40% 96%;
-  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-accent: var(--palette-1);
+  --sidebar-accent-foreground: var(--palette-2);
   --sidebar-border: 214 32% 91%;
-  --sidebar-ring: 217 91% 53%;
+  --sidebar-ring: var(--palette-3);
 }
 
 .dark {

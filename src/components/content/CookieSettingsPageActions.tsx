@@ -8,7 +8,7 @@ import { cookiesPageContent } from '../../lib/content/cookies';
 export function CookieSettingsPageActions() {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-6">
-      <h2 className="text-lg font-semibold text-[hsl(var(--brand-navy))]">
+      <h2 className="text-lg font-semibold text-brand-navy">
         Twoje aktualne ustawienia
       </h2>
       <div className="mt-3">

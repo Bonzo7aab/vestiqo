@@ -184,7 +184,7 @@ export function ContestOfferContextPanel({
       <CollapsibleTrigger
         className={cn(
           'group flex w-full items-center justify-between gap-2 px-3.5 py-2.5',
-          'text-sm font-semibold text-[hsl(var(--brand-navy))]',
+          'text-sm font-semibold text-brand-navy',
           'transition-colors hover:bg-muted/25',
           'focus:outline-none focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-inset',
         )}
@@ -237,7 +237,7 @@ function renderContextContent(
           <ContextDetailCard>
             <p>
               Oferty przyjmowane są do:{' '}
-              <span className="font-semibold text-[hsl(var(--brand-navy))]">
+              <span className="font-semibold text-brand-navy">
                 {new Date(contestInfo.submissionDeadline).toLocaleString('pl-PL', {
                   dateStyle: 'long',
                   timeStyle: 'short',
@@ -247,7 +247,7 @@ function renderContextContent(
             {contestInfo.completionDate ? (
               <p className="mt-2">
                 Preferowany termin zakończenia prac:{' '}
-                <span className="font-semibold text-[hsl(var(--brand-navy))]">
+                <span className="font-semibold text-brand-navy">
                   {new Date(contestInfo.completionDate).toLocaleDateString('pl-PL', {
                     dateStyle: 'long',
                   })}
@@ -329,7 +329,7 @@ function renderContextContent(
                 {contestInfo.depositAmount != null ? (
                   <p>
                     Wadium:{' '}
-                    <span className="font-semibold text-[hsl(var(--brand-navy))]">
+                    <span className="font-semibold text-brand-navy">
                       {contestInfo.depositAmount.toLocaleString('pl-PL')} zł
                     </span>
                   </p>

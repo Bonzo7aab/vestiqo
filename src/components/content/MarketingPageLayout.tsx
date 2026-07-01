@@ -42,7 +42,7 @@ export function MarketingPageLayout({
     <div className={cn('min-h-screen bg-muted/40 py-12 md:py-16', className)}>
       <div className="container mx-auto max-w-4xl space-y-10 px-4">
         <header className="space-y-3">
-          <h1 className="text-3xl font-bold text-[hsl(var(--brand-navy))] md:text-4xl">
+          <h1 className="text-3xl font-bold text-brand-navy md:text-4xl">
             {title}
           </h1>
           <p className="text-lg text-muted-foreground">{description}</p>
@@ -76,7 +76,7 @@ export function AudienceTiles({ tiles }: AudienceTilesProps) {
         <a
           key={tile.id}
           href={`#${tile.id}`}
-          className="rounded-lg border border-border bg-card p-5 text-center font-semibold text-[hsl(var(--brand-navy))] shadow-sm transition-colors hover:bg-muted/60"
+          className="rounded-lg border border-border bg-card p-5 text-center font-semibold text-brand-navy shadow-sm transition-colors hover:bg-muted/60"
         >
           {tile.label}
         </a>

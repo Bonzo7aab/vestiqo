@@ -17,6 +17,7 @@ import { NavigationProvider } from '../contexts/NavigationContext'
 import { RouteChangeLoader } from '../components/RouteChangeLoader'
 import { NavigationRouteTracker } from '../components/NavigationRouteTracker'
 import { BrowserAuthSync } from '../components/BrowserAuthSync'
+import { DevThemeTools } from '../components/dev/DevThemeTools'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -88,6 +89,7 @@ export default function RootLayout({
                     <CookieConsentBanner />
                     <Toaster />
                     <GlobalCommandPalette />
+                    <DevThemeTools />
                   </LayoutProvider>
                 </JobsProvider>
               </FilterProvider>

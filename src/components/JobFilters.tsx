@@ -37,7 +37,7 @@ export type { FilterState } from '../lib/filters/filter-state';
 
 function FilterSectionTitle({ title }: { title: string }) {
   return (
-    <h4 className="text-sm font-semibold text-[hsl(var(--brand-navy))]">{title}</h4>
+    <h4 className="text-sm font-semibold text-brand-navy">{title}</h4>
   );
 }
 
@@ -235,7 +235,7 @@ export default function JobFilters({
     <div className="w-full rounded-xl border border-border/60 bg-card shadow-sm lg:w-80">
       <div className="px-6 pt-3 pb-6">
         <div className="mb-2 flex h-8 items-center">
-          <h3 className="text-base font-semibold text-[hsl(var(--brand-navy))] sm:text-lg">Filtry</h3>
+          <h3 className="text-base font-semibold text-brand-navy sm:text-lg">Filtry</h3>
         </div>
 
         {onFilterChange && (

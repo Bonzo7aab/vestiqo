@@ -14,8 +14,8 @@ function renderSection(section: LegalSection, depth = 0): ReactNode {
   const Heading = depth === 0 ? 'h2' : 'h3';
   const headingClass =
     depth === 0
-      ? 'text-xl font-semibold text-[hsl(var(--brand-navy))] sm:text-2xl'
-      : 'text-lg font-semibold text-[hsl(var(--brand-navy))]';
+      ? 'text-xl font-semibold text-brand-navy sm:text-2xl'
+      : 'text-lg font-semibold text-brand-navy';
 
   return (
     <div key={section.title} className="space-y-3">

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { getCategoryConfig } from '../../lib/config/categoryConfig';
+import { BRAND_COLORS } from '../../lib/brand/colors';
 import { cn } from '../ui/utils';
 
 export function categoryColorMix(color: string, percent: number): string {
@@ -31,7 +32,7 @@ export function CategoryIconBadge({
 }: CategoryIconBadgeProps) {
   const config = getCategoryConfig(slug);
   const Icon = icon ?? config?.icon ?? FileText;
-  const accentColor = color ?? config?.color ?? '#2563EB';
+  const accentColor = color ?? config?.color ?? BRAND_COLORS.cta;
   const dimensions = BADGE_SIZES[size];
 
   return (

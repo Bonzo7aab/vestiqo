@@ -17,7 +17,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-[hsl(var(--brand-navy))]">Vestiqo</h3>
+            <h3 className="text-sm font-semibold text-brand-navy">Vestiqo</h3>
             <ul className="space-y-2.5">
               {footerBrandLinks.map((link) => (
                 <li key={link.label}>
@@ -31,7 +31,7 @@ export function Footer() {
 
           {footerColumns.map((column) => (
             <div key={column.title} className="space-y-4">
-              <h3 className="text-sm font-semibold text-[hsl(var(--brand-navy))]">
+              <h3 className="text-sm font-semibold text-brand-navy">
                 {column.title}
               </h3>
 

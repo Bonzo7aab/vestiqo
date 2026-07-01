@@ -339,7 +339,7 @@ export function Header({
     <Button
       variant="outline"
       className={cn(
-        'group relative h-auto gap-2 rounded-lg border border-[hsl(var(--brand-navy)/0.1)] bg-card px-1.5 py-1',
+        'group relative h-auto gap-2 rounded-lg border border-brand-navy/10 bg-card px-1.5 py-1',
         'shadow-[0_1px_2px_hsl(var(--brand-navy)/0.06),0_3px_10px_hsl(var(--brand-navy)/0.06)]',
         'ring-1 ring-inset ring-white/75',
         'transition-all duration-150',
@@ -518,7 +518,7 @@ export function Header({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>{renderAvatarTrigger(undefined, true)}</DropdownMenuTrigger>
                     <DropdownMenuContent
-                      className="w-72 overflow-hidden rounded-lg border border-[hsl(var(--brand-navy)/0.1)] bg-card p-0 shadow-[0_4px_20px_hsl(var(--brand-navy)/0.08)] ring-1 ring-inset ring-white/50"
+                      className="w-72 overflow-hidden rounded-lg border border-brand-navy/10 bg-card p-0 shadow-[0_4px_20px_hsl(var(--brand-navy)/0.08)] ring-1 ring-inset ring-white/50"
                       align="end"
                       forceMount
                     >

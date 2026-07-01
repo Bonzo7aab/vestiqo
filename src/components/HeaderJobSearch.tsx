@@ -48,7 +48,7 @@ export function HeaderJobSearch({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-10 w-full items-stretch overflow-hidden rounded-lg border border-[hsl(var(--brand-navy)/0.1)] bg-card',
+        'flex h-10 w-full items-stretch overflow-hidden rounded-lg border border-brand-navy/10 bg-card',
         'shadow-[0_1px_2px_hsl(var(--brand-navy)/0.06),0_3px_10px_hsl(var(--brand-navy)/0.04)]',
         'ring-1 ring-inset ring-white/75',
         'transition-[border-color,box-shadow]',

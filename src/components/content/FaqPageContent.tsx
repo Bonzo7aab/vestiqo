@@ -33,7 +33,7 @@ function FaqAudienceSection({
           <Icon className="h-5 w-5" strokeWidth={2.25} />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-[hsl(var(--brand-navy))] sm:text-xl">{title}</h2>
+          <h2 className="text-lg font-semibold text-brand-navy sm:text-xl">{title}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function FaqPageContent() {
         items={faqContractorItems}
       />
 
-      <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center text-sm text-[hsl(var(--brand-navy))] sm:text-base">
+      <p className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center text-sm text-brand-navy sm:text-base">
         Nie znalazłeś odpowiedzi?{' '}
         <Link href={routes.kontakt} className="font-medium text-primary hover:underline">
           Skontaktuj się z nami

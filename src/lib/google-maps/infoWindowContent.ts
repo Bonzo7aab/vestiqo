@@ -13,8 +13,9 @@ import {
 import { getListingDetailHref } from "../listing/listing-detail-url";
 import { escapeHtml, escapeHtmlAttribute } from "../security/escape-html";
 import { getContestMarkerIconSvg } from "./config";
+import { readThemeColors } from "../theme/read-theme-colors";
 
-const INFO_WINDOW_CACHE_VERSION = "v2";
+const INFO_WINDOW_CACHE_VERSION = "v3";
 const infoWindowContentCache = new Map<string, string>();
 const CACHE_MAX_SIZE = 100;
 
@@ -94,16 +95,18 @@ function buildListingPreviewMeta(job: Job): ListingPreviewMeta {
 }
 
 function renderMetaRow(label: string, value: string, compact = false): string {
+  const theme = readThemeColors();
   const fontSize = compact ? "11px" : "12px";
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:${fontSize};line-height:1.4;">
-      <span style="color:hsl(215 16% 47%);flex-shrink:0;">${label}</span>
-      <span style="color:hsl(215 25% 17%);font-weight:500;text-align:right;">${value}</span>
+      <span style="color:${theme.mutedForeground};flex-shrink:0;">${label}</span>
+      <span style="color:${theme.brandNavy};font-weight:500;text-align:right;">${value}</span>
     </div>
   `;
 }
 
 function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string {
+  const theme = readThemeColors();
   const padding = compact ? "8px 12px" : "9px 14px";
   const fontSize = compact ? "12px" : "13px";
 
@@ -119,8 +122,8 @@ function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string 
         padding:${padding};
         border:none;
         border-radius:8px;
-        background:hsl(221 83% 40%);
-        color:white;
+        background:${theme.primary};
+        color:${theme.white};
         font-size:${fontSize};
         font-weight:600;
         cursor:pointer;
@@ -131,6 +134,7 @@ function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string 
 }
 
 function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, includeDetailsButton = true): string {
+  const theme = readThemeColors();
   const safeTitle = escapeHtml(meta.title);
   const safeCompany = escapeHtml(meta.company);
   const safeLocation = escapeHtml(meta.location);
@@ -147,8 +151,8 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
     >
       <div style="
         padding:${padding};
-        background:hsl(210 40% 98%);
-        border:1px solid hsl(214 32% 91%);
+        background:${theme.background};
+        border:1px solid ${theme.border};
         border-left:3px solid ${meta.accentBorder};
         border-radius:12px;
         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -162,9 +166,9 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
             font-size:${compact ? "10px" : "11px"};
             font-weight:600;
             border-radius:999px;
-            background:white;
+            background:${theme.card};
             color:${meta.categoryColor};
-            border:1px solid hsl(214 32% 91%);
+            border:1px solid ${theme.border};
           ">${safeCategory}</span>
           ${meta.urgent ? `
             <span style="
@@ -173,13 +177,13 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
               font-size:10px;
               font-weight:700;
               border-radius:999px;
-              background:hsl(0 72% 51%);
-              color:white;
+              background:${theme.destructive};
+              color:${theme.white};
               text-transform:uppercase;
             ">Pilne</span>
           ` : ""}
           ${meta.verified ? `
-            <span style="display:inline-flex;color:hsl(221 83% 40%);" aria-hidden="true">
+            <span style="display:inline-flex;color:${theme.primary};" aria-hidden="true">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
@@ -192,7 +196,7 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
           font-size:${titleSize};
           font-weight:700;
           line-height:1.35;
-          color:hsl(215 25% 17%);
+          color:${theme.brandNavy};
           display:-webkit-box;
           -webkit-line-clamp:2;
           -webkit-box-orient:vertical;
@@ -202,7 +206,7 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
         <p style="
           margin:0 0 10px;
           font-size:${compact ? "11px" : "12px"};
-          color:hsl(215 16% 47%);
+          color:${theme.mutedForeground};
           line-height:1.4;
           display:-webkit-box;
           -webkit-line-clamp:1;

@@ -49,7 +49,7 @@ export function CookieSettingsDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <Cookie className="h-5 w-5 text-[hsl(var(--brand-navy))]" />
+            <Cookie className="h-5 w-5 text-brand-navy" />
             <DialogTitle>Pliki cookies</DialogTitle>
           </div>
           <DialogDescription>
