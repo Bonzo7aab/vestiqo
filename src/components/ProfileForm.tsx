@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Mail, Phone, Building2, Banknote, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Mail, Phone, Building2, Banknote, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -24,6 +24,15 @@ import { useUserProfile } from '../contexts/AuthContext';
 import { ContractorServiceAreaSettings } from './ContractorServiceAreaSettings';
 import { getProfileSectionLabels } from '../lib/profile/account-role-labels';
 import { cn } from './ui/utils';
+import { verifyCompanyRegistryAction } from '../lib/registry/actions';
+import { buildCompanyRegistrySnapshot } from '../lib/registry/build-snapshot-from-rows';
+import {
+  BUSINESS_STATUS_TOOLTIPS,
+  FINANCE_STATUS_TOOLTIPS,
+  resolveRegistryVerificationState,
+} from '../lib/registry/resolve-registry-verification-status';
+import type { CompanyRegistrySnapshot } from '../lib/registry/types';
+import { RegistryStatusPill } from './registry/RegistryStatusPill';
 
 interface ProfileFormProps {
   user: AuthUser;
@@ -68,44 +77,19 @@ function ReadOnlyField({
   );
 }
 
-function FinanceWhitelistStatus({
-  assigned,
-  checkedForDate,
-}: {
-  assigned: boolean | null;
-  checkedForDate: string | null;
-}) {
-  if (assigned === null) {
-    return null;
-  }
+const BUSINESS_PILL_LABELS = {
+  success: 'Aktywny',
+  warning: 'Zawieszony',
+  destructive: 'Wykreślony',
+  muted: 'Brak danych',
+} as const;
 
-  const message = assigned
-    ? 'Rachunek jest przypisany do NIP firmy na białej liście VAT'
-    : 'Rachunek nie jest przypisany do NIP firmy na białej liście VAT';
-
-  return (
-    <div
-      className={cn(
-        'flex items-start gap-2 rounded-md border px-3 py-2 text-xs sm:col-span-2',
-        assigned
-          ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700'
-          : 'border-amber-500/30 bg-amber-500/5 text-amber-800',
-      )}
-    >
-      {assigned ? (
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-      ) : (
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-      )}
-      <div className="space-y-1">
-        <p>{message}</p>
-        {checkedForDate ? (
-          <p className="text-muted-foreground">Data weryfikacji w wykazie MF: {checkedForDate}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+const FINANCE_PILL_LABELS = {
+  success: 'Zweryfikowany',
+  warning: 'Do weryfikacji',
+  destructive: 'Ryzyko',
+  muted: 'Brak danych',
+} as const;
 
 export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const { refreshSession } = useUserProfile();
@@ -123,13 +107,15 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
   const [companyName, setCompanyName] = useState('');
   const [companyNip, setCompanyNip] = useState('');
   const [companyRegon, setCompanyRegon] = useState('');
+  const [companyKrs, setCompanyKrs] = useState('');
+  const [legalForm, setLegalForm] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyCity, setCompanyCity] = useState('');
   const [companyPostalCode, setCompanyPostalCode] = useState('');
   const [bankAccountIban, setBankAccountIban] = useState('');
   const [vatStatus, setVatStatus] = useState('');
   const [vatWhitelistAssigned, setVatWhitelistAssigned] = useState<boolean | null>(null);
-  const [vatWhitelistCheckedForDate, setVatWhitelistCheckedForDate] = useState<string | null>(null);
+  const [registrySnapshot, setRegistrySnapshot] = useState<CompanyRegistrySnapshot | null>(null);
   const [companyType, setCompanyType] = useState<string | null>(null);
   const [accountRole, setAccountRole] = useState<string | null>(null);
   const [organizationType, setOrganizationType] = useState<string | null>(null);
@@ -209,8 +195,7 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
       return;
     }
 
-    let { bankAccountIban: iban, vatStatus: vat, vatWhitelistAccountAssigned, vatWhitelistCheckedForDate } =
-      finance.data;
+    let { bankAccountIban: iban, vatStatus: vat, vatWhitelistAccountAssigned } = finance.data;
 
     if (!iban || !vat) {
       const financeSync = await ensureUserFinanceFromCompanyNipAction();
@@ -218,17 +203,16 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
         iban = financeSync.data.bankAccountIban ?? iban;
         vat = financeSync.data.vatStatus ?? vat;
         vatWhitelistAccountAssigned =
-          financeSync.data.vatWhitelistAccountAssigned ?? vatWhitelistAccountAssigned;
-        vatWhitelistCheckedForDate =
-          financeSync.data.vatWhitelistCheckedForDate ?? vatWhitelistCheckedForDate;
+          financeSync.data.vatWhitelistAccountAssigned ?? vatWhitelistAssigned;
       }
     }
 
     setBankAccountIban(iban ?? '');
     setVatStatus(vat ?? '');
     setVatWhitelistAssigned(vatWhitelistAccountAssigned);
-    setVatWhitelistCheckedForDate(vatWhitelistCheckedForDate);
-  }, []);
+
+    return { vatStatus: vat ?? '', vatWhitelistAccountAssigned };
+  }, [vatWhitelistAssigned]);
 
   const loadProfileContext = useCallback(async () => {
     const supabase = createClient();
@@ -248,21 +232,60 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
 
     setIsLoadingBusiness(true);
     try {
+      if (isContractor) {
+        const registryResult = await verifyCompanyRegistryAction();
+        if (registryResult.ok) {
+          setRegistrySnapshot(registryResult.snapshot);
+        }
+      }
+
       const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
 
       setCompanyType(company?.type ?? null);
       setCompanyName(company?.name || '');
       setCompanyNip((company?.nip || '').trim());
       setCompanyRegon((company?.regon || '').trim());
+      setCompanyKrs((company?.krs || '').trim());
+      setLegalForm(company?.legal_form || '');
       setCompanyAddress(company?.address || '');
       setCompanyCity(company?.city || '');
       setCompanyPostalCode(company?.postal_code || '');
 
-      await loadFinanceSettings();
+      const finance = await loadFinanceSettings();
+
+      if (!isContractor && company) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sb = supabase as any;
+        const { data: settings } = await sb
+          .from('contractor_account_settings')
+          .select(
+            'vat_status, vat_whitelist_account_assigned, finance_registry_status, finance_registry_checked_at',
+          )
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setRegistrySnapshot(
+          buildCompanyRegistrySnapshot(company, {
+            vat_status: finance?.vatStatus ?? settings?.vat_status,
+            vat_whitelist_account_assigned:
+              finance?.vatWhitelistAccountAssigned ?? settings?.vat_whitelist_account_assigned,
+            finance_registry_status: settings?.finance_registry_status,
+            finance_registry_checked_at: settings?.finance_registry_checked_at,
+          }),
+        );
+      } else if (company && finance) {
+        setRegistrySnapshot(prev =>
+          prev ??
+          buildCompanyRegistrySnapshot(company, {
+            vat_status: finance.vatStatus,
+            vat_whitelist_account_assigned: finance.vatWhitelistAccountAssigned,
+          }),
+        );
+      }
     } finally {
       setIsLoadingBusiness(false);
     }
-  }, [loadFinanceSettings, showBusinessData, user.id]);
+  }, [isContractor, loadFinanceSettings, showBusinessData, user.id]);
 
   useEffect(() => {
     void loadProfileContext();
@@ -278,6 +301,14 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
     companyType,
     organizationType,
   });
+
+  const registryState = useMemo(
+    () =>
+      registrySnapshot
+        ? resolveRegistryVerificationState(registrySnapshot)
+        : null,
+    [registrySnapshot],
+  );
 
   return (
     <div className="space-y-4">
@@ -345,27 +376,49 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
 
       {showBusinessData ? (
         <div className="border rounded-lg p-4 bg-card">
-          <h4 className="font-medium mb-4 flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" aria-hidden />
-            {sectionLabels.business}
-          </h4>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="font-medium flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" aria-hidden />
+              {sectionLabels.business}
+            </h4>
+            {registryState ? (
+              <RegistryStatusPill
+                label={BUSINESS_PILL_LABELS[registryState.businessPill]}
+                variant={registryState.businessPill}
+                tooltip={BUSINESS_STATUS_TOOLTIPS[registryState.businessPill]}
+                checkedAt={registrySnapshot?.registryCheckedAt}
+              />
+            ) : null}
+          </div>
 
           {isLoadingBusiness ? (
             <p className="text-sm text-muted-foreground">Ładowanie danych firmy…</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ReadOnlyField label="Nazwa firmy" value={companyName} />
+              <ReadOnlyField label="Typ podmiotu" value={legalForm} emptyLabel="Nie podano" />
               <ReadOnlyField label="NIP" value={companyNip} />
               <ReadOnlyField label="REGON" value={companyRegon} />
+              <ReadOnlyField label="KRS" value={companyKrs} emptyLabel="Nie dotyczy" />
               <ReadOnlyField label="Adres" value={companyAddress} emptyLabel="Nie podano" />
               <ReadOnlyField label="Miasto" value={companyCity} emptyLabel="Nie podano" />
               <ReadOnlyField label="Kod pocztowy" value={companyPostalCode} emptyLabel="Nie podano" />
 
               <div className="sm:col-span-2 border-t pt-4 mt-1">
-                <h5 className="text-sm font-medium mb-4 flex items-center gap-2 text-muted-foreground">
-                  <Banknote className="h-4 w-4" aria-hidden />
-                  Rozliczenia i finanse
-                </h5>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h5 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                    <Banknote className="h-4 w-4" aria-hidden />
+                    Rozliczenia i finanse
+                  </h5>
+                  {registryState ? (
+                    <RegistryStatusPill
+                      label={FINANCE_PILL_LABELS[registryState.financePill]}
+                      variant={registryState.financePill}
+                      tooltip={FINANCE_STATUS_TOOLTIPS[registryState.financePill]}
+                      checkedAt={registrySnapshot?.financeRegistryCheckedAt}
+                    />
+                  ) : null}
+                </div>
               </div>
               <ReadOnlyField
                 label="Numer konta bankowego (IBAN)"
@@ -376,10 +429,6 @@ export function ProfileForm({ user, includeBusinessData }: ProfileFormProps) {
                 label="Status podatnika VAT"
                 value={vatLabel}
                 emptyLabel="Nie podano"
-              />
-              <FinanceWhitelistStatus
-                assigned={vatWhitelistAssigned}
-                checkedForDate={vatWhitelistCheckedForDate}
               />
             </div>
           )}

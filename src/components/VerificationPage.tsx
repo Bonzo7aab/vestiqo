@@ -50,8 +50,6 @@ import {
   getContractorAccountSettings,
   upsertContractorAccountSettings,
 } from '../lib/database/contractor-account';
-import { createClient } from '../lib/supabase/client';
-import { fetchUserPrimaryCompany } from '../lib/database/companies';
 import type { VerificationStatus } from '../lib/database/verification';
 import type {
   DocumentReview,
@@ -144,16 +142,12 @@ function isRequiredDocComplete(
   uploads: Record<string, DocumentUpload>,
   isContractor: boolean,
   hasOcPolicyInAccount: boolean,
-  hasCompanyKrsOrRegon: boolean,
 ): boolean {
   if (!doc.required) return true;
   const hasExisting = Boolean(existingByKey[doc.type]);
   const hasNew = Boolean(uploads[doc.type]?.file);
   if (doc.type === 'insurance' && isContractor) {
     return hasNew || hasExisting || hasOcPolicyInAccount;
-  }
-  if (doc.type === 'company_registration' && isContractor) {
-    return hasNew || hasExisting || hasCompanyKrsOrRegon;
   }
   return hasNew || hasExisting;
 }
@@ -165,7 +159,6 @@ function resolveDocHighlightStatus(
   reviewByKey: DocumentReviewMap,
   isContractor: boolean,
   hasOcPolicyInAccount: boolean,
-  hasCompanyKrsOrRegon: boolean,
 ): DocHighlightStatus | null {
   const existing = existingByKey[doc.type];
   const newFile = uploads[doc.type]?.file;
@@ -195,7 +188,6 @@ function resolveDocHighlightStatus(
       uploads,
       isContractor,
       hasOcPolicyInAccount,
-      hasCompanyKrsOrRegon,
     )
   ) {
     return 'attached';
@@ -863,7 +855,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasOcPolicyInAccount, setHasOcPolicyInAccount] = useState(false);
-  const [hasCompanyKrsOrRegon, setHasCompanyKrsOrRegon] = useState(false);
   const [replaceMode, setReplaceMode] = useState<Record<string, boolean>>({});
   const [pendingDocRemovalKey, setPendingDocRemovalKey] = useState<string | null>(null);
   const [isRemovingDoc, setIsRemovingDoc] = useState(false);
@@ -897,7 +888,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   useEffect(() => {
     if (!user?.id || !isContractor) {
       setHasOcPolicyInAccount(false);
-      setHasCompanyKrsOrRegon(false);
       setOcValidUntil('');
       setInitialOcValidUntil('');
       return;
@@ -905,16 +895,9 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     let cancelled = false;
     void (async () => {
       try {
-        const supabase = createClient();
-        const [settings, { data: company }] = await Promise.all([
-          getContractorAccountSettings(user.id),
-          fetchUserPrimaryCompany(supabase, user.id),
-        ]);
+        const settings = await getContractorAccountSettings(user.id);
         if (!cancelled) {
           setHasOcPolicyInAccount(Boolean(settings.ocPolicyScanPath));
-          setHasCompanyKrsOrRegon(
-            Boolean(company?.krs?.trim() || company?.regon?.trim()),
-          );
           const dateValue = settings.ocValidUntil ?? '';
           setOcValidUntil(dateValue);
           setInitialOcValidUntil(dateValue);
@@ -926,7 +909,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       } catch {
         if (!cancelled) {
           setHasOcPolicyInAccount(false);
-          setHasCompanyKrsOrRegon(false);
           setOcValidUntil('');
           setInitialOcValidUntil('');
         }
@@ -979,12 +961,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
   const contractorDocuments = [
     {
-      type: 'company_registration',
-      name: 'Wypis z KRS/CEIDG',
-      description: 'Aktualny wypis potwierdzający rejestrację firmy',
-      required: true,
-    },
-    {
       type: 'insurance',
       name: 'Polisa OC',
       description: 'Polisa ubezpieczenia odpowiedzialności cywilnej (ważna minimum 6 miesięcy)',
@@ -1032,17 +1008,11 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   ];
 
   const documents = isContractor ? contractorDocuments : managerDocuments;
-  /** KRS/CEIDG + OC — always two required slots for verification (admin + submit gate). */
-  const verificationRequiredDocs = documents.filter(
-    doc => doc.type === 'company_registration' || doc.type === 'insurance',
-  );
-  /** Progress bar on contractor account tab tracks only what is collected here (Polisa OC). */
-  const progressRequiredDocs = useContractorDocumentSections
+  const verificationRequiredDocs = isContractor
     ? documents.filter(doc => doc.type === 'insurance')
-    : verificationRequiredDocs;
-  const visibleDocuments = useContractorDocumentSections
-    ? documents.filter(doc => doc.type !== 'company_registration')
-    : documents;
+    : documents.filter(doc => doc.type === 'company_registration' || doc.type === 'insurance');
+  const progressRequiredDocs = verificationRequiredDocs;
+  const visibleDocuments = documents;
 
   const handleFileChange = (documentType: string, file: File | null) => {
     setUploads(prev => ({
@@ -1221,7 +1191,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
         uploads,
         isContractor,
         hasOcPolicyInAccount,
-        hasCompanyKrsOrRegon,
       ),
     );
 
@@ -1235,7 +1204,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
         uploads,
         isContractor,
         hasOcPolicyInAccount,
-        hasCompanyKrsOrRegon,
       ),
     ).length + (contractorOcDetailsRequired && ocPolicyDetailsComplete ? 1 : 0);
   const requiredProgressPct =
@@ -1289,7 +1257,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       reviewByKey,
       isContractor,
       hasOcPolicyInAccount,
-      hasCompanyKrsOrRegon,
     );
 
   const renderContractorDocumentRow = (

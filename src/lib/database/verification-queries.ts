@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import { loadCompanyRegistrySnapshotForUser } from '../registry/load-snapshot-for-user';
 import { resolveVerificationStatus } from '../verification/resolve-verification-state';
 import type { VerificationStatus } from '../verification/types';
 
@@ -43,6 +44,11 @@ export async function getUserVerificationStatus(
 
   const typedProfile = profile as ProfileVerificationRow & { user_type?: string | null };
 
+  const registrySnapshot =
+    typedProfile.user_type === 'contractor'
+      ? await loadCompanyRegistrySnapshotForUser(supabase, userId)
+      : null;
+
   const { data: decisionRow } = await sb
     .from('verification_decisions')
     .select('decision, reason, created_at')
@@ -56,5 +62,6 @@ export async function getUserVerificationStatus(
     isVerified: typedProfile.is_verified,
     submittedAt: typedProfile.verification_submitted_at ?? null,
     latestDecision: (decisionRow as DecisionRow | null) ?? null,
+    registrySnapshot,
   });
 }

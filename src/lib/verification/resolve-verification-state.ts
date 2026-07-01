@@ -1,4 +1,6 @@
 import type { VerificationStatus } from './types';
+import { isRegistryVerified } from '../registry/resolve-registry-verification-status';
+import type { CompanyRegistrySnapshot } from '../registry/types';
 
 interface VerificationDecisionSnapshot {
   decision: string;
@@ -11,11 +13,12 @@ interface ResolveVerificationStatusInput {
   isVerified: boolean | null;
   submittedAt: string | null;
   latestDecision?: VerificationDecisionSnapshot | null;
+  registrySnapshot?: CompanyRegistrySnapshot | null;
 }
 
 /**
  * Single source of truth for contractor/manager verification state.
- * Pending review requires an explicit submission timestamp.
+ * Contractors: OPD-118 registry-only approval (CEIDG/KRS + MF).
  */
 export function resolveVerificationStatus(
   input: ResolveVerificationStatusInput,
@@ -25,6 +28,38 @@ export function resolveVerificationStatus(
   if (input.userType === 'manager') {
     return {
       state: 'approved',
+      submittedAt,
+      decidedAt: null,
+      reason: null,
+    };
+  }
+
+  if (input.userType === 'contractor') {
+    const registryApproved =
+      input.registrySnapshot !== undefined && input.registrySnapshot !== null
+        ? isRegistryVerified(input.registrySnapshot)
+        : false;
+
+    if (registryApproved) {
+      return {
+        state: 'approved',
+        submittedAt,
+        decidedAt: null,
+        reason: null,
+      };
+    }
+
+    if (!submittedAt) {
+      return {
+        state: 'unsubmitted',
+        submittedAt: null,
+        decidedAt: null,
+        reason: null,
+      };
+    }
+
+    return {
+      state: 'pending',
       submittedAt,
       decidedAt: null,
       reason: null,

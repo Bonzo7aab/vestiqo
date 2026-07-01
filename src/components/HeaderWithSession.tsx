@@ -2,6 +2,7 @@ import { createClient } from '../lib/supabase/server';
 import { buildEvaluationContext } from '../lib/flagship/context';
 import { isFeatureEnabled } from '../lib/flagship/evaluate';
 import { FLAGSHIP_FLAG_KEYS } from '../lib/flagship/keys';
+import { getRegistryVerifiedForUser } from '../lib/registry/load-snapshot-for-user';
 import { Header } from './Header';
 import type { AuthUser } from '../types/auth';
 
@@ -23,6 +24,11 @@ export async function HeaderWithSession() {
       .maybeSingle();
 
     if (profile) {
+      const registryVerified =
+        profile.user_type === 'contractor'
+          ? await getRegistryVerifiedForUser(supabase, authUser.id)
+          : undefined;
+
       initialUser = {
         id: authUser.id,
         email: authUser.email ?? '',
@@ -31,6 +37,7 @@ export async function HeaderWithSession() {
         userType: profile.user_type,
         phone: profile.phone ?? undefined,
         isVerified: profile.is_verified,
+        registryVerified,
         verificationSubmittedAt: profile.verification_submitted_at ?? null,
         profileCompleted: profile.profile_completed,
         onboardingCompleted: profile.onboarding_completed,

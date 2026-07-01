@@ -10,4 +10,5 @@ export interface CompanyLookupResult {
   district: string | null;
   bankAccountIban: string | null;
   vatStatus: ContractorVatStatus | null;
+  legalForm: string | null;
 }

@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js'
 import { createClient } from '../lib/supabase/client'
 import { isInvalidRefreshTokenError } from '../lib/auth/sessionErrors'
+import { isUserRegistryVerified } from '../lib/registry/build-snapshot-from-rows'
 import type { AuthUser } from '../types/auth'
 
 type AuthContextType = {
@@ -61,6 +62,39 @@ export default function AuthProvider({
         }
       }
 
+      let registryVerified: boolean | undefined;
+      if (profile.user_type === 'contractor') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sb = supabase as any;
+        const { data: relation } = await sb
+          .from('user_companies')
+          .select('company_id')
+          .eq('user_id', authUser.id)
+          .eq('is_primary', true)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (relation?.company_id) {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('registry_source, registry_status, legal_form, krs, registry_checked_at')
+            .eq('id', relation.company_id)
+            .maybeSingle();
+
+          const { data: settings } = await sb
+            .from('contractor_account_settings')
+            .select(
+              'vat_status, vat_whitelist_account_assigned, finance_registry_status, finance_registry_checked_at',
+            )
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+
+          registryVerified = isUserRegistryVerified(company, settings);
+        } else {
+          registryVerified = false;
+        }
+      }
+
       return {
         id: authUser.id,
         email: authUser.email!,
@@ -70,6 +104,7 @@ export default function AuthProvider({
         phone: profile.phone || undefined,
         company: undefined,
         isVerified: profile.is_verified,
+        registryVerified,
         verificationSubmittedAt: profile.verification_submitted_at ?? null,
         profileCompleted: profile.profile_completed,
         onboardingCompleted: profile.onboarding_completed,

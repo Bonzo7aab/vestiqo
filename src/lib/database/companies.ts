@@ -9,6 +9,10 @@ export interface CompanyData {
   nip: string | null;
   regon: string | null;
   krs: string | null;
+  legal_form: string | null;
+  registry_source: string | null;
+  registry_status: string | null;
+  registry_checked_at: string | null;
   address: string | null;
   city: string | null;
   postal_code: string | null;

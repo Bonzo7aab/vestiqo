@@ -106,6 +106,8 @@ export async function resolveContractorDocumentsWithClient(
     vatWhitelistAccountAssigned: null,
     vatWhitelistRequestId: null,
     vatWhitelistCheckedForDate: null,
+    financeRegistryStatus: null,
+    financeRegistryCheckedAt: null,
     serviceArea: DEFAULT_SERVICE_AREA,
     zusCertificatePath: null,
     zusCertificateIssuedAt: null,

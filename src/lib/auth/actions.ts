@@ -457,6 +457,22 @@ async function registerActionImpl(
     })
   }
 
+  if (userType === 'contractor') {
+    const { syncRegistryFromNip } = await import('../registry/sync-registry-from-nip')
+    const registryResult = await syncRegistryFromNip(admin, {
+      userId,
+      companyId: companyRow.id,
+      normalizedNip,
+    })
+    if (!registryResult.ok) {
+      console.error('[registerAction] registry sync failed', {
+        userId,
+        nip: normalizedNip,
+        error: registryResult.error,
+      })
+    }
+  }
+
   revalidatePath('/', 'layout')
 
   const successMessage = encodeURIComponent(

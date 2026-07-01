@@ -447,7 +447,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
     email: user?.email || "Brak email",
     website: "Brak strony www",
     avatar: user?.avatar || "",
-    verified: user?.isVerified || false,
+    verified: user?.registryVerified === true || user?.isVerified || false,
     premium: false,
     rating: 0,
     completedJobs: 0,

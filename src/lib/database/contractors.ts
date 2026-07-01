@@ -753,7 +753,10 @@ export async function fetchContractorById(
         }
       },
       verification: {
-        status: companyWithJsonb.is_verified ? 'verified' : 'unverified',
+        status:
+          companyWithJsonb.registry_status === 'active' || companyWithJsonb.is_verified
+            ? 'verified'
+            : 'unverified',
         badges: companyWithJsonb.verification_level ? [companyWithJsonb.verification_level] : [],
         documents: [],
         lastVerified: companyWithJsonb.updated_at

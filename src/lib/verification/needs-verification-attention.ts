@@ -1,8 +1,8 @@
 import type { AuthUser } from '../../types/auth';
 
-/** Contractor who has not been approved by admin yet (header / account UI). */
+/** Contractor who has not passed registry verification yet (header / account UI). */
 export function needsVerificationAttention(user: AuthUser | null | undefined): boolean {
-  return user?.userType === 'contractor' && user.isVerified !== true;
+  return user?.userType === 'contractor' && user.registryVerified !== true;
 }
 
 export function isVerificationPendingReview(user: AuthUser | null | undefined): boolean {
@@ -45,6 +45,7 @@ export function mergeAuthUsersForDisplay(
   const verificationSubmittedAt =
     sources.find(user => user.verificationSubmittedAt)?.verificationSubmittedAt ?? null;
   const isVerified = sources.some(user => user.isVerified === true);
+  const registryVerified = sources.some(user => user.registryVerified === true);
   const accountRole = sources.find(user => user.accountRole)?.accountRole ?? base.accountRole ?? null;
   const organizationType =
     sources.find(user => user.organizationType)?.organizationType ?? base.organizationType ?? null;
@@ -52,6 +53,7 @@ export function mergeAuthUsersForDisplay(
   return {
     ...base,
     isVerified,
+    registryVerified,
     verificationSubmittedAt,
     accountRole,
     organizationType,

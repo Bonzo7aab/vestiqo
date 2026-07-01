@@ -54,6 +54,7 @@ function mapSearchResult(result: GusSearchResult, nip: string): CompanyLookupRes
     district: mapGusGminaToWarsawDistrict(result.gmina),
     bankAccountIban: null,
     vatStatus: null,
+    legalForm: null,
   };
 }
 

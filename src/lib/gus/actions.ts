@@ -1,6 +1,7 @@
 'use server';
 
 import { fetchMfDataByNip } from '../mf-vat-whitelist/search-by-nip';
+import { verifyCompanyByNip } from '../registry/verify-by-nip';
 import { lookupByNip } from './lookup-by-nip';
 import { isValidNip, normalizeNip } from './nip';
 import type { CompanyLookupResult } from './types';
@@ -33,7 +34,13 @@ export async function lookupCompanyByNipAction(nip: string): Promise<LookupCompa
     }
 
     const enriched = await enrichWithMfData(data);
-    return { data: enriched };
+    const registry = await verifyCompanyByNip(normalized);
+    return {
+      data: {
+        ...enriched,
+        legalForm: registry?.legalForm ?? null,
+      },
+    };
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'GUS_NOT_CONFIGURED') {

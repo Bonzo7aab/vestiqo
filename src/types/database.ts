@@ -302,7 +302,11 @@ export type Database = {
           is_verified: boolean | null
           krs: string | null
           last_active: string | null
+          legal_form: string | null
           license_number: string | null
+          registry_checked_at: string | null
+          registry_source: string | null
+          registry_status: string | null
           logo_url: string | null
           manager_data: Json | null
           metadata: Json | null
@@ -339,7 +343,11 @@ export type Database = {
           is_verified?: boolean | null
           krs?: string | null
           last_active?: string | null
+          legal_form?: string | null
           license_number?: string | null
+          registry_checked_at?: string | null
+          registry_source?: string | null
+          registry_status?: string | null
           logo_url?: string | null
           manager_data?: Json | null
           metadata?: Json | null
@@ -376,7 +384,11 @@ export type Database = {
           is_verified?: boolean | null
           krs?: string | null
           last_active?: string | null
+          legal_form?: string | null
           license_number?: string | null
+          registry_checked_at?: string | null
+          registry_source?: string | null
+          registry_status?: string | null
           logo_url?: string | null
           manager_data?: Json | null
           metadata?: Json | null
@@ -825,6 +837,8 @@ export type Database = {
         Row: {
           bank_account_iban: string | null
           created_at: string | null
+          finance_registry_checked_at: string | null
+          finance_registry_status: string | null
           id: string
           notification_channels: Json
           oc_guarantee_amount: number | null
@@ -847,6 +861,8 @@ export type Database = {
         Insert: {
           bank_account_iban?: string | null
           created_at?: string | null
+          finance_registry_checked_at?: string | null
+          finance_registry_status?: string | null
           id?: string
           notification_channels?: Json
           oc_guarantee_amount?: number | null
@@ -869,6 +885,8 @@ export type Database = {
         Update: {
           bank_account_iban?: string | null
           created_at?: string | null
+          finance_registry_checked_at?: string | null
+          finance_registry_status?: string | null
           id?: string
           notification_channels?: Json
           oc_guarantee_amount?: number | null

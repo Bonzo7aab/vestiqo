@@ -168,7 +168,7 @@ export function Header({
     isMounted &&
     Boolean(currentUser?.id) &&
     currentUser?.userType === 'contractor' &&
-    !currentUser.isVerified;
+    currentUser.registryVerified !== true;
 
   useEffect(() => {
     if (!shouldFetchVerificationSubmittedAt || !currentUser?.id) {

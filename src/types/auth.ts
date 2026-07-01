@@ -31,6 +31,8 @@ export interface AuthUser {
   platformRole?: PlatformRole
   accountRole?: string | null
   organizationType?: string | null
+  /** OPD-118: positive CEIDG/KRS + MF registry checks (contractors). */
+  registryVerified?: boolean
 }
 
 // User with profile interface (used by useUser hook)

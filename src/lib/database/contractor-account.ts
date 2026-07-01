@@ -47,6 +47,8 @@ export interface ContractorAccountSettings {
   vatWhitelistAccountAssigned: boolean | null;
   vatWhitelistRequestId: string | null;
   vatWhitelistCheckedForDate: string | null;
+  financeRegistryStatus: string | null;
+  financeRegistryCheckedAt: string | null;
   serviceArea: ContractorServiceAreaSettings;
   zusCertificatePath: string | null;
   zusCertificateIssuedAt: string | null;
@@ -157,6 +159,8 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
       vatWhitelistAccountAssigned: null,
       vatWhitelistRequestId: null,
       vatWhitelistCheckedForDate: null,
+      financeRegistryStatus: null,
+      financeRegistryCheckedAt: null,
       serviceArea: DEFAULT_SERVICE_AREA,
       zusCertificatePath: null,
       zusCertificateIssuedAt: null,
@@ -203,6 +207,10 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
       typeof row.vat_whitelist_request_id === 'string' ? row.vat_whitelist_request_id : null,
     vatWhitelistCheckedForDate:
       typeof row.vat_whitelist_checked_for_date === 'string' ? row.vat_whitelist_checked_for_date : null,
+    financeRegistryStatus:
+      typeof row.finance_registry_status === 'string' ? row.finance_registry_status : null,
+    financeRegistryCheckedAt:
+      typeof row.finance_registry_checked_at === 'string' ? row.finance_registry_checked_at : null,
     serviceArea: normalizeServiceArea(row.service_area_settings),
     zusCertificatePath: typeof row.zus_certificate_path === 'string' ? row.zus_certificate_path : null,
     zusCertificateIssuedAt:
