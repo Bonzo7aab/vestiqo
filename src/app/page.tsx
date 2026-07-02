@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '../contexts/AuthContext';
 import { getJobsAndTenders, type DBJobFilters } from '../lib/data';
-import type { Job } from '../types/job';
+import type { Job, ContestInfo } from '../types/job';
 import { useLayoutContext } from '../components/ConditionalFooter';
 import { useFilterContext } from '../contexts/FilterContext';
 import { useJobsContext } from '../contexts/JobsContext';
@@ -31,7 +31,7 @@ import {
   isContestTender,
   mapTenderRowToContestDisplay,
 } from '../lib/contest/map-tender-contest-display';
-import type { ContestInfo } from '../types/job';
+import { useContractorContestBidStatus } from '../hooks/useContractorContestBidStatus';
 
 // Dynamically import heavy components to reduce initial bundle size
 const EnhancedMapViewGoogleMaps = dynamic(
@@ -61,6 +61,7 @@ const EnhancedMapView = EnhancedMapViewGoogleMaps;
 
 function HomePageContent() {
   const { user } = useUserProfile();
+  const { submittedIds } = useContractorContestBidStatus();
   const router = useRouter();
   const { isMapExpanded, setIsMapExpanded } = useLayoutContext();
   const { filters, setFilters, primaryLocation, setPrimaryLocation, setLocationChangeHandler } = useFilterContext();
@@ -351,6 +352,13 @@ function HomePageContent() {
 
   const openApplicationFlow = React.useCallback(
     async (jobId: string, jobData?: Job) => {
+      if (submittedIds.has(jobId)) {
+        toast.error(
+          'Już złożyłeś ofertę na ten konkurs. Nie możesz złożyć więcej niż jednej oferty.',
+        );
+        return;
+      }
+
       const job = jobData ?? jobs.find((j) => j.id === jobId) ?? null;
 
       if (job?.contestInfo) {
@@ -374,7 +382,7 @@ function HomePageContent() {
       setSelectedApplicationJob(job);
       setApplicationModalOpen(true);
     },
-    [jobs],
+    [jobs, submittedIds],
   );
 
   // Listen for application modal open event from map drawer

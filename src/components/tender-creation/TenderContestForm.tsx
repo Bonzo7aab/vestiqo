@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { File, FileText, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
 import type { FileRejection } from 'react-dropzone';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
@@ -44,6 +43,71 @@ import {
 import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
 
+interface ContestFormSectionProps {
+  title: string;
+  description?: string;
+  icon?: React.ReactNode;
+  step?: number;
+  layout?: 'default' | 'create';
+  children: React.ReactNode;
+  className?: string;
+}
+
+function ContestFormSection({
+  title,
+  description,
+  icon,
+  step,
+  layout = 'default',
+  children,
+  className,
+}: ContestFormSectionProps): React.ReactElement {
+  const isCreateLayout = layout === 'create';
+
+  return (
+    <section
+      className={cn(
+        isCreateLayout ? 'px-4 py-6 sm:px-6' : 'space-y-6 border-b border-border pb-8',
+        className,
+      )}
+    >
+      <div className={cn(isCreateLayout ? 'mb-5' : 'mb-0')}>
+        {isCreateLayout ? (
+          <div className="flex items-start gap-3">
+            {step !== undefined ? (
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground"
+                aria-hidden
+              >
+                {step}
+              </span>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                {title}
+              </h2>
+              {description ? (
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              {icon}
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
+        )}
+      </div>
+      <div className={cn(isCreateLayout ? 'space-y-5' : 'space-y-6')}>{children}</div>
+    </section>
+  );
+}
+
 export interface TenderContestFormProps {
   onSubmit: (
     form: TenderContestFormData,
@@ -54,6 +118,7 @@ export interface TenderContestFormProps {
   isSubmitting?: boolean;
   initialForm?: TenderContestFormData;
   existingDocuments?: TenderContestDocumentMeta[];
+  layout?: 'default' | 'create';
 }
 
 const PERIOD_OPTIONS: { value: WarrantyGuaranteePeriod; label: string }[] = [
@@ -94,6 +159,7 @@ export function TenderContestForm({
   isSubmitting = false,
   initialForm,
   existingDocuments,
+  layout = 'default',
 }: TenderContestFormProps): React.ReactElement {
   const { user } = useUserProfile();
   const supabase = createClient();
@@ -319,24 +385,27 @@ export function TenderContestForm({
   };
 
   const criteriaWeightSum = selectionCriteriaTotalWeight(form.selectionCriteria.items);
+  const isCreateLayout = layout === 'create';
 
   return (
     <form
       noValidate
-      className="space-y-6"
+      className={cn(
+        isCreateLayout ? 'divide-y divide-border' : 'space-y-8',
+        isCreateLayout &&
+          '[&_input]:h-11 [&_[data-slot=select-trigger]]:h-11 [&_textarea]:min-h-[8.5rem] [&_label]:text-sm [&_label]:font-medium',
+      )}
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit('active');
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Informacje podstawowe
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <ContestFormSection
+        step={1}
+        layout={layout}
+        title="Informacje podstawowe"
+        icon={!isCreateLayout ? <FileText className="h-5 w-5" /> : undefined}
+      >
           <div>
             <Label htmlFor="contest-title">Tytuł konkursu *</Label>
             <Input
@@ -540,14 +609,9 @@ export function TenderContestForm({
             )}
             <ContestOfferFieldError message={displayedErrors.documents} />
           </div>
-        </CardContent>
-      </Card>
+      </ContestFormSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Harmonogram</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <ContestFormSection step={2} layout={layout} title="Harmonogram">
           <div>
             <Label htmlFor="submission-deadline">Zakończenie przyjmowania ofert *</Label>
             <Input
@@ -646,17 +710,14 @@ export function TenderContestForm({
               <ContestOfferFieldError message={displayedErrors.siteVisitNotes} />
             </div>
           )}
-        </CardContent>
-      </Card>
+      </ContestFormSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Wymogi</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <ContestFormSection
+        step={3}
+        layout={layout}
+        title="Wymogi"
+        description="Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty."
+      >
           <div className="flex items-start gap-3">
             <Checkbox
               id="req-oc"
@@ -800,14 +861,14 @@ export function TenderContestForm({
               Uprawnienia zawodowe
             </Label>
           </div>
-        </CardContent>
-      </Card>
+      </ContestFormSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Warunki</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <ContestFormSection
+        step={4}
+        layout={layout}
+        title="Warunki"
+        className={isCreateLayout ? undefined : 'border-b-0 pb-0'}
+      >
           <div id="contest-selection-criteria">
             <Label>Kryteria wyboru wykonawcy</Label>
             <p className="text-xs text-muted-foreground mt-1 mb-3">
@@ -1050,21 +1111,39 @@ export function TenderContestForm({
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+      </ContestFormSection>
 
-      <div className="sticky bottom-0 z-10 -mx-4 mt-2 border-t bg-card/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-0 sm:px-0">
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <div
+        className={cn(
+          'border-t bg-muted/25',
+          isCreateLayout
+            ? 'px-4 py-4 sm:px-6'
+            : 'sticky bottom-0 z-10 -mx-4 mt-2 bg-card/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-0 sm:px-0',
+        )}
+      >
+        <div
+          className={cn(
+            'flex gap-3',
+            isCreateLayout
+              ? 'flex-col-reverse sm:flex-row sm:justify-end'
+              : 'flex-col sm:flex-row sm:justify-end',
+          )}
+        >
           <Button
             type="button"
             variant="outline"
             disabled={isSubmitting}
+            className={cn(isCreateLayout && 'h-11 w-full sm:w-auto')}
             onClick={() => void handleSubmit('draft')}
           >
             <Save className="h-4 w-4 mr-2" />
             Zapisz jako szkic
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className={cn(isCreateLayout && 'h-11 w-full sm:w-auto')}
+          >
             <Send className="h-4 w-4 mr-2" />
             {isSubmitting ? 'Publikowanie…' : 'Opublikuj konkurs'}
           </Button>

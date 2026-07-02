@@ -71,69 +71,58 @@ function FloatingDockMobile({
   className?: string;
 }) {
   return (
-    <div
+    <nav
+      aria-label="Nawigacja mobilna"
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-card border-t border-border rounded-t-2xl px-4 py-2 md:hidden",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 md:hidden",
         className
       )}
+      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
-      {items.map((item, i) => {
-        const isActive = item.isActive ?? false;
-        const content = (
-          <div className="flex flex-col items-center justify-center gap-1 min-h-[60px]">
-            {/* Icon with active state background blob */}
-            <div className={cn(
-              "flex items-center justify-center rounded-full transition-colors",
-              isActive ? "bg-primary/10 p-2" : "p-2"
-            )}>
-              <div className={cn(
-                "flex items-center justify-center w-6 h-6",
-                isActive ? "text-primary" : "text-gray-700"
-              )}>
+      <div className="pointer-events-auto mx-auto flex max-w-md items-stretch gap-1 rounded-xl border border-border/70 bg-card p-1.5 shadow-[0_4px_20px_hsl(var(--brand-navy)/0.08)] ring-1 ring-inset ring-white/50">
+        {items.map((item, i) => {
+          const content = (
+            <div className="flex min-h-[50px] flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-transparent px-1 py-1.5 text-muted-foreground">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 {item.icon}
-              </div>
+              </span>
+              <span className="max-w-full truncate text-[10px] font-medium leading-none">
+                {item.title}
+              </span>
             </div>
-            {/* Text label with active state styling */}
-            <span className={cn(
-              "text-xs text-center",
-              isActive 
-                ? "text-primary ring-1 ring-primary/20 rounded px-1.5 py-0.5" 
-                : "text-gray-700"
-            )}>
-              {item.title}
-            </span>
-          </div>
-        );
+          );
 
-        if (item.href) {
+          if (item.href) {
+            return (
+              <Link
+                key={i}
+                href={item.href}
+                onClick={(e) => {
+                  if (item.onClick) {
+                    e.preventDefault();
+                    item.onClick();
+                  }
+                }}
+                className="flex min-w-0 flex-1 outline-none focus:outline-none focus-visible:outline-none"
+              >
+                {content}
+              </Link>
+            );
+          }
+
           return (
-            <Link
+            <button
               key={i}
-              href={item.href}
-              onClick={(e) => {
-                if (item.onClick) {
-                  e.preventDefault();
-                  item.onClick();
-                }
-              }}
-              className="flex-1"
+              type="button"
+              onClick={item.onClick}
+              className="flex min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 outline-none focus:outline-none focus-visible:outline-none"
             >
               {content}
-            </Link>
+            </button>
           );
-        }
-
-        return (
-          <div
-            key={i}
-            onClick={item.onClick}
-            className="flex-1 cursor-pointer"
-          >
-            {content}
-          </div>
-        );
-      })}
-    </div>
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -224,4 +213,3 @@ function IconContainer({
     </div>
   );
 }
-

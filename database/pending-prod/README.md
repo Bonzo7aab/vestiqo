@@ -2,7 +2,7 @@
 
 Queue for SQL that is **not yet** in production Supabase migration history (`vestiqo`, `fabbgaqxsetnsppxegnx`).
 
-**Status (2026-06-24):** Queue empty — security hardening applied to prod and moved to [`supabase/migrations/`](../../supabase/migrations/).
+**Status (2026-07-01):** Queue empty — OPD-118 registry verification applied to prod and tracked in [`supabase/migrations/`](../../supabase/migrations/).
 
 ## Workflow
 
@@ -17,6 +17,12 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 | File | Purpose | Test | Prod |
 |------|---------|------|------|
 | `20260625120000_managed_housing_entities.sql` | WM/SM entities replace buildings table | pending | pending |
+
+## Recently applied to production (2026-07-01)
+
+| File | Purpose |
+|------|---------|
+| `20260630120000_opd118_registry_verification.sql` | OPD-118 CEIDG/KRS registry columns on `companies` and finance registry status on `contractor_account_settings` |
 
 ## Recently applied to production (2026-06-24)
 

@@ -6,6 +6,7 @@ import {
   Clock,
   MapPin,
   Star,
+  Users,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -65,16 +66,29 @@ interface ContestJobCardProps {
   onApplyClick?: (e: React.MouseEvent) => void;
 }
 
-const FOOTER_APPLY_BUTTON_CLASS =
-  'h-9 w-full text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground';
+function offerCountLabel(count: number): string {
+  if (count === 1) return '1 oferta';
+  if (count >= 2 && count <= 4) return `${count} oferty`;
+  return `${count} ofert`;
+}
+
+function OfferCountPill({ count }: { count: number }): React.ReactElement {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+      <Users className="h-3 w-3 shrink-0" aria-hidden />
+      <span className="tabular-nums text-foreground">{count}</span>
+      <span>{count === 1 ? 'oferta' : count >= 2 && count <= 4 ? 'oferty' : 'ofert'}</span>
+    </span>
+  );
+}
 
 function ListingStatusBadge({ status }: { status: string }): React.ReactElement {
-  const label = getContestWorkflowStatusLabel(status).toUpperCase();
+  const label = getContestWorkflowStatusLabel(status);
 
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide whitespace-nowrap',
+        'inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
         status === 'active' && 'bg-primary/10 text-primary',
         status === 'evaluation' && 'bg-primary/15 text-primary',
         status === 'no_offers' && 'bg-muted text-muted-foreground',
@@ -90,80 +104,32 @@ function ListingStatusBadge({ status }: { status: string }): React.ReactElement 
   );
 }
 
-function ContestStatsSidebar({
-  offerCount,
-  isBookmarked,
-  bookmarkTooltip,
-  onBookmark,
-  showBookmark,
-  showApply,
-  isLoggedIn,
-  user,
-  hasSubmittedOffer,
-  hasDraftOffer,
-  isCheckingOffer,
-  onApplyClick,
-}: {
-  offerCount: number;
-  isBookmarked: boolean;
-  bookmarkTooltip: string;
-  onBookmark?: (e: React.MouseEvent) => void;
-  showBookmark: boolean;
-  showApply: boolean;
-  isLoggedIn: boolean;
-  user: AuthUser | null;
-  hasSubmittedOffer: boolean;
-  hasDraftOffer: boolean;
-  isCheckingOffer: boolean;
-  onApplyClick?: (e: React.MouseEvent) => void;
-}): React.ReactElement {
+interface ContestMetaRowProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClassName?: string;
+}
+
+function ContestMetaRow({
+  icon,
+  label,
+  value,
+  valueClassName,
+}: ContestMetaRowProps): React.ReactElement {
   return (
-    <div className="flex min-h-full flex-col p-4 md:w-40 lg:w-44">
-      {showBookmark && onBookmark ? (
-        <div className="mb-2 flex justify-end">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-8 w-8 shrink-0 text-muted-foreground hover:text-primary',
-                  isBookmarked && 'text-primary',
-                )}
-                onClick={onBookmark}
-                aria-label={bookmarkTooltip}
-              >
-                <Star
-                  className={cn('h-4 w-4', isBookmarked && 'fill-current text-primary')}
-                />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{bookmarkTooltip}</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      ) : null}
-
-      <div className="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-center">
-        <span className="text-3xl font-bold leading-none tabular-nums text-foreground sm:text-4xl">
-          {offerCount}
-        </span>
-        <span className="text-xs font-medium text-muted-foreground">Złożone oferty</span>
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className={cn('mt-0.5 text-sm leading-snug text-foreground', valueClassName)} title={value}>
+          {value}
+        </p>
       </div>
-
-      {showApply && onApplyClick ? (
-        <ContestApplyOfferButton
-          className={FOOTER_APPLY_BUTTON_CLASS}
-          size="sm"
-          isLoggedIn={isLoggedIn}
-          user={user}
-          hasSubmittedOffer={hasSubmittedOffer}
-          hasDraftOffer={hasDraftOffer}
-          isCheckingOffer={isCheckingOffer}
-          onApply={onApplyClick}
-        />
-      ) : null}
     </div>
   );
 }
@@ -217,123 +183,279 @@ export function ContestJobCard({
   const bookmarkTooltip = isBookmarked ? 'Usuń z zapisanych' : 'Dodaj do zapisanych';
   const showActions = !isManager && (onBookmark || onApplyClick);
 
+  const deadlineValue = submissionDeadline
+    ? [
+        deadlineDaysRemaining !== null && !isExpired
+          ? `Zostało ${formatDaysRemaining(deadlineDaysRemaining)}`
+          : null,
+        formatContestSubmissionDeadline(submissionDeadline),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
+
   const handleBookmarkClick = (e: React.MouseEvent): void => {
     e.stopPropagation();
     onBookmark?.(job.id);
   };
 
-  const stopSidebarClick = (e: React.MouseEvent | React.PointerEvent): void => {
+  const stopActionClick = (e: React.MouseEvent | React.PointerEvent): void => {
     e.stopPropagation();
   };
+
+  const bookmarkButton = showActions && onBookmark ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'h-8 w-8 shrink-0 text-muted-foreground hover:text-primary',
+            isBookmarked && 'text-primary',
+          )}
+          onClick={handleBookmarkClick}
+          aria-label={bookmarkTooltip}
+        >
+          <Star className={cn('h-4 w-4', isBookmarked && 'fill-current text-primary')} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{bookmarkTooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  ) : null;
 
   return (
     <Card
       className={cn(
-        'cursor-pointer overflow-hidden py-0 gap-0 rounded-xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/5 w-full max-w-full',
+        'cursor-pointer overflow-hidden py-0 gap-0 rounded-2xl border border-border/60 border-l-[3px] bg-card shadow-sm shadow-black/[0.04] w-full max-w-full',
         'transition-all duration-200 ease-out',
         isExpired
-          ? 'bg-muted/50 opacity-70'
+          ? 'bg-muted/50 opacity-75'
           : 'hover:-translate-y-0.5 hover:shadow-md hover:shadow-black/10 active:translate-y-0 active:shadow-sm',
         isHighlighted && 'border-primary shadow-md ring-1 ring-primary/20',
       )}
       style={{
-        borderLeftColor: `color-mix(in srgb, ${categoryColor} 38%, transparent)`,
+        borderLeftColor: `color-mix(in srgb, ${categoryColor} 55%, transparent)`,
       }}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row md:items-stretch">
-          {/* Left content */}
-          <div className="relative min-w-0 flex-1 p-4 md:pr-3">
-            <div className="absolute top-4 right-4 md:right-3">
-              <ListingStatusBadge status={contestStatus} />
+        {/* Mobile layout */}
+        <div className="md:hidden">
+          <div className="space-y-3 p-3.5">
+            <div className="flex items-start gap-3">
+              <CategoryIconTile
+                categorySlug={categorySlug}
+                color={categoryColor}
+                className="h-10 w-10 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className={cn(
+                        'line-clamp-2 text-[15px] font-semibold leading-snug text-foreground',
+                        isExpired && 'text-muted-foreground',
+                      )}
+                      title={job.title}
+                    >
+                      {job.title}
+                    </h3>
+                    {secondaryLine ? (
+                      <p className="mt-1 text-xs text-muted-foreground" title={secondaryLine}>
+                        {secondaryLine}
+                      </p>
+                    ) : null}
+                  </div>
+                  {bookmarkButton}
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <ListingStatusBadge status={contestStatus} />
+                  {isManager ? <OfferCountPill count={offerCount} /> : null}
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-start gap-3 pr-28 sm:pr-32">
-              <CategoryIconTile categorySlug={categorySlug} color={categoryColor} />
-
-              <div className="min-w-0 flex-1 space-y-1">
-                <h3
-                  className={cn(
-                    'font-bold text-base leading-snug line-clamp-2 text-foreground',
+            <div className="space-y-2.5 rounded-xl border border-border/50 bg-muted/20 p-3">
+              <ContestMetaRow
+                icon={<Building2 className="h-4 w-4" />}
+                label="Zarządca"
+                value={job.company}
+                valueClassName="font-medium"
+              />
+              <ContestMetaRow
+                icon={<MapPin className="h-4 w-4" />}
+                label="Lokalizacja"
+                value={locationLabel}
+              />
+              {deadlineValue ? (
+                <ContestMetaRow
+                  icon={<Clock className="h-4 w-4" />}
+                  label="Termin składania ofert"
+                  value={deadlineValue}
+                  valueClassName={cn(
+                    'font-medium',
                     isExpired && 'text-muted-foreground',
+                    !isExpired && isEndingSoon && 'text-destructive',
                   )}
-                >
-                  {job.title}
-                </h3>
-                {secondaryLine ? (
-                  <p
-                    className="truncate text-sm text-muted-foreground"
-                    title={secondaryLine}
-                  >
-                    {secondaryLine}
-                  </p>
-                ) : null}
-              </div>
+                />
+              ) : null}
+              {!isManager && !showActions ? (
+                <ContestMetaRow
+                  icon={<Users className="h-4 w-4" />}
+                  label="Złożone oferty"
+                  value={offerCountLabel(offerCount)}
+                  valueClassName="font-medium tabular-nums"
+                />
+              ) : null}
             </div>
 
-            <div className="mt-4 space-y-2">
-              <div className="flex min-w-0 items-center gap-2 text-sm text-foreground">
-                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="truncate font-medium">{job.company}</span>
-              </div>
-              <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="truncate">{locationLabel}</span>
-              </div>
-            </div>
-
-            {submissionDeadline ? (
+            {showActions ? (
               <div
-                className={cn(
-                  'mt-4 inline-flex max-w-full flex-wrap items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium',
-                  isExpired && 'bg-muted text-muted-foreground',
-                  !isExpired && isEndingSoon && 'bg-destructive/10 text-destructive',
-                  !isExpired && !isEndingSoon && 'bg-muted/80 text-muted-foreground',
-                )}
+                className="flex items-center gap-2.5 border-t border-border/50 pt-3"
+                onClick={stopActionClick}
+                onPointerDown={stopActionClick}
               >
-                <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {deadlineDaysRemaining !== null && !isExpired ? (
-                  <span className="whitespace-nowrap">
-                    Zostało {formatDaysRemaining(deadlineDaysRemaining)}
-                  </span>
+                <div className="shrink-0 rounded-lg border border-border/60 bg-background px-2.5 py-2 text-center">
+                  <p className="text-lg font-bold leading-none tabular-nums text-foreground">
+                    {offerCount}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">ofert</p>
+                </div>
+                {onApplyClick ? (
+                  <ContestApplyOfferButton
+                    className="h-10 min-h-0 flex-1 px-3 text-sm font-semibold"
+                    size="sm"
+                    isLoggedIn={isLoggedIn}
+                    user={user}
+                    hasSubmittedOffer={hasSubmittedOffer}
+                    hasDraftOffer={hasDraftOffer}
+                    isCheckingOffer={isCheckingOffer}
+                    onApply={onApplyClick}
+                  />
                 ) : null}
-                {deadlineDaysRemaining !== null && !isExpired ? (
-                  <span className="h-3.5 w-px shrink-0 bg-current/25" aria-hidden />
-                ) : null}
-                <span className="truncate">
-                  {formatContestSubmissionDeadline(submissionDeadline)}
-                </span>
               </div>
             ) : null}
           </div>
+        </div>
 
-          {/* Divider */}
-          <div className="border-t border-border/60 md:border-t-0 md:border-l md:self-stretch" />
+        {/* Desktop layout */}
+        <div className="hidden md:flex md:w-full md:items-stretch">
+          <div className="min-w-0 flex-1 p-4 md:pr-3">
+            <div className="flex items-start gap-3">
+              <CategoryIconTile categorySlug={categorySlug} color={categoryColor} />
 
-          {/* Right sidebar */}
-          <div
-            className="shrink-0"
-            onClick={stopSidebarClick}
-            onPointerDown={stopSidebarClick}
-          >
-            <ContestStatsSidebar
-              offerCount={offerCount}
-              isBookmarked={isBookmarked}
-              bookmarkTooltip={bookmarkTooltip}
-              onBookmark={handleBookmarkClick}
-              showBookmark={Boolean(showActions && onBookmark)}
-              showApply={Boolean(showActions && onApplyClick)}
-              isLoggedIn={isLoggedIn}
-              user={user}
-              hasSubmittedOffer={hasSubmittedOffer}
-              hasDraftOffer={hasDraftOffer}
-              isCheckingOffer={isCheckingOffer}
-              onApplyClick={onApplyClick}
-            />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className={cn(
+                        'line-clamp-2 font-bold text-base leading-snug text-foreground',
+                        isExpired && 'text-muted-foreground',
+                      )}
+                      title={job.title}
+                    >
+                      {job.title}
+                    </h3>
+                    {secondaryLine ? (
+                      <p
+                        className="mt-0.5 truncate text-sm text-muted-foreground"
+                        title={secondaryLine}
+                      >
+                        {secondaryLine}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {!isManager ? (
+                    <div className="flex shrink-0 items-start">
+                      <ListingStatusBadge status={contestStatus} />
+                    </div>
+                  ) : null}
+                </div>
+
+                {isManager ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <ListingStatusBadge status={contestStatus} />
+                    <OfferCountPill count={offerCount} />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 space-y-2 text-sm">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <span className="truncate font-medium">{job.company}</span>
+                  </div>
+                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{locationLabel}</span>
+                  </div>
+                </div>
+
+                {submissionDeadline ? (
+                  <div
+                    className={cn(
+                      'mt-3 inline-flex max-w-full flex-wrap items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium',
+                      isExpired && 'bg-muted text-muted-foreground',
+                      !isExpired && isEndingSoon && 'bg-destructive/10 text-destructive',
+                      !isExpired && !isEndingSoon && 'bg-muted/80 text-muted-foreground',
+                    )}
+                  >
+                    <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {deadlineDaysRemaining !== null && !isExpired ? (
+                      <span className="whitespace-nowrap">
+                        Zostało {formatDaysRemaining(deadlineDaysRemaining)}
+                      </span>
+                    ) : null}
+                    {deadlineDaysRemaining !== null && !isExpired ? (
+                      <span className="h-3 w-px shrink-0 bg-current/25" aria-hidden />
+                    ) : null}
+                    <span className="truncate">
+                      {formatContestSubmissionDeadline(submissionDeadline)}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
+
+          {!isManager ? (
+            <div className="flex shrink-0 border-l border-border/60 self-stretch">
+              <div
+                className="flex min-h-full w-36 flex-col p-3 lg:w-40"
+                onClick={stopActionClick}
+                onPointerDown={stopActionClick}
+              >
+                {showActions && onBookmark ? (
+                  <div className="mb-1 flex justify-end">{bookmarkButton}</div>
+                ) : null}
+
+                <div className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-center">
+                  <span className="text-2xl font-bold leading-none tabular-nums text-foreground">
+                    {offerCount}
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground">ofert</span>
+                </div>
+
+                {showActions && onApplyClick ? (
+                  <ContestApplyOfferButton
+                    className="h-9 w-full text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+                    size="sm"
+                    isLoggedIn={isLoggedIn}
+                    user={user}
+                    hasSubmittedOffer={hasSubmittedOffer}
+                    hasDraftOffer={hasDraftOffer}
+                    isCheckingOffer={isCheckingOffer}
+                    onApply={onApplyClick}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

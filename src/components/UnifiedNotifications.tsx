@@ -1,3 +1,5 @@
+'use client';
+
 import { Bell, Bookmark, Calendar, Check, CheckCircle, ChevronDown, Clock, Eye, Gavel, HelpCircle, MessagesSquare, Search, ShieldCheck, ShieldX, Star, Trophy, UserCheck, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -20,6 +22,13 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from './ui/drawer';
+import { useIsMobile } from './ui/use-mobile';
 
 type NotificationRow = Database['public']['Tables']['notifications']['Row'];
 
@@ -185,6 +194,161 @@ function transformNotification(dbNotification: NotificationRow): UnifiedNotifica
   }
 }
 
+interface NotificationsPanelContentProps {
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  allNotifications: UnifiedNotification[];
+  popupNotifications: UnifiedNotification[];
+  hasMoreNotifications: boolean;
+  notificationsPageHref: string;
+  onClose: () => void;
+  onMarkAllAsRead: () => void;
+  onSeeAll: () => void;
+  renderNotification: (notification: UnifiedNotification) => React.ReactNode;
+  variant: 'desktop' | 'mobile';
+}
+
+function NotificationsPanelContent({
+  unreadCount,
+  isLoading,
+  error,
+  allNotifications,
+  popupNotifications,
+  hasMoreNotifications,
+  onClose,
+  onMarkAllAsRead,
+  onSeeAll,
+  renderNotification,
+  variant,
+}: NotificationsPanelContentProps): React.ReactElement {
+  const isMobile = variant === 'mobile';
+
+  return (
+    <>
+      {isMobile ? (
+        <div className="border-b border-border/70 bg-gradient-to-br from-primary/10 via-card to-muted/25 px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20 shadow-sm">
+                <Bell className="h-5 w-5 text-primary" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-tight text-foreground">Powiadomienia</p>
+                {unreadCount > 0 ? (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{unreadCount} nowe</p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-muted-foreground">Twoje ostatnie alerty</p>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 shrink-0"
+              aria-label="Zamknij powiadomienia"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <Bell className="h-5 w-5" />
+                <span>Powiadomienia</span>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {unreadCount} nowe
+                  </Badge>
+                )}
+              </CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+              aria-label="Zamknij powiadomienia"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <div className="border-b mx-6 -mt-1 mb-0" />
+        </>
+      )}
+
+      <div className={isMobile ? 'flex min-h-0 flex-1 flex-col' : 'p-0 flex flex-col min-h-0'}>
+        {unreadCount > 0 && (
+          <div className={isMobile ? 'px-4 py-3' : 'px-6 py-4'}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onMarkAllAsRead}
+              className="w-full"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Oznacz wszystkie jako przeczytane
+            </Button>
+          </div>
+        )}
+
+        <div className="relative min-h-0 flex-1">
+          <div className={isMobile ? 'max-h-[min(60vh,28rem)] overflow-y-auto' : 'max-h-96 overflow-y-auto'}>
+            {isLoading ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+                <p>Ładowanie powiadomień...</p>
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center">
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </div>
+            ) : allNotifications.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Brak powiadomień</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {popupNotifications.map(renderNotification)}
+              </div>
+            )}
+          </div>
+
+          {popupNotifications.length > 0 &&
+          (hasMoreNotifications || popupNotifications.length >= 4) ? (
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-1 pt-8 bg-gradient-to-t from-background via-background/90 to-transparent"
+              aria-hidden
+            >
+              <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
+            </div>
+          ) : null}
+        </div>
+
+        {hasMoreNotifications ? (
+          <div className="border-t px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground hover:text-foreground"
+              onClick={onSeeAll}
+            >
+              Zobacz wszystkie powiadomienia ({allNotifications.length})
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
   onJobSelect,
   onSearchSelect,
@@ -193,6 +357,7 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
 }) => {
   const { user } = useUserProfile();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
@@ -571,13 +736,31 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
     );
   };
 
-  // Always show the bell icon button
+  const panelProps = {
+    unreadCount,
+    isLoading,
+    error,
+    allNotifications,
+    popupNotifications,
+    hasMoreNotifications,
+    notificationsPageHref,
+    onClose: () => setIsOpen(false),
+    onMarkAllAsRead: markAllAsRead,
+    onSeeAll: () => {
+      setIsOpen(false);
+      router.push(notificationsPageHref);
+    },
+    renderNotification,
+  };
+
   const bellButton = (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setIsOpen(!isOpen)}
+      onClick={() => setIsOpen(true)}
       className={`relative ${isOpen ? 'bg-primary/10' : ''}`}
+      aria-label="Powiadomienia"
+      aria-expanded={isOpen}
     >
       <Bell className="h-5 w-5" />
       {unreadCount > 0 && (
@@ -591,119 +774,33 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
     </Button>
   );
 
-  if (!isOpen) {
-    return bellButton;
-  }
-
   return (
     <>
-      {/* Bell Button - Always visible */}
       {bellButton}
-      
-      <div className="fixed inset-0 z-50 flex items-start justify-end pt-16 pr-4">
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-black/30"
-          onClick={() => setIsOpen(false)}
-        />
 
-        {/* Notification Panel */}
-        <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-card flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <span>Powiadomienia</span>
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {unreadCount} nowe
-                </Badge>
-              )}
-            </CardTitle>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
+      {isMobile ? (
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+          <DrawerContent className="mt-6 flex max-h-[92vh] flex-col">
+            <DrawerHeader className="sr-only">
+              <DrawerTitle>Powiadomienia</DrawerTitle>
+            </DrawerHeader>
+            <NotificationsPanelContent {...panelProps} variant="mobile" />
+          </DrawerContent>
+        </Drawer>
+      ) : isOpen ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-end pt-16 pr-4">
+          <div 
+            className="fixed inset-0 bg-black/30"
             onClick={() => setIsOpen(false)}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <div className="border-b mx-6 -mt-1 mb-0" />
-
-        <CardContent className="p-0 flex flex-col min-h-0">
-          {/* Quick Actions */}
-          {unreadCount > 0 && (
-            <div className="px-6 py-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={markAllAsRead}
-                className="w-full"
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Oznacz wszystkie jako przeczytane
-              </Button>
-            </div>
-          )}
-
-          {/* Notifications List */}
-          <div className="relative">
-            <div className="max-h-96 overflow-y-auto">
-              {isLoading ? (
-                <div className="p-6 text-center text-muted-foreground">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                  <p>Ładowanie powiadomień...</p>
-                </div>
-              ) : error ? (
-                <div className="p-6 text-center">
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                </div>
-              ) : allNotifications.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Brak powiadomień</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {popupNotifications.map(renderNotification)}
-                </div>
-              )}
-            </div>
-
-            {popupNotifications.length > 0 &&
-            (hasMoreNotifications || popupNotifications.length >= 4) ? (
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-1 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent"
-                aria-hidden
-              >
-                <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
-              </div>
-            ) : null}
-          </div>
-
-          {hasMoreNotifications ? (
-            <div className="border-t px-4 py-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push(notificationsPageHref);
-                }}
-              >
-                Zobacz wszystkie powiadomienia ({allNotifications.length})
-              </Button>
-            </div>
-          ) : null}
-
-        </CardContent>
-        </Card>
-      </div>
+            aria-hidden
+          />
+          <Card className="relative w-96 max-h-[80vh] shadow-xl border-2 bg-card flex flex-col">
+            <CardContent className="p-0 flex flex-col min-h-0">
+              <NotificationsPanelContent {...panelProps} variant="desktop" />
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </>
   );
 };

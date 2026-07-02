@@ -13,6 +13,9 @@ function PostContestPageContent(): React.ReactElement {
     <TenderCreationPage
       onBack={() => router.push('/panel-zarzadcy/konkursy')}
       duplicateFromId={duplicateFrom}
+      hidePageHeader
+      pageTitle="Nowy konkurs"
+      pageSubtitle="Uzupełnij zakres, terminy składania ofert i wymagania formalne."
     />
   );
 }

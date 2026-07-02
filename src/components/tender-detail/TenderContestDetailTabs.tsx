@@ -271,9 +271,9 @@ export function TenderContestDetailTabs({
 }
 
 export const CONTEST_TAB_ITEMS = [
-  { value: 'contest-basic', label: 'Informacje podstawowe' },
-  { value: 'contest-schedule', label: 'Harmonogram' },
-  { value: 'contest-formal', label: 'Wymogi' },
-  { value: 'contest-financial', label: 'Warunki' },
-  { value: 'contest-qa', label: 'Pytania i odpowiedzi' },
+  { value: 'contest-basic', label: 'Informacje podstawowe', shortLabel: 'Informacje' },
+  { value: 'contest-schedule', label: 'Harmonogram', shortLabel: 'Harmonogram' },
+  { value: 'contest-formal', label: 'Wymogi', shortLabel: 'Wymogi' },
+  { value: 'contest-financial', label: 'Warunki', shortLabel: 'Warunki' },
+  { value: 'contest-qa', label: 'Pytania i odpowiedzi', shortLabel: 'Pytania' },
 ] as const;

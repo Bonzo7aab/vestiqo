@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ContestApplyOfferButton } from './contest/ContestApplyOfferButton';
+import { ContestDetailsLoader } from './contest/ContestDetailsLoader';
 import { ArrowLeft, MapPin, Clock, Building, Star, Award, CheckCircle, AlertCircle, AlertTriangle, Image as ImageIcon, FileText, MessagesSquare, FileSearch } from 'lucide-react';
 import { ImageZoom } from './ui/image-zoom';
 import { Button } from './ui/button';
@@ -49,6 +50,7 @@ import {
   CONTEST_TAB_ITEMS,
   TenderContestDetailTabs,
 } from './tender-detail/TenderContestDetailTabs';
+import { ContestDetailMobileHeader } from './tender-detail/ContestDetailMobileHeader';
 import { ManagerJobStatusSelect } from './manager-dashboard/ManagerJobStatusSelect';
 import { canManagerEditJobFields, getJobWorkflowStatusLabel } from '../lib/job-workflow-status';
 import { getContestWorkflowStatusLabel } from '../lib/tender-workflow-status';
@@ -857,16 +859,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
 
   // Early returns AFTER all hooks
   if (isLoadingJob) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl mb-4">Ładowanie konkursu...</h1>
-            <p className="text-muted-foreground mb-6">Proszę czekać</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ContestDetailsLoader />;
   }
 
   if (!jobData) {
@@ -936,6 +929,12 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
     }
 
     if (isContestView && job.contestInfo) {
+      if (hasExistingBid) {
+        toast.error(
+          'Już złożyłeś ofertę na ten konkurs. Nie możesz złożyć więcej niż jednej oferty.',
+        );
+        return;
+      }
       setShowContestOfferForm(true);
       return;
     }
@@ -1143,8 +1142,19 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {job.contestInfo ? (
+        <ContestDetailMobileHeader
+          job={job as JobDisplayData & { contestInfo: NonNullable<JobDisplayData['contestInfo']> }}
+          activeTab={activeTab}
+          contestCategorySlug={contestCategorySlug}
+          contestCategoryColor={contestCategoryColor}
+          contestQuestionsCount={contestQuestionsCount}
+          onTabChange={setActiveTab}
+        />
+      ) : null}
+
       {/* Header */}
-      <div className="bg-card border-b">
+      <div className={cn('bg-card border-b', job.contestInfo && 'hidden md:block')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
@@ -1254,16 +1264,17 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
       </div>
 
       {/* Tabs Navigation */}
-      <nav className="border-b bg-card">
+      <nav className={cn('border-b bg-card', job.contestInfo && 'hidden md:block')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-1 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {job.contestInfo ? (
               CONTEST_TAB_ITEMS.map((tab) => (
                 <button
                   key={tab.value}
+                  type="button"
                   onClick={() => setActiveTab(tab.value)}
                   className={cn(
-                    'px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1.5',
+                    'px-4 py-3.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 inline-flex items-center gap-2',
                     activeTab === tab.value
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300',
@@ -1345,7 +1356,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 min-w-0 space-y-6">

@@ -29,8 +29,8 @@ const LABELS: Record<ContractorContestOfferStatus, string> = {
 export const CONTRACTOR_CONTEST_OFFER_FILTER_OPTIONS = [
   { value: 'all', label: 'Wszystkie oferty' },
   { value: 'draft', label: 'Szkic' },
-  { value: 'submitted', label: 'Złożona (Sejf zamknięty)' },
-  { value: 'in_evaluation', label: 'W ocenie (Sejf otwarty)' },
+  { value: 'submitted', label: 'Złożona' },
+  { value: 'in_evaluation', label: 'W ocenie' },
   { value: 'selected', label: 'Wybrana' },
   { value: 'not_selected', label: 'Niewybrana' },
   { value: 'withdrawn', label: 'Wycofana' },

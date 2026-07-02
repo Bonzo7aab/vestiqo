@@ -29,6 +29,7 @@ import {
   completionDateWarning,
   contestCountdownLabel,
   fetchTenderBidDraft,
+  fetchTenderBidOfferState,
   hydrateContestOfferFormFromBid,
   firstContestOfferStepWithErrors,
   filterFieldErrorsForStep,
@@ -143,11 +144,25 @@ export function ContestOfferSubmissionDialog({
     if (!isOpen || !contractorId) return;
     setIsLoading(true);
     try {
-      const [{ data: draft }, docs, referencesPrefill] = await Promise.all([
-        fetchTenderBidDraft(supabase, tenderId, contractorId),
+      const [{ state: offerState }, docs, referencesPrefill] = await Promise.all([
+        fetchTenderBidOfferState(supabase, tenderId, contractorId),
         resolveContractorDocuments(contractorId, contestInfo.formalRequirements),
         loadContractorReferencesPrefill(supabase, contractorId),
       ]);
+
+      if (offerState === 'submitted') {
+        toast.error(
+          'Już złożyłeś ofertę na ten konkurs. Nie możesz złożyć więcej niż jednej oferty.',
+        );
+        onClose();
+        return;
+      }
+
+      const draft =
+        offerState === 'draft'
+          ? (await fetchTenderBidDraft(supabase, tenderId, contractorId)).data
+          : null;
+
       setResolvedDocs(docs);
 
       if (draft) {
@@ -187,7 +202,7 @@ export function ContestOfferSubmissionDialog({
     } finally {
       setIsLoading(false);
     }
-  }, [isOpen, contractorId, supabase, tenderId, contestInfo]);
+  }, [isOpen, contractorId, supabase, tenderId, contestInfo, onClose]);
 
   useEffect(() => {
     void loadInitial();
@@ -564,7 +579,7 @@ export function ContestOfferSubmissionDialog({
                 onClick={() => void handleSubmit()}
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Wyślij ofertę do sejfu
+                Wyślij ofertę
               </Button>
             )}
           </div>

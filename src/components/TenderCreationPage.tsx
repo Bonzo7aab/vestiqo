@@ -20,6 +20,7 @@ import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
+import { cn } from './ui/utils';
 
 interface TenderCreationPageProps {
   onBack: () => void;
@@ -27,6 +28,10 @@ interface TenderCreationPageProps {
   tenderId?: string;
   /** Copy an existing contest into a new draft; schedule fields are left empty. */
   duplicateFromId?: string;
+  /** Hide sticky page header (back link, title, subtitle). */
+  hidePageHeader?: boolean;
+  pageTitle?: string;
+  pageSubtitle?: string;
 }
 
 export default function TenderCreationPage({
@@ -34,6 +39,9 @@ export default function TenderCreationPage({
   backLabel,
   tenderId,
   duplicateFromId,
+  hidePageHeader = false,
+  pageTitle,
+  pageSubtitle,
 }: TenderCreationPageProps): React.ReactElement {
   const { user, session, isLoading } = useUserProfile();
   const router = useRouter();
@@ -308,33 +316,71 @@ export default function TenderCreationPage({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <TenderContestPageHeader
-        onBack={onBack}
-        backLabel={backLabel}
-        title={
-          isEditMode
-            ? 'Kontynuuj konkurs ofert'
-            : isDuplicateMode
-              ? 'Konkurs z nowymi terminami'
-              : undefined
-        }
-        subtitle={
-          isEditMode
-            ? 'Uzupełnij brakujące pola i zapisz szkic lub opublikuj konkurs.'
-            : isDuplicateMode
-              ? 'Dane konkursu zostały skopiowane. Uzupełnij terminy i opublikuj nową edycję.'
-              : undefined
-        }
-      />
-
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 pb-24 lg:pb-8">
-        <TenderContestForm
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          initialForm={initialForm}
-          existingDocuments={existingDocuments}
+    <div className="min-h-screen bg-muted/40">
+      {!hidePageHeader ? (
+        <TenderContestPageHeader
+          onBack={onBack}
+          backLabel={backLabel}
+          title={
+            isEditMode
+              ? 'Kontynuuj konkurs ofert'
+              : isDuplicateMode
+                ? 'Konkurs z nowymi terminami'
+                : undefined
+          }
+          subtitle={
+            isEditMode
+              ? 'Uzupełnij brakujące pola i zapisz szkic lub opublikuj konkurs.'
+              : isDuplicateMode
+                ? 'Dane konkursu zostały skopiowane. Uzupełnij terminy i opublikuj nową edycję.'
+                : undefined
+          }
         />
+      ) : (
+        <div className="border-b border-border/60 bg-background">
+          <div className="mx-auto max-w-4xl px-4 pb-5 pt-6 sm:pb-6 sm:pt-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              Konkurs ofert
+            </p>
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {isDuplicateMode
+                ? 'Konkurs z nowymi terminami'
+                : pageTitle ?? 'Nowy konkurs'}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              {isDuplicateMode
+                ? 'Dane konkursu zostały skopiowane. Uzupełnij terminy i opublikuj nową edycję.'
+                : pageSubtitle ??
+                  'Uzupełnij zakres, terminy składania ofert i wymagania formalne.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          'mx-auto max-w-4xl px-4 pb-28 lg:pb-8',
+          hidePageHeader ? 'py-4 sm:py-6' : 'py-6 sm:py-8',
+        )}
+      >
+        {hidePageHeader ? (
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-black/[0.03]">
+            <TenderContestForm
+              layout="create"
+              onSubmit={handleSubmit}
+              isSubmitting={isSubmitting}
+              initialForm={initialForm}
+              existingDocuments={existingDocuments}
+            />
+          </div>
+        ) : (
+          <TenderContestForm
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            initialForm={initialForm}
+            existingDocuments={existingDocuments}
+          />
+        )}
       </div>
     </div>
   );

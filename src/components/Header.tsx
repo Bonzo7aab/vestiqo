@@ -22,6 +22,8 @@ import {
 import {
   Drawer,
   DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
   DrawerTrigger,
 } from './ui/drawer';
 import { AuthPromptPopover, AUTH_PROMPT_FAVORITES, AUTH_PROMPT_MESSAGES } from './AuthPromptPopover';
@@ -487,9 +489,7 @@ export function Header({
                 onApplicationSelect={(applicationId) => {
                   console.log('Navigate to application:', applicationId);
                 }}
-                onTenderSelect={(tenderId) => {
-                  console.log('Navigate to tender:', tenderId);
-                }}
+                onTenderSelect={handleJobSelect}
               />
             )}
             
@@ -501,11 +501,25 @@ export function Header({
               </div>
             ) : userIsAuthenticated ? (
               <>
+                {currentUser?.userType === 'manager' && !isAdmin ? (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleCreateContestClick}
+                    className="md:hidden h-9 shrink-0 px-2.5 text-xs font-semibold"
+                  >
+                    + Konkurs
+                  </Button>
+                ) : null}
+
                 {/* Mobile: Drawer */}
                 <div className="md:hidden">
                   <Drawer>
                     <DrawerTrigger asChild>{renderAvatarTrigger()}</DrawerTrigger>
-                    <DrawerContent className="max-h-[85vh]">
+                    <DrawerContent className="mt-6 max-h-[92vh]">
+                      <DrawerHeader className="sr-only">
+                        <DrawerTitle>Menu konta</DrawerTitle>
+                      </DrawerHeader>
                       <div className="overflow-y-auto pb-6">
                         <AccountMenuPanel {...accountMenuPanelProps} />
                       </div>

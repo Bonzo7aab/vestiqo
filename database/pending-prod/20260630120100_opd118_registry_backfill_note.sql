@@ -1,2 +1,0 @@
--- OPD-118: Note for operators — registry columns are backfilled via app sync on profile load.
--- Run `verifyCompanyRegistryAction` batch job or re-open /konto?tab=twoje-dane as each contractor.

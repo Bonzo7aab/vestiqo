@@ -991,7 +991,7 @@ test.describe('Contractor Making Offers', () => {
       await dialog.getByRole('button', { name: 'Dalej' }).click();
     }
 
-    test('should open contest wizard and submit offer to sejf', async ({ page }) => {
+    test('should open contest wizard and submit offer', async ({ page }) => {
       try {
         const { contractor, manager } = await createUniqueTestUsers();
         testData.userEmails.push(contractor.email, manager.email);
@@ -1014,7 +1014,7 @@ test.describe('Contractor Making Offers', () => {
         await combos.nth(2).click();
         await page.getByRole('option').first().click();
 
-        await dialog.getByRole('button', { name: /wyślij ofertę do sejfu/i }).click();
+        await dialog.getByRole('button', { name: /^wyślij ofertę$/i }).click();
 
         await expect(
           page.locator('[data-sonner-toast]').filter({ hasText: /oferta wysłana/i }).first(),

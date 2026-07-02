@@ -118,7 +118,8 @@ function CategoryPillsScroller({
         onScroll={updateScrollEdges}
         className={cn(
           'flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
-          (canScrollLeft || canScrollRight) && 'px-9 sm:px-10',
+          canScrollLeft && 'pl-9 sm:pl-10',
+          canScrollRight && 'pr-9 sm:pr-10',
         )}
       >
         {children}
@@ -229,7 +230,7 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
   if (isLoading) {
     return (
       <div className="border-t border-border/60 bg-muted/15">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
@@ -245,7 +246,7 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
 
   return (
     <div className="border-t border-border/60 bg-muted/15">
-      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 md:px-6 lg:px-8">
         {selectedCount > 0 ? (
           <div className="mb-2 flex justify-end">
             <Button
