@@ -96,6 +96,8 @@ async function approveVerificationSubjectActionImpl(subjectUserId: string): Prom
 
   revalidatePath('/administracja/weryfikacja');
   revalidatePath(`/administracja/weryfikacja/${subjectUserId}`);
+  revalidatePath('/konto', 'layout');
+  revalidatePath('/', 'layout');
   return { ok: true };
 }
 

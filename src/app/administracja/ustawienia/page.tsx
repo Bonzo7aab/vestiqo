@@ -16,7 +16,17 @@ export default async function AdminSettingsPage() {
         title="Ustawienia platformy"
         description="Konfiguracja globalna wpływająca na rejestrację nowych użytkowników i komunikaty systemowe."
       />
-      <div className="max-w-lg space-y-6">
+
+      <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground">Rejestracja</span> — kontroluj, kto może zakładać
+          nowe konta.{' '}
+          <span className="font-medium text-foreground">Komunikaty</span> — wysyłaj krytyczne powiadomienia
+          in-app do wszystkich użytkowników.
+        </p>
+      </div>
+
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-2 lg:items-start">
         <AdminRegistrationSettingsForm initialSettings={settings} />
         <AdminSystemAnnouncementForm />
       </div>

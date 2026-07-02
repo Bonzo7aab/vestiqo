@@ -51,16 +51,7 @@ export async function HeaderWithSession() {
         organizationType: profile.organization_type ?? null,
       };
     } else {
-      initialUser = {
-        id: profileUserId,
-        email: authUser.email ?? '',
-        firstName: authUser.user_metadata?.first_name ?? authUser.email?.split('@')[0] ?? 'User',
-        lastName: authUser.user_metadata?.last_name ?? '',
-        userType: (authUser.user_metadata?.user_type as AuthUser['userType']) ?? 'contractor',
-        isVerified: false,
-        profileCompleted: false,
-        onboardingCompleted: false,
-      };
+      initialUser = null;
     }
   }
 

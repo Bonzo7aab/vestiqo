@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react';
+import posthog from 'posthog-js';
 import {
   User,
   MessagesSquare,
@@ -161,6 +162,7 @@ export function Header({
     isMounted &&
     Boolean(currentUser?.id) &&
     currentUser?.userType === 'contractor' &&
+    currentUser.isVerified !== true &&
     currentUser.registryVerified !== true;
 
   useEffect(() => {
@@ -217,9 +219,9 @@ export function Header({
   // We don't call router.refresh() to avoid race condition where server might still see session cookie
   // The context state update will handle the UI update, then we redirect
   const handleLogout = async () => {
+    posthog.reset()
     await logout()
-    // Redirect to login - the new page load will have correct server state
-    router.push('/logowanie')
+    window.location.href = '/logowanie?refresh_browser_auth=1'
   }
 
   const userRoleLabel = isAdmin

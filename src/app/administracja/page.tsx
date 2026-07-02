@@ -1,7 +1,9 @@
-import Link from 'next/link';
+import { Building2, FileWarning, LayoutDashboard, ShieldAlert } from 'lucide-react';
 import { requirePlatformAdmin } from '../../lib/admin/require-platform-admin';
 import { fetchAdminDashboardMetrics } from '../../lib/database/admin-metrics';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { AdminDashboardMetricCard } from '../../components/admin/AdminDashboardMetricCard';
+import { AdminQuickActions } from '../../components/admin/AdminQuickActions';
 
 export default async function AdminHomePage() {
   const { supabase } = await requirePlatformAdmin('/administracja');
@@ -9,53 +11,60 @@ export default async function AdminHomePage() {
 
   const postsNoOffers = metrics.activeJobsWithoutApplications + metrics.activeTendersWithoutBids;
   const staleOffers = metrics.staleJobApplications + metrics.staleTenderBids;
+  const totalAttention = postsNoOffers + staleOffers + metrics.contractorsOcExpiring7d;
 
   return (
-    <div className="space-y-6">
-      <p className="text-muted-foreground">
-        Monitor jakości rynku: zgłoszenia bez ofert, opóźniona akceptacja, zbliżające się końce polis OC.
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Zgłoszenia bez ofert</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{postsNoOffers}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Zgłoszenia: {metrics.activeJobsWithoutApplications}, przetargi: {metrics.activeTendersWithoutBids}
-            </p>
-            <Link href="/administracja/ogloszenia" className="mt-2 inline-block text-sm text-primary underline">
-              Moderuj listingu →
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Oferty &gt; 48 h bez akceptacji zarządcy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{staleOffers}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Aplikacje: {metrics.staleJobApplications}, przetargi: {metrics.staleTenderBids}
-            </p>
-            <Link href="/administracja/oferty" className="mt-2 inline-block text-sm text-primary underline">
-              Moderuj oferty →
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Polisy OC wygasające (7 dni)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{metrics.contractorsOcExpiring7d}</div>
-            <Link href="/administracja/weryfikacja" className="mt-2 inline-block text-sm text-primary underline">
-              Kolejka weryfikacji →
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="space-y-8">
+      <AdminPageHeader
+        icon={LayoutDashboard}
+        title="Przegląd platformy"
+        description="Monitor jakości rynku: zgłoszenia bez ofert, opóźniona akceptacja ofert oraz zbliżające się końce polis OC wykonawców."
+        aside={
+          <div className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-sm shadow-sm">
+            <span className="text-muted-foreground">Łącznie do obsługi</span>
+            <span className="text-2xl font-semibold tabular-nums">{totalAttention}</span>
+            <span className="text-xs text-muted-foreground">Suma alertów wymagających uwagi</span>
+          </div>
+        }
+      />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-brand-navy">Alerty jakości rynku</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Metryki wskazujące obszary wymagające interwencji administracyjnej.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <AdminDashboardMetricCard
+            icon={Building2}
+            title="Zgłoszenia bez ofert"
+            value={postsNoOffers}
+            breakdown={`Zgłoszenia: ${metrics.activeJobsWithoutApplications}, przetargi: ${metrics.activeTendersWithoutBids}`}
+            href="/administracja/ogloszenia"
+            ctaLabel="Moderuj ogłoszenia"
+          />
+          <AdminDashboardMetricCard
+            icon={FileWarning}
+            title="Oferty > 48 h bez akceptacji"
+            value={staleOffers}
+            breakdown={`Aplikacje: ${metrics.staleJobApplications}, przetargi: ${metrics.staleTenderBids}`}
+            href="/administracja/oferty"
+            ctaLabel="Moderuj oferty"
+          />
+          <AdminDashboardMetricCard
+            icon={ShieldAlert}
+            title="Polisy OC wygasające (7 dni)"
+            value={metrics.contractorsOcExpiring7d}
+            breakdown="Wykonawcy z polisą OC wygasającą w ciągu najbliższego tygodnia."
+            href="/administracja/weryfikacja"
+            ctaLabel="Kolejka weryfikacji"
+            footnote="Otwiera kolejkę weryfikacji użytkowników."
+          />
+        </div>
+      </section>
+
+      <AdminQuickActions />
     </div>
   );
 }

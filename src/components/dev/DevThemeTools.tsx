@@ -15,7 +15,7 @@ export function DevThemeTools() {
     }
   }, [isAdmin]);
 
-  if (process.env.NODE_ENV !== 'development' || isLoading || !isAdmin) {
+  if (isLoading || !isAdmin) {
     return null;
   }
 

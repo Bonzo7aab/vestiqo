@@ -17,7 +17,7 @@ interface NavigationContextType {
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
-const LOADER_DELAY_MS = 120;
+const LOADER_DELAY_MS = 50;
 const LOADER_MAX_MS = 12_000;
 
 function isModifiedClick(event: MouseEvent): boolean {

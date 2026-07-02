@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, ShieldCheck, ShieldX, User } from 'lucide-react';
+import { Clock, Shield, ShieldCheck, ShieldX, User } from 'lucide-react';
 import { useUserProfile } from '../contexts/AuthContext';
 import type { VerificationStatus } from '../lib/database/verification';
 import { verificationStatusBadgeClass, verificationStatusLabel } from '../lib/verification/status';
@@ -32,11 +32,15 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
     );
   }
 
-  const roleLabel = getAccountRoleDisplayLabel({
-    userType: user.userType,
-    accountRole: user.accountRole,
-    organizationType: user.organizationType,
-  });
+  const isPlatformAdmin = user.platformRole === 'platform_admin';
+
+  const roleLabel = isPlatformAdmin
+    ? 'Administrator'
+    : getAccountRoleDisplayLabel({
+        userType: user.userType,
+        accountRole: user.accountRole,
+        organizationType: user.organizationType,
+      });
 
   return (
     <div className="bg-card border-b">
@@ -61,11 +65,15 @@ export function UserAccountHeader({ verificationStatus }: UserAccountHeaderProps
                 {user.email}
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 lg:gap-6 text-xs sm:text-sm text-gray-500">
-                <div className="flex items-center">
-                  <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
-                  <span>{roleLabel}</span>
+                <div className="flex items-center gap-1.5">
+                  {isPlatformAdmin ? (
+                    <Shield className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0 text-primary" />
+                  ) : (
+                    <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                  )}
+                  <span className={cn(isPlatformAdmin && 'font-medium text-primary')}>{roleLabel}</span>
                 </div>
-                {user.userType === 'contractor' && verificationStatus && (
+                {!isPlatformAdmin && user.userType === 'contractor' && verificationStatus && (
                   <span
                     className={cn(
                       'inline-flex items-center gap-1 font-medium rounded-full border px-2 py-0.5 text-xs',

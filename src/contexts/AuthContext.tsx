@@ -34,6 +34,18 @@ export default function AuthProvider({
   const [isLoading, setIsLoading] = useState(true)
   const initialSessionHandled = useRef(false)
 
+  const clearStaleSession = useCallback(async () => {
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch {
+      // Stale cookies may already be invalid; clearing local state is enough.
+    }
+    Sentry.setUser(null)
+    setSession(null)
+    setUser(null)
+    setIsLoading(false)
+  }, [supabase])
+
   const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
     const profileUserId = impersonationSubjectId ?? authUser.id
     try {
@@ -45,24 +57,10 @@ export default function AuthProvider({
 
       if (profileError || !profile) {
         console.warn('No profile found for user:', profileUserId, profileError)
-        // Match HeaderWithSession fallback so protected routes do not loop on session-without-profile.
-        return {
-          id: profileUserId,
-          email: authUser.email ?? '',
-          firstName:
-            (authUser.user_metadata?.first_name as string | undefined) ??
-            authUser.email?.split('@')[0] ??
-            'User',
-          lastName: (authUser.user_metadata?.last_name as string | undefined) ?? '',
-          userType:
-            (authUser.user_metadata?.user_type as AuthUser['userType'] | undefined) ??
-            'contractor',
-          isVerified: false,
-          verificationSubmittedAt: null,
-          profileCompleted: false,
-          onboardingCompleted: false,
-          platformRole: impersonationSubjectId ? 'user' : 'user',
+        if (!impersonationSubjectId) {
+          await clearStaleSession()
         }
+        return null
       }
 
       let registryVerified: boolean | undefined;
@@ -120,7 +118,7 @@ export default function AuthProvider({
       console.error('Error fetching profile:', err)
       return null
     }
-  }, [supabase, impersonationSubjectId])
+  }, [supabase, impersonationSubjectId, clearStaleSession])
 
   const loadProfileForSession = useCallback(
     async (nextSession: Session | null) => {
@@ -137,18 +135,6 @@ export default function AuthProvider({
     },
     [fetchUserProfile]
   )
-
-  const clearStaleSession = useCallback(async () => {
-    try {
-      await supabase.auth.signOut({ scope: 'local' })
-    } catch {
-      // Stale cookies may already be invalid; clearing local state is enough.
-    }
-    Sentry.setUser(null)
-    setSession(null)
-    setUser(null)
-    setIsLoading(false)
-  }, [supabase])
 
   const refreshSession = useCallback(async () => {
     try {

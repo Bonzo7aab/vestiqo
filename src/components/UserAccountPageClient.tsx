@@ -48,7 +48,7 @@ export function UserAccountPageClient({
   contractorCompanyId = null,
   initialServiceSubcategorySlugs,
 }: UserAccountPageClientProps) {
-  const { user, isLoading } = useUserProfile();
+  const { user, isLoading, isAuthenticated } = useUserProfile();
   const { isImpersonating } = useImpersonation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,6 +66,13 @@ export function UserAccountPageClient({
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  React.useEffect(() => {
+    if (!isMounted || isLoading || isAuthenticated) {
+      return;
+    }
+    router.replace('/logowanie');
+  }, [isMounted, isLoading, isAuthenticated, router]);
 
   const applyTabToUrl = React.useCallback(
     (tab: KontoTab) => {
@@ -145,10 +152,9 @@ export function UserAccountPageClient({
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <p className="text-sm text-muted-foreground">
-            Nie udało się wczytać profilu. Odśwież stronę lub skontaktuj się z administratorem.
-          </p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Przekierowanie...</p>
         </div>
       </div>
     );

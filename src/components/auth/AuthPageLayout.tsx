@@ -5,7 +5,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Map,
   Shield,
-  Sparkles,
   Star,
   Users,
 } from 'lucide-react';
@@ -146,17 +145,7 @@ function AuthSidePanel({
             </Link>
           ) : null}
 
-          <div
-            className={cn(
-              'inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm',
-              showSideLogo ? 'mt-10' : '',
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-            Platforma B2B dla nieruchomości
-          </div>
-
-          <h2 className="mt-5 text-2xl font-bold leading-tight tracking-tight text-white xl:text-[1.65rem]">
+          <h2 className={cn('text-2xl font-bold leading-tight tracking-tight text-white xl:text-[1.65rem]', showSideLogo ? 'mt-10' : 'mt-0')}>
             {side.heading}
           </h2>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">{side.body}</p>

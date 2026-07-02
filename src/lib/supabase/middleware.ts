@@ -84,27 +84,18 @@ export async function updateSession(request: NextRequest) {
   const isManagerContestRoute = isManagerContestPath(pathname)
   const isAuthEntryPath = pathname === '/logowanie' || pathname === '/rejestracja'
 
-  // Fetch role only when we may need to act on it
-  if (
-    user &&
-    (isAuthEntryPath ||
-      isAccountPath ||
-      isManagerDashboardPath ||
-      isContractorOnlyPath ||
-      isAdminPath ||
-      isManagerContestRoute)
-  ) {
+  // Ghost session: auth cookie present but profile gone (e.g. after account deletion).
+  if (user) {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('user_type, platform_role')
       .eq('id', user.id)
       .maybeSingle()
 
-    // Ghost session: auth cookie present but profile gone (e.g. after account deletion).
     if (!profile) {
       await supabase.auth.signOut({ scope: 'local' })
 
-      if (isProtectedPath) {
+      if (isProtectedPath || isAuthEntryPath) {
         const url = request.nextUrl.clone()
         url.pathname = '/logowanie'
         url.search = ''
@@ -121,7 +112,7 @@ export async function updateSession(request: NextRequest) {
 
     const impersonationCookieValue = request.cookies.get(IMPERSONATION_COOKIE_NAME)?.value
     const impersonation =
-      user && impersonationCookieValue
+      impersonationCookieValue
         ? readImpersonationFromCookieGetter(
             () => impersonationCookieValue,
             user.id,
@@ -149,50 +140,59 @@ export async function updateSession(request: NextRequest) {
       return '/panel-zarzadcy'
     })()
 
-    // Already authenticated → bounce away from /logowanie & /rejestracja to role-correct landing
-    if (isAuthEntryPath) {
-      const url = request.nextUrl.clone()
-      url.pathname = homePathFor
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
+    if (
+      isAuthEntryPath ||
+      isAccountPath ||
+      isManagerDashboardPath ||
+      isContractorOnlyPath ||
+      isAdminPath ||
+      isManagerContestRoute
+    ) {
+      // Already authenticated → bounce away from /logowanie & /rejestracja to role-correct landing
+      if (isAuthEntryPath) {
+        const url = request.nextUrl.clone()
+        url.pathname = homePathFor
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
 
-    // /panel-zarzadcy is manager-only (contractors/admins are sent to their home)
-    if (isManagerDashboardPath && !routeAsAdmin && !effectiveIsManager) {
-      const url = request.nextUrl.clone()
-      url.pathname = homePathFor
-      return NextResponse.redirect(url)
-    }
-    if ((isManagerDashboardPath || isAccountPath) && routeAsAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/administracja'
-      return NextResponse.redirect(url)
-    }
+      // /panel-zarzadcy is manager-only (contractors/admins are sent to their home)
+      if (isManagerDashboardPath && !routeAsAdmin && !effectiveIsManager) {
+        const url = request.nextUrl.clone()
+        url.pathname = homePathFor
+        return NextResponse.redirect(url)
+      }
+      if ((isManagerDashboardPath || isAccountPath) && routeAsAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/administracja'
+        return NextResponse.redirect(url)
+      }
 
-    // /panel-wykonawcy is contractor-only (admin lands on /administracja instead)
-    if (isContractorOnlyPath && !effectiveIsContractor && !routeAsAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = homePathFor
-      return NextResponse.redirect(url)
-    }
-    if (isContractorOnlyPath && routeAsAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/administracja'
-      return NextResponse.redirect(url)
-    }
+      // /panel-wykonawcy is contractor-only (admin lands on /administracja instead)
+      if (isContractorOnlyPath && !effectiveIsContractor && !routeAsAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = homePathFor
+        return NextResponse.redirect(url)
+      }
+      if (isContractorOnlyPath && routeAsAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/administracja'
+        return NextResponse.redirect(url)
+      }
 
-    // /administracja is admin-only (real admin session, not impersonation view)
-    if (isAdminPath && !isAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = homePathFor
-      return NextResponse.redirect(url)
-    }
+      // /administracja is admin-only (real admin session, not impersonation view)
+      if (isAdminPath && !isAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = homePathFor
+        return NextResponse.redirect(url)
+      }
 
-    // Contest creation is manager-only (contractors cannot create contests)
-    if (isManagerContestRoute && effectiveIsContractor && !routeAsAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = homePathFor
-      return NextResponse.redirect(url)
+      // Contest creation is manager-only (contractors cannot create contests)
+      if (isManagerContestRoute && effectiveIsContractor && !routeAsAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = homePathFor
+        return NextResponse.redirect(url)
+      }
     }
   }
 

@@ -1569,7 +1569,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
               <ContractorDocumentPanel
                 heading="Polisa OC"
-                description="Odpowiedzialność cywilna wymagana do weryfikacji konta"
+                description="OC jest wymagane do weryfikacji konta."
                 id="oc-policy"
                 required
                 defaultOpen

@@ -1,8 +1,14 @@
 import type { AuthUser } from '../../types/auth';
 
-/** Contractor who has not passed registry verification yet (header / account UI). */
+/** Contractor who has not passed manual or registry verification yet (header / account UI). */
 export function needsVerificationAttention(user: AuthUser | null | undefined): boolean {
-  return user?.userType === 'contractor' && user.registryVerified !== true;
+  if (user?.userType !== 'contractor') {
+    return false;
+  }
+  if (user.isVerified === true) {
+    return false;
+  }
+  return user.registryVerified !== true;
 }
 
 export function isVerificationPendingReview(user: AuthUser | null | undefined): boolean {
