@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { StaticInfoPage, staticInfoMetadata } from '../../../components/StaticInfoPage';
 import { newsArticles, newsCategoryStyles } from '../../../lib/content/aktualnosci';
 import { routes } from '../../../lib/routes';
+import { buildPageMetadata } from '../../../lib/seo';
 
 interface NewsArticlePageProps {
   params: Promise<{ slug: string }>;
@@ -16,9 +17,14 @@ export async function generateMetadata({ params }: NewsArticlePageProps) {
   const { slug } = await params;
   const article = newsArticles.find((item) => item.slug === slug);
   if (!article) {
-    return staticInfoMetadata('Aktualności', 'Artykuł nie został znaleziony.');
+    return staticInfoMetadata('Aktualności', 'Artykuł nie został znaleziony.', '/aktualnosci');
   }
-  return staticInfoMetadata(article.title, article.excerpt);
+  return buildPageMetadata({
+    title: article.title,
+    description: article.excerpt,
+    pathname: `/aktualnosci/${article.slug}`,
+    type: 'article',
+  });
 }
 
 export default async function NewsArticlePage({ params }: NewsArticlePageProps) {

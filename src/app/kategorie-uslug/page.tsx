@@ -8,6 +8,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Kategorie usług',
   'Przeglądaj konkursy według kategorii usług w Vestiqo.',
+  '/kategorie-uslug',
 );
 
 export default function ServiceCategoriesPage() {

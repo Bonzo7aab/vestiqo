@@ -6,6 +6,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Dla Wspólnot i Spółdzielni Mieszkaniowych',
   'Transparentne konkursy ofert dla zarządców nieruchomości i wspólnot mieszkaniowych.',
+  '/dla-wspolnot',
 );
 
 export default function CommunitiesPage() {

@@ -6,6 +6,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Najczęściej zadawane pytania',
   'Odpowiedzi na najważniejsze pytania dotyczące platformy Vestiqo.',
+  '/faq',
 );
 
 export default function FaqPage() {

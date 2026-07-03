@@ -6,6 +6,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'O nas',
   'Poznaj Vestiqo — nowy standard konkursów ofert w nieruchomościach.',
+  '/o-nas',
 );
 
 export default function AboutPage() {

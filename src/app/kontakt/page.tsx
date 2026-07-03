@@ -10,6 +10,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Kontakt',
   'Skontaktuj się z zespołem Vestiqo — formularz, e-mail i dane firmy.',
+  '/kontakt',
 );
 
 export default function ContactPage() {

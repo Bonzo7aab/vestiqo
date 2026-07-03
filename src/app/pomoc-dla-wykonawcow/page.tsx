@@ -6,6 +6,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Pomoc dla Wykonawców',
   'Przewodnik dla firm wykonawczych korzystających z Vestiqo.',
+  '/pomoc-dla-wykonawcow',
 );
 
 export default function ContractorHelpPage() {

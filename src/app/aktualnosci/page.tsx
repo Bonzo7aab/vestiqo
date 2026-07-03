@@ -5,6 +5,7 @@ import { newsIntro } from '../../lib/content/aktualnosci';
 export const metadata = staticInfoMetadata(
   'Aktualności',
   'Nowości i informacje z platformy Vestiqo.',
+  '/aktualnosci',
 );
 
 export default function NewsPage() {

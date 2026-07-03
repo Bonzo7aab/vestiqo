@@ -1,15 +1,13 @@
-'use client'
+import type { Metadata } from 'next'
+import { buildPageMetadata } from '../../lib/seo'
+import { ContractorsPageClient } from './wykonawcy-page-client'
 
-import ContractorBrowsePage from '../../components/ContractorBrowsePage';
-import { useRouter } from 'next/navigation';
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Wykonawcy',
+  description: 'Przeglądaj profile sprawdzonych wykonawców działających w platformie Vestiqo.',
+  pathname: '/wykonawcy',
+})
 
-export default function Contractors() {
-  const router = useRouter();
-
-  return (
-    <ContractorBrowsePage 
-      onBack={() => router.push('/')}
-      onContractorSelect={(contractorId: string) => router.push(`/wykonawcy/${contractorId}`)}
-    />
-  );
+export default function ContractorsPage() {
+  return <ContractorsPageClient />
 }

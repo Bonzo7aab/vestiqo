@@ -1,8 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { requirePlatformAdmin } from '../../lib/admin/require-platform-admin';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
+import { buildNoIndexMetadata } from '../../lib/seo';
+
+export const metadata: Metadata = buildNoIndexMetadata('Panel administracyjny');
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headerStore = await headers();

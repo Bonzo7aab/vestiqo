@@ -6,6 +6,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   'Dla Wykonawców i Firm',
   'Stabilne zlecenia B2B od wspólnot, spółdzielni i zarządców nieruchomości.',
+  '/dla-wykonawcow',
 );
 
 export default function ContractorsLandingPage() {
