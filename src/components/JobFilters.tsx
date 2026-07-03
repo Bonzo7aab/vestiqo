@@ -59,6 +59,8 @@ interface JobFiltersProps {
   onLocationChange?: () => void;
   jobs?: Job[];
   initialFilters?: FilterState;
+  /** Flush right edge when rendered beside the expanded map. */
+  mapSidebar?: boolean;
 }
 
 const CustomCheckbox: React.FC<{
@@ -93,6 +95,7 @@ export default function JobFilters({
   onLocationChange,
   jobs = [],
   initialFilters,
+  mapSidebar = false,
 }: JobFiltersProps) {
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(new Set());
   const [local, setLocal] = useState<FilterState>(initialFilters ?? defaultFilters);
@@ -232,8 +235,13 @@ export default function JobFilters({
   };
 
   return (
-    <div className="w-full rounded-xl border border-border/60 bg-card shadow-sm lg:w-80">
-      <div className="px-6 pt-3 pb-6">
+    <div
+      className={cn(
+        'w-full bg-card',
+        mapSidebar ? 'h-full' : 'rounded-xl border border-border/60 shadow-sm lg:w-80',
+      )}
+    >
+      <div className={cn(mapSidebar ? 'px-5 pt-4 pb-6' : 'px-6 pt-3 pb-6')}>
         <div className="mb-2 flex h-8 items-center">
           <h3 className="text-base font-semibold text-brand-navy sm:text-lg">Filtry</h3>
         </div>

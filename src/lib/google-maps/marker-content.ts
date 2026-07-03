@@ -1,23 +1,23 @@
+import { createMarkerGlyph } from './config';
 import { readThemeColors } from '../theme/read-theme-colors';
 
-export const MARKER_PIN_SCALE = {
-  default: 1.42,
-  hovered: 1.58,
-} as const;
-
-export interface DomioMarkerContentOptions {
-  pinElement: HTMLElement;
-  accentColor: string;
+export interface DomioTooltipMarkerOptions {
+  categorySlug?: string;
+  subcategoryLabel: string;
+  postType?: 'job' | 'contest';
+  backgroundColor: string;
   markerId: string;
   isHovered?: boolean;
 }
 
-export function wrapDomioMarkerContent({
-  pinElement,
-  accentColor,
+export function createDomioTooltipMarkerContent({
+  categorySlug,
+  subcategoryLabel,
+  postType = 'job',
+  backgroundColor,
   markerId,
   isHovered = false,
-}: DomioMarkerContentOptions): HTMLElement {
+}: DomioTooltipMarkerOptions): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.className = 'domio-map-marker';
   wrapper.setAttribute('data-marker-id', markerId);
@@ -25,24 +25,37 @@ export function wrapDomioMarkerContent({
     wrapper.classList.add('domio-map-marker--hovered');
   }
 
-  const pinSlot = document.createElement('div');
-  pinSlot.className = 'domio-map-marker__pin';
-  pinSlot.appendChild(pinElement);
+  const tooltip = document.createElement('div');
+  tooltip.className = 'domio-map-marker__tooltip';
+  tooltip.style.setProperty('--domio-marker-bg', backgroundColor);
+
+  const iconSlot = document.createElement('span');
+  iconSlot.className = 'domio-map-marker__icon';
+  const glyph = createMarkerGlyph(postType, readThemeColors().white, categorySlug, 16);
+  iconSlot.appendChild(glyph);
+
+  const label = document.createElement('span');
+  label.className = 'domio-map-marker__label';
+  label.textContent = subcategoryLabel;
+  label.title = subcategoryLabel;
+
+  tooltip.append(iconSlot, label);
 
   const anchor = document.createElement('div');
   anchor.className = 'domio-map-marker__anchor';
   anchor.setAttribute('aria-hidden', 'true');
+  anchor.setAttribute('data-marker-hit', 'anchor');
 
   const pulseRing = document.createElement('span');
   pulseRing.className = 'domio-map-marker__pulse-ring';
-  pulseRing.style.setProperty('--domio-marker-accent', accentColor);
+  pulseRing.style.setProperty('--domio-marker-accent', backgroundColor);
 
   const pulseCore = document.createElement('span');
   pulseCore.className = 'domio-map-marker__pulse-core';
-  pulseCore.style.setProperty('--domio-marker-accent', accentColor);
+  pulseCore.style.setProperty('--domio-marker-accent', backgroundColor);
 
   anchor.append(pulseRing, pulseCore);
-  wrapper.append(pinSlot, anchor);
+  wrapper.append(tooltip, anchor);
 
   return wrapper;
 }
@@ -51,7 +64,7 @@ export function getDomioMarkerPinElement(markerContent: HTMLElement | null | und
   if (!markerContent) {
     return markerContent as unknown as HTMLElement;
   }
-  return markerContent.querySelector<HTMLElement>('.domio-map-marker__pin') ?? markerContent;
+  return markerContent.querySelector<HTMLElement>('.domio-map-marker__tooltip') ?? markerContent;
 }
 
 const DOMIO_MARKER_STYLE_ID = 'domio-marker-pulse-style';
@@ -76,48 +89,99 @@ export function ensureDomioMarkerStyles(): void {
       align-items: center;
       justify-content: flex-end;
       pointer-events: auto;
+      padding: 2px 10px 10px;
     }
 
-    .domio-map-marker__pin {
-      transform: translateY(-14px);
-      filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.28));
-      margin-bottom: -2px;
-      transition: transform 0.15s ease;
+    .domio-map-marker__tooltip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 220px;
+      padding: 5px 10px 5px 7px;
+      margin-bottom: 0;
+      border-radius: 8px;
+      background: var(--domio-marker-bg, ${theme.primary});
+      color: ${theme.white};
+      font-family: var(--font-inter, Inter, system-ui, sans-serif);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      border: 1.5px solid rgba(255, 255, 255, 0.62);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 2px 8px rgba(15, 23, 42, 0.28);
     }
 
-    .domio-map-marker--hovered .domio-map-marker__pin {
-      transform: translateY(-16px) scale(1.04);
+    .domio-map-marker--hovered .domio-map-marker__tooltip {
+      border-color: rgba(255, 255, 255, 0.78);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.28),
+        0 4px 12px rgba(15, 23, 42, 0.32);
+    }
+
+    .domio-map-marker__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+    }
+
+    .domio-map-marker__icon svg {
+      width: 16px !important;
+      height: 16px !important;
+      display: block;
+    }
+
+    .domio-map-marker__label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
     }
 
     .domio-map-marker__anchor {
       position: relative;
-      width: 16px;
-      height: 16px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .domio-map-marker__anchor::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
     }
 
     .domio-map-marker__pulse-core {
-      width: 9px;
-      height: 9px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
       background: var(--domio-marker-accent, ${theme.primary});
       border: 2px solid ${theme.white};
       box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.18);
       position: relative;
       z-index: 2;
+      pointer-events: none;
     }
 
     .domio-map-marker__pulse-ring {
       position: absolute;
-      width: 9px;
-      height: 9px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
       background: var(--domio-marker-accent, ${theme.primary});
       opacity: 0.45;
       animation: domio-marker-pulse 2.2s ease-out infinite;
+      pointer-events: none;
     }
 
     @keyframes domio-marker-pulse {
@@ -133,10 +197,6 @@ export function ensureDomioMarkerStyles(): void {
         transform: scale(3.2);
         opacity: 0;
       }
-    }
-
-    .domio-map-marker__pin.marker-bounce {
-      animation: markerBounce 1s ease-in-out infinite;
     }
   `;
   document.head.appendChild(style);
