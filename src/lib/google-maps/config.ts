@@ -8,7 +8,7 @@ export const googleMapsConfig = {
 export const mapOptions = {
   zoom: 11, // District-level view
   center: { lat: 52.1394, lng: 21.0458 }, // Ursynów, Warsaw
-  mapTypeControl: true,
+  mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: false,
   zoomControl: true,
@@ -22,7 +22,7 @@ export const mapOptions = {
     { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'off' }] },
     { featureType: 'poi.sports_complex', stylers: [{ visibility: 'off' }] },
     { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
-    { featureType: 'poi.park', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.park', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
   ],
@@ -209,8 +209,9 @@ export const createMarkerGlyph = (
   postType: 'job' | 'contest',
   glyphColor: string,
   categorySlug?: string,
+  size = 22,
 ): SVGSVGElement => {
-  const cacheKey = `${postType}-${glyphColor}-${categorySlug ?? 'none'}`;
+  const cacheKey = `${postType}-${glyphColor}-${categorySlug ?? 'none'}-${size}`;
 
   const cached = glyphCache.get(cacheKey);
   if (cached) {
@@ -221,8 +222,8 @@ export const createMarkerGlyph = (
   svg.setAttribute('width', '24');
   svg.setAttribute('height', '24');
   svg.setAttribute('viewBox', '0 0 24 24');
-  svg.style.width = '22px';
-  svg.style.height = '22px';
+  svg.style.width = `${size}px`;
+  svg.style.height = `${size}px`;
   svg.style.display = 'block';
 
   if (categorySlug && isCategoryGlyphSlug(categorySlug)) {

@@ -1,3 +1,5 @@
+import { getJobWorkflowStatusLabel } from '../job-workflow-status';
+
 export type OfferBaseStatus =
   | 'submitted'
   | 'under_review'
@@ -15,7 +17,11 @@ export type ListingBaseStatus =
   | 'cancelled'
   | 'inactive'
   | 'evaluation'
-  | 'awarded';
+  | 'awarded'
+  | 'collecting_offers'
+  | 'selecting_offer'
+  | 'in_progress'
+  | 'ready_for_acceptance';
 
 export type StatusTone = 'neutral' | 'destructive' | 'success' | 'info';
 
@@ -31,13 +37,17 @@ export const offerStatusLabel: Record<OfferBaseStatus, string> = {
 
 export const listingStatusLabel: Record<ListingBaseStatus, string> = {
   draft: 'Szkic',
-  active: 'Aktywne',
-  paused: 'Zawieszone',
+  active: 'Zbieranie ofert',
+  paused: 'Wstrzymane',
   completed: 'Zakończone',
   cancelled: 'Anulowane',
   inactive: 'Nieaktywne',
   evaluation: 'Ocena',
   awarded: 'Przyznane',
+  collecting_offers: 'Zbieranie ofert',
+  selecting_offer: 'Wybór ofert',
+  in_progress: 'W realizacji',
+  ready_for_acceptance: 'Do odbioru',
 };
 
 export interface StatusDescriptor {
@@ -65,17 +75,24 @@ export function offerEffectiveStatus(baseStatus: string, adminModerationStatus: 
 }
 
 export function listingEffectiveStatus(baseStatus: string): StatusDescriptor {
-  const label = listingStatusLabel[baseStatus as ListingBaseStatus] ?? baseStatus;
+  const label =
+    listingStatusLabel[baseStatus as ListingBaseStatus] ?? getJobWorkflowStatusLabel(baseStatus);
   switch (baseStatus) {
-    case 'paused':
-    case 'cancelled':
-      return { label, tone: 'destructive' };
     case 'active':
+    case 'collecting_offers':
+    case 'selecting_offer':
+    case 'in_progress':
+    case 'ready_for_acceptance':
     case 'awarded':
     case 'completed':
       return { label, tone: 'success' };
+    case 'paused':
+    case 'cancelled':
+      return { label, tone: 'destructive' };
     case 'evaluation':
       return { label, tone: 'info' };
+    case 'inactive':
+      return { label, tone: 'neutral' };
     default:
       return { label, tone: 'neutral' };
   }

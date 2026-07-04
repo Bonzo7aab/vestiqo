@@ -1,5 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import { formatContestLocation } from '../contest-display';
+import { CONTEST_TENDERS_OR_FILTER } from './jobs';
+import {
+  contestsTable,
+  ensureContestsSchemaResolved,
+  shouldApplyContestTendersFilter,
+} from './schema-compat';
+
+function parseContestLocationDisplay(value: unknown): string | null {
+  const formatted = formatContestLocation(value as Parameters<typeof formatContestLocation>[0]);
+  if (!formatted || formatted === 'Unknown') return null;
+  return formatted;
+}
 
 export interface AdminJobListingRow {
   id: string;
@@ -143,12 +156,25 @@ export async function fetchAdminJobListings(supabase: SupabaseClient<Database>):
   });
 }
 
+function isSubmissionDeadlineExpired(deadline: string | null): boolean {
+  if (!deadline) return false;
+  const deadlineDate = new Date(deadline);
+  if (Number.isNaN(deadlineDate.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlineAtMidnight = new Date(deadlineDate);
+  deadlineAtMidnight.setHours(0, 0, 0, 0);
+  return deadlineAtMidnight < today;
+}
+
 export async function fetchAdminTenderListings(
   supabase: SupabaseClient<Database>
 ): Promise<AdminTenderListingRow[]> {
+  await ensureContestsSchemaResolved(supabase);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('contests')
+  let query = (supabase as any)
+    .from(contestsTable())
     .select(
       `
       id, title, description, status, manager_id, company_id, category_id,
@@ -158,43 +184,54 @@ export async function fetchAdminTenderListings(
       manager:user_profiles!tenders_manager_id_fkey ( first_name, last_name ),
       company:companies!tenders_company_id_fkey ( name )
     `
-    )
+    );
+
+  if (shouldApplyContestTendersFilter('contest')) {
+    query = query.or(CONTEST_TENDERS_OR_FILTER);
+  }
+
+  query = query.eq('status', 'active').eq('is_public', true);
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(150);
+    .limit(500);
 
   if (error) {
     logSupabaseError('fetchAdminTenderListings', error);
     return [];
   }
 
-  return (data ?? []).map((r: Record<string, unknown>) => {
-    const manager = r.manager as { first_name?: string; last_name?: string } | null;
-    const company = r.company as { name?: string } | null;
-    const managerFullName = manager
-      ? [manager.first_name, manager.last_name].filter(Boolean).join(' ').trim() || null
-      : null;
-    return {
-      id: r.id as string,
-      title: r.title as string,
-      description: (r.description as string) ?? null,
-      status: r.status as string,
-      managerId: r.manager_id as string,
-      managerFullName,
-      managerCompanyName: company?.name ?? null,
-      companyId: (r.company_id as string) ?? null,
-      categoryId: (r.category_id as string) ?? null,
-      location: (r.location as string) ?? null,
-      address: (r.address as string) ?? null,
-      estimatedValue: (r.estimated_value as number) ?? null,
-      currency: (r.currency as string) ?? null,
-      submissionDeadline: (r.submission_deadline as string) ?? null,
-      evaluationDeadline: (r.evaluation_deadline as string) ?? null,
-      projectDuration: (r.project_duration as string) ?? null,
-      requirements: (r.requirements as string[]) ?? null,
-      wadium: (r.wadium as number) ?? null,
-      bidsCount: (r.offers_count as number) ?? 0,
-      createdAt: (r.created_at as string) ?? null,
-      updatedAt: (r.updated_at as string) ?? null,
-    };
-  });
+  return (data ?? [])
+    .map((r: Record<string, unknown>) => {
+      const manager = r.manager as { first_name?: string; last_name?: string } | null;
+      const company = r.company as { name?: string } | null;
+      const managerFullName = manager
+        ? [manager.first_name, manager.last_name].filter(Boolean).join(' ').trim() || null
+        : null;
+      const submissionDeadline = (r.submission_deadline as string) ?? null;
+      return {
+        id: r.id as string,
+        title: r.title as string,
+        description: (r.description as string) ?? null,
+        status: r.status as string,
+        managerId: r.manager_id as string,
+        managerFullName,
+        managerCompanyName: company?.name ?? null,
+        companyId: (r.company_id as string) ?? null,
+        categoryId: (r.category_id as string) ?? null,
+        location: parseContestLocationDisplay(r.location),
+        address: (r.address as string) ?? null,
+        estimatedValue: (r.estimated_value as number) ?? null,
+        currency: (r.currency as string) ?? null,
+        submissionDeadline,
+        evaluationDeadline: (r.evaluation_deadline as string) ?? null,
+        projectDuration: (r.project_duration as string) ?? null,
+        requirements: (r.requirements as string[]) ?? null,
+        wadium: (r.wadium as number) ?? null,
+        bidsCount: (r.offers_count as number) ?? 0,
+        createdAt: (r.created_at as string) ?? null,
+        updatedAt: (r.updated_at as string) ?? null,
+      };
+    })
+    .filter((row) => !isSubmissionDeadlineExpired(row.submissionDeadline));
 }

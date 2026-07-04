@@ -11,7 +11,7 @@ import { getCurrentLocation, calculateDistance } from '../lib/google-maps/geocod
 import { extractCity, extractSublocality } from '../utils/locationMapping';
 import type { Job } from '../types/job';
 import type { FilterState } from './JobFilters';
-import { resolveCategorySlugFromJob } from '../lib/config/categoryConfig';
+import { resolveCategorySlugFromJob, getSubcategoryDisplayName } from '../lib/config/categoryConfig';
 import { jobMatchesFilters, matchesFavoritesFilter } from '../lib/filters/filter-logic';
 import { getBookmarkedJobs } from '../utils/bookmarkStorage';
 import { BOOKMARK_COUNT_CHANGED_EVENT } from '../utils/bookmarkCountOverrides';
@@ -366,6 +366,12 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
       const urgency = job.urgency && ['low', 'medium', 'high'].includes(job.urgency.toLowerCase())
         ? job.urgency.toLowerCase() as 'low' | 'medium' | 'high'
         : 'medium';
+
+      const categorySlug = resolveCategorySlugFromJob({ category: job.category });
+      const subcategoryLabel = getSubcategoryDisplayName({
+        name: job.subcategory,
+        categorySlug,
+      }) ?? job.title;
       
       return {
         id: job.id,
@@ -377,7 +383,8 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
         isUrgent: job.urgent, // Legacy support
         postType: job.postType || 'job', // Job type for icon selection
         urgency, // Priority level for color selection
-        categorySlug: resolveCategorySlugFromJob({ category: job.category }),
+        categorySlug,
+        subcategoryLabel,
         jobData: job,
       };
     });
@@ -402,7 +409,7 @@ export const EnhancedMapViewGoogleMaps: React.FC<EnhancedMapViewProps> = ({
       : 'w-[450px] h-[450px]';
 
   return (
-    <div className={`relative transition-all duration-300 flex-shrink-0 ${containerClass}`}>
+    <div className={`relative transition-all duration-300 ${fillParent || fillContainer ? 'w-full h-full min-h-0' : 'flex-shrink-0'} ${containerClass}`}>
       {/* Map Container */}
       <div className={`relative w-full h-full overflow-hidden bg-muted ${
         isExpanded ? 'rounded-none border-none' : 'rounded-lg border border-border'

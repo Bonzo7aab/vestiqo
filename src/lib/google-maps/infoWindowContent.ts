@@ -15,7 +15,12 @@ import { escapeHtml, escapeHtmlAttribute } from "../security/escape-html";
 import { getContestMarkerIconSvg } from "./config";
 import { readThemeColors } from "../theme/read-theme-colors";
 
-const INFO_WINDOW_CACHE_VERSION = "v3";
+const INFO_WINDOW_CACHE_VERSION = "v11";
+
+/** Darkened category tint for header/border — keeps hue, readable with white text. */
+function categoryHeaderTint(categoryColor: string, brandNavy: string): string {
+  return `color-mix(in srgb, ${categoryColor} 74%, ${brandNavy})`;
+}
 const infoWindowContentCache = new Map<string, string>();
 const CACHE_MAX_SIZE = 100;
 
@@ -51,7 +56,6 @@ interface ListingPreviewMeta {
   location: string;
   categoryLabel: string;
   categoryColor: string;
-  accentBorder: string;
   deadlineLabel: string | null;
   offerCount: number;
   detailHref: string;
@@ -85,7 +89,6 @@ function buildListingPreviewMeta(job: Job): ListingPreviewMeta {
     location: formatContestLocation(job.location),
     categoryLabel,
     categoryColor,
-    accentBorder: `color-mix(in srgb, ${categoryColor} 38%, transparent)`,
     deadlineLabel,
     offerCount: job.applications ?? job.metrics?.applications ?? 0,
     detailHref: getListingDetailHref(job),
@@ -94,22 +97,17 @@ function buildListingPreviewMeta(job: Job): ListingPreviewMeta {
   };
 }
 
-function renderMetaRow(label: string, value: string, compact = false): string {
+function renderMetaCell(label: string, value: string): string {
   const theme = readThemeColors();
-  const fontSize = compact ? "11px" : "12px";
   return `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:${fontSize};line-height:1.4;">
-      <span style="color:${theme.mutedForeground};flex-shrink:0;">${label}</span>
-      <span style="color:${theme.brandNavy};font-weight:500;text-align:right;">${value}</span>
+    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+      <span style="font-size:10px;font-weight:500;color:${theme.mutedForeground};">${label}</span>
+      <span style="font-size:12px;font-weight:600;color:${theme.brandNavy};line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${value}</span>
     </div>
   `;
 }
 
-function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string {
-  const theme = readThemeColors();
-  const padding = compact ? "8px 12px" : "9px 14px";
-  const fontSize = compact ? "12px" : "13px";
-
+function renderDetailsButton(meta: ListingPreviewMeta): string {
   return `
     <button
       type="button"
@@ -118,13 +116,13 @@ function renderDetailsButton(meta: ListingPreviewMeta, compact = false): string 
       style="
         display:block;
         width:100%;
-        margin-top:${compact ? "10px" : "12px"};
-        padding:${padding};
+        margin-top:10px;
+        padding:9px 12px;
         border:none;
         border-radius:8px;
-        background:${theme.primary};
-        color:${theme.white};
-        font-size:${fontSize};
+        background:${meta.categoryColor};
+        color:${readThemeColors().white};
+        font-size:13px;
         font-weight:600;
         cursor:pointer;
         font-family:inherit;
@@ -139,42 +137,51 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
   const safeCompany = escapeHtml(meta.company);
   const safeLocation = escapeHtml(meta.location);
   const safeCategory = escapeHtml(meta.categoryLabel);
-  const maxWidth = compact ? "248px" : "320px";
-  const padding = compact ? "12px" : "14px";
-  const titleSize = compact ? "13px" : "14px";
+  const cardWidth = compact ? "248px" : "272px";
+  const bodyPadding = compact ? "11px" : "12px";
+  const headerTint = categoryHeaderTint(meta.categoryColor, theme.brandNavy);
 
   return `
     <div
       class="info-window-content map-info-window"
       data-listing-id="${escapeHtmlAttribute(meta.id)}"
-      style="width:100%;max-width:${maxWidth};"
+      style="width:${cardWidth};max-width:${cardWidth};position:relative;padding-bottom:9px;"
     >
       <div style="
-        padding:${padding};
-        background:${theme.background};
-        border:1px solid ${theme.border};
-        border-left:3px solid ${meta.accentBorder};
-        border-radius:12px;
+        box-sizing:border-box;
+        width:${cardWidth};
+        border-radius:10px;
+        overflow:hidden;
+        border:1px solid ${headerTint};
         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-        box-shadow:0 2px 10px rgba(15,23,42,0.08);
+        box-shadow:0 5px 16px rgba(15,23,42,0.16), 0 2px 6px rgba(15,23,42,0.1);
       ">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-          ${getContestMarkerIconSvg(meta.categoryColor, compact ? 12 : 14)}
+        <div style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          padding:8px 10px;
+          background:${headerTint};
+          color:${theme.white};
+          border-bottom:1px solid color-mix(in srgb, ${headerTint} 82%, ${theme.brandNavy});
+        ">
+          <span style="display:inline-flex;flex-shrink:0;">${getContestMarkerIconSvg(theme.white, 14)}</span>
           <span style="
-            display:inline-flex;
-            padding:2px 8px;
-            font-size:${compact ? "10px" : "11px"};
+            flex:1;
+            min-width:0;
+            font-size:11px;
             font-weight:600;
-            border-radius:999px;
-            background:${theme.card};
-            color:${meta.categoryColor};
-            border:1px solid ${theme.border};
+            line-height:1.25;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            color:${theme.white};
           ">${safeCategory}</span>
           ${meta.urgent ? `
             <span style="
-              display:inline-flex;
-              padding:2px 8px;
-              font-size:10px;
+              flex-shrink:0;
+              padding:2px 6px;
+              font-size:9px;
               font-weight:700;
               border-radius:999px;
               background:${theme.destructive};
@@ -182,46 +189,70 @@ function renderListingPreviewCard(meta: ListingPreviewMeta, compact = false, inc
               text-transform:uppercase;
             ">Pilne</span>
           ` : ""}
+          <div style="flex-shrink:0;margin-left:4px;text-align:right;line-height:1.1;color:${theme.white};">
+            <div style="font-size:9px;font-weight:500;opacity:0.88;">Oferty</div>
+            <div style="font-size:15px;font-weight:700;">${meta.offerCount}</div>
+          </div>
           ${meta.verified ? `
-            <span style="display:inline-flex;color:${theme.primary};" aria-hidden="true">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <span style="display:inline-flex;flex-shrink:0;color:${theme.white};opacity:0.95;" aria-hidden="true" title="Zweryfikowany">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </span>
           ` : ""}
         </div>
 
-        <h3 style="
-          margin:0 0 6px;
-          font-size:${titleSize};
-          font-weight:700;
-          line-height:1.35;
-          color:${theme.brandNavy};
-          display:-webkit-box;
-          -webkit-line-clamp:2;
-          -webkit-box-orient:vertical;
-          overflow:hidden;
-        ">${safeTitle}</h3>
+        <div style="padding:${bodyPadding};background:${theme.background};">
+          <h3 style="
+            margin:0 0 4px;
+            font-size:14px;
+            font-weight:700;
+            line-height:1.35;
+            color:${theme.brandNavy};
+            display:-webkit-box;
+            -webkit-line-clamp:2;
+            -webkit-box-orient:vertical;
+            overflow:hidden;
+          ">${safeTitle}</h3>
 
-        <p style="
-          margin:0 0 10px;
-          font-size:${compact ? "11px" : "12px"};
-          color:${theme.mutedForeground};
-          line-height:1.4;
-          display:-webkit-box;
-          -webkit-line-clamp:1;
-          -webkit-box-orient:vertical;
-          overflow:hidden;
-        ">${safeCompany}</p>
+          <p style="
+            margin:0 0 10px;
+            font-size:12px;
+            color:${theme.mutedForeground};
+            line-height:1.35;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+          ">${safeCompany}</p>
 
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${renderMetaRow("Lokalizacja", safeLocation, compact)}
-          ${meta.deadlineLabel ? renderMetaRow("Termin składania", escapeHtml(meta.deadlineLabel), compact) : ""}
-          ${renderMetaRow("Oferty", String(meta.offerCount), compact)}
+          <div style="
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+            padding:9px 10px;
+            background:${theme.card};
+            border-radius:8px;
+          ">
+            ${renderMetaCell("Lokalizacja", safeLocation)}
+            ${meta.deadlineLabel ? renderMetaCell("Termin składania", escapeHtml(meta.deadlineLabel)) : ""}
+          </div>
+
+          ${includeDetailsButton ? renderDetailsButton(meta) : ""}
         </div>
-
-        ${includeDetailsButton ? renderDetailsButton(meta, compact) : ""}
       </div>
+
+      <div style="
+        position:absolute;
+        left:50%;
+        bottom:1px;
+        transform:translateX(-50%);
+        width:0;
+        height:0;
+        border-left:7px solid transparent;
+        border-right:7px solid transparent;
+        border-top:8px solid ${headerTint};
+        filter:drop-shadow(0 1.5px 2px rgba(15,23,42,0.1));
+      " aria-hidden="true"></div>
     </div>
   `;
 }

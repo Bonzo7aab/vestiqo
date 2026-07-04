@@ -673,17 +673,18 @@ function HomePageContent() {
       )}
       
       {isMapExpanded && (
-        <div className="flex w-full min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4rem)]">
-          <div className="hidden lg:flex max-h-[calc(100vh-5.5rem)] flex-col overflow-y-auto overscroll-y-auto lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
+        <div className="flex h-[calc(100vh-4rem)] w-full min-h-0 gap-0">
+          <div className="hidden h-full w-80 flex-shrink-0 flex-col overflow-y-auto overscroll-y-auto border-r border-border/60 bg-card lg:flex xl:w-96">
             <JobFilters
               onFilterChange={setFilters}
               initialFilters={filters}
               primaryLocation={primaryLocation}
               onLocationChange={handleLocationChangeRequest}
               jobs={loadedJobs}
+              mapSidebar
             />
           </div>
-          <div className="flex-1 min-w-0 relative min-h-0">
+          <div className="relative min-h-0 min-w-0 flex-1">
             <EnhancedMapView
               jobs={jobs}
               allJobs={loadedJobs}

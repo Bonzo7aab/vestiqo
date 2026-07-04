@@ -8,7 +8,7 @@ const tabs = [
   { id: 'dashboard', label: 'Dashboard', href: '/administracja', exact: true },
   { id: 'weryfikacja', label: 'Weryfikacja', href: '/administracja/weryfikacja' },
   { id: 'oferty', label: 'Oferty wykonawców', href: '/administracja/oferty' },
-  { id: 'ogloszenia', label: 'Zgłoszenia zarządców', href: '/administracja/ogloszenia' },
+  { id: 'zgloszenia', label: 'Zgłoszenia zarządców', href: '/administracja/zgloszenia' },
   { id: 'ustawienia', label: 'Ustawienia', href: '/administracja/ustawienia' },
 ];
 

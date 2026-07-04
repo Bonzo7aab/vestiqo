@@ -3,13 +3,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
-import { googleMapsConfig, mapOptions, getMarkerColors, createMarkerGlyph, lightenColor, clearMarkerGlyphCache } from '../lib/google-maps/config';
+import { googleMapsConfig, mapOptions, getMarkerColors, clearMarkerGlyphCache } from '../lib/google-maps/config';
 import { suppressNonDomioMapFeatures } from '../lib/google-maps/map-features';
 import {
   ensureDomioMarkerStyles,
-  getDomioMarkerPinElement,
-  MARKER_PIN_SCALE,
-  wrapDomioMarkerContent,
+  createDomioTooltipMarkerContent,
 } from '../lib/google-maps/marker-content';
 import { getCategoryColor } from '../lib/config/categoryConfig';
 import {
@@ -55,8 +53,12 @@ interface MarkerConfig {
   postType?: 'job' | 'contest';
   urgency?: 'low' | 'medium' | 'high';
   categorySlug?: string;
+  subcategoryLabel?: string;
   jobData?: Job;
 }
+
+const MARKER_Z_INDEX_DEFAULT = 100;
+const MARKER_Z_INDEX_FRONT = 10000;
 
 // Marker pool manager for reusing marker instances
 class MarkerPool {
@@ -84,7 +86,7 @@ class MarkerPool {
         map,
         position: config.position,
         title: config.title,
-        zIndex: config.isHovered ? 1001 : 100,
+        zIndex: config.isHovered ? MARKER_Z_INDEX_FRONT : MARKER_Z_INDEX_DEFAULT,
       });
     }
 
@@ -104,54 +106,53 @@ class MarkerPool {
     map: google.maps.Map
   ): void {
     const colors = getMarkerColors();
-    // OPD-105: contest markers use white pin + category-colored icon
-    let backgroundColor: string;
-    let glyphColor: string;
-    let borderColor: string;
-
-    if (config.postType === 'contest' && config.categorySlug) {
-      const categoryColor = getCategoryColor(config.categorySlug);
-      backgroundColor = colors.default.borderColor;
-      glyphColor = categoryColor;
-      borderColor = categoryColor;
-    } else if (config.urgency && ['low', 'medium', 'high'].includes(config.urgency)) {
-      backgroundColor = colors.priority[config.urgency];
-      glyphColor = colors.default.glyphColor;
-      borderColor = lightenColor(backgroundColor, 30);
-    } else {
-      backgroundColor = colors.priority.medium;
-      glyphColor = colors.default.glyphColor;
-      borderColor = lightenColor(backgroundColor, 30);
-    }
+    const backgroundColor = config.categorySlug
+      ? getCategoryColor(config.categorySlug)
+      : config.urgency && ['low', 'medium', 'high'].includes(config.urgency)
+        ? colors.priority[config.urgency]
+        : colors.priority.medium;
 
     const postType = config.postType || 'job';
-    const baseScale = config.isHovered ? MARKER_PIN_SCALE.hovered : MARKER_PIN_SCALE.default;
+    const subcategoryLabel = config.subcategoryLabel?.trim() || config.title;
 
-    const glyph = createMarkerGlyph(postType, glyphColor, config.categorySlug);
-    const pinElement = new google.maps.marker.PinElement({
-      background: backgroundColor,
-      borderColor: borderColor,
-      glyphColor: colors.default.glyphColor,
-      glyph: glyph,
-      scale: baseScale,
-    });
-
-    // Update marker properties
     marker.position = config.position;
     marker.title = config.title;
 
-    const wrapper = wrapDomioMarkerContent({
-      pinElement: pinElement.element,
-      accentColor: borderColor,
+    const wrapper = createDomioTooltipMarkerContent({
+      categorySlug: config.categorySlug,
+      subcategoryLabel,
+      postType,
+      backgroundColor,
       markerId: config.id,
       isHovered: config.isHovered,
     });
     marker.content = wrapper;
-    marker.zIndex = config.isHovered ? 1001 : 100;
+    marker.zIndex = config.isHovered ? MARKER_Z_INDEX_FRONT : MARKER_Z_INDEX_DEFAULT;
     marker.map = map;
 
     const element = marker.content as HTMLElement;
-    element.style.zIndex = config.isHovered ? '1001' : '100';
+    element.style.zIndex = config.isHovered ? String(MARKER_Z_INDEX_FRONT) : String(MARKER_Z_INDEX_DEFAULT);
+  }
+
+  bringToFront(id: string): void {
+    this.activeMarkers.forEach((marker, markerId) => {
+      const zIndex = markerId === id ? MARKER_Z_INDEX_FRONT : MARKER_Z_INDEX_DEFAULT;
+      marker.zIndex = zIndex;
+      const element = marker.content as HTMLElement;
+      if (element) {
+        element.style.zIndex = String(zIndex);
+      }
+    });
+  }
+
+  resetStackOrder(): void {
+    this.activeMarkers.forEach((marker) => {
+      marker.zIndex = MARKER_Z_INDEX_DEFAULT;
+      const element = marker.content as HTMLElement;
+      if (element) {
+        element.style.zIndex = String(MARKER_Z_INDEX_DEFAULT);
+      }
+    });
   }
 
   update(id: string, config: Partial<MarkerConfig>, map: google.maps.Map): void {
@@ -168,7 +169,8 @@ class MarkerPool {
       currentConfig.isHovered !== newConfig.isHovered ||
       currentConfig.urgency !== newConfig.urgency ||
       currentConfig.postType !== newConfig.postType ||
-      currentConfig.categorySlug !== newConfig.categorySlug;
+      currentConfig.categorySlug !== newConfig.categorySlug ||
+      currentConfig.subcategoryLabel !== newConfig.subcategoryLabel;
 
     if (needsReconfig) {
       this.configureMarker(marker, newConfig, map);
@@ -246,7 +248,6 @@ const MapComponent: React.FC<{
   const isHoveringInfoWindowRef = useRef<boolean>(false);
   const boundsDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
-  const bouncingMarkerRef = useRef<HTMLElement | null>(null);
   const currentBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   // const loadingChunkRef = useRef<number>(0); // Unused variable
   const activeInfoWindowMarkerIdRef = useRef<string | null>(null);
@@ -309,9 +310,9 @@ const MapComponent: React.FC<{
       // Initialize info window
       const newInfoWindow = new google.maps.InfoWindow({
         disableAutoPan: true,
-        pixelOffset: new google.maps.Size(0, -10),
+        pixelOffset: new google.maps.Size(0, 6),
         ariaLabel: 'Szczegóły ogłoszenia',
-        maxWidth: 360,
+        maxWidth: 280,
       });
       setInfoWindow(newInfoWindow);
 
@@ -321,10 +322,13 @@ const MapComponent: React.FC<{
         .gm-style-iw-c {
           transition: none !important;
           animation: none !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
         }
         .gm-style-iw-tc {
-          transition: none !important;
-          animation: none !important;
+          display: none !important;
         }
         .gm-style-iw {
           transition: none !important;
@@ -333,10 +337,20 @@ const MapComponent: React.FC<{
         .gm-style-iw-d {
           transition: none !important;
           animation: none !important;
+          overflow: visible !important;
+          max-height: none !important;
         }
         .gm-style-iw-ch {
           transition: none !important;
           animation: none !important;
+        }
+        .gm-style-iw button.gm-ui-hover-effect {
+          top: 6px !important;
+          right: 6px !important;
+          opacity: 0.92 !important;
+        }
+        .gm-style-iw button.gm-ui-hover-effect span {
+          background-color: #fff !important;
         }
       `;
       if (!document.querySelector('#gm-infowindow-no-animation')) {
@@ -344,45 +358,16 @@ const MapComponent: React.FC<{
         document.head.appendChild(style);
       }
 
-      // Add bounce animation CSS for markers
-      const bounceStyle = document.createElement('style');
-      bounceStyle.textContent = `
-        @keyframes markerBounce {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-        .marker-bounce,
-        .domio-map-marker__pin.marker-bounce {
-          animation: markerBounce 1s ease-in-out infinite;
-        }
-      `;
-      if (!document.querySelector('#marker-bounce-style')) {
-        bounceStyle.id = 'marker-bounce-style';
-        document.head.appendChild(bounceStyle);
-      }
-
-      // Track infoWindow close to stop bounce animation
-      const stopBounce = () => {
-        if (bouncingMarkerRef.current) {
-          bouncingMarkerRef.current.classList.remove('marker-bounce');
-          bouncingMarkerRef.current = null;
-        }
-      };
-
       // Track infoWindow close event
       google.maps.event.addListener(newInfoWindow, 'closeclick', () => {
         activeInfoWindowMarkerIdRef.current = null;
-        stopBounce();
+        markerPoolRef.current?.resetStackOrder();
       });
 
       // Add click listener to close infoWindow when clicking on map
       newMap.addListener('click', (event: google.maps.MapMouseEvent) => {
         activeInfoWindowMarkerIdRef.current = null;
-        stopBounce();
+        markerPoolRef.current?.resetStackOrder();
         newInfoWindow.close();
         
         if (isMobile) {
@@ -530,17 +515,7 @@ const MapComponent: React.FC<{
         infoWindowTimeoutRef.current = null;
       }
 
-      if (bouncingMarkerRef.current) {
-        bouncingMarkerRef.current.classList.remove('marker-bounce');
-      }
-
-      const element = marker.content as HTMLElement;
-      element.style.zIndex = '1001';
-      const pinElement = getDomioMarkerPinElement(element);
-      if (!isMobile) {
-        pinElement.classList.add('marker-bounce');
-        bouncingMarkerRef.current = pinElement;
-      }
+      markerPoolRef.current?.bringToFront(markerData.id);
 
       const content = generateInfoWindowContent(markerData.jobData, isSmallMap);
       infoWindowInstance.setContent(content);
@@ -557,30 +532,49 @@ const MapComponent: React.FC<{
       openInfoWindow(true);
     });
 
-    // Hover listeners (desktop only)
+    // Hover listeners (desktop only) — wrapper + dot anchor share the same handlers
     if (!isMobile) {
       const element = marker.content as HTMLElement;
+      const anchorHit = element.querySelector<HTMLElement>('[data-marker-hit="anchor"]');
       const previousController = markerDomListenerControllersRef.current.get(marker);
       previousController?.abort();
 
       const controller = new AbortController();
       markerDomListenerControllersRef.current.set(marker, controller);
 
-      element.addEventListener(
-        'mouseenter',
-        () => {
-          openInfoWindow(false);
-        },
-        { signal: controller.signal },
-      );
+      const bindHoverTarget = (target: HTMLElement) => {
+        target.addEventListener(
+          'mouseenter',
+          () => {
+            openInfoWindow(false);
+          },
+          { signal: controller.signal },
+        );
 
-      element.addEventListener(
-        'mouseleave',
-        () => {
-          element.style.zIndex = '100';
-        },
-        { signal: controller.signal },
-      );
+        target.addEventListener(
+          'mouseleave',
+          (event) => {
+            const related = event.relatedTarget;
+            if (
+              related instanceof Node &&
+              (element.contains(related) || related === element)
+            ) {
+              return;
+            }
+
+            if (activeInfoWindowMarkerIdRef.current !== markerData.id) {
+              marker.zIndex = MARKER_Z_INDEX_DEFAULT;
+              element.style.zIndex = String(MARKER_Z_INDEX_DEFAULT);
+            }
+          },
+          { signal: controller.signal },
+        );
+      };
+
+      bindHoverTarget(element);
+      if (anchorHit && anchorHit !== element) {
+        bindHoverTarget(anchorHit);
+      }
     }
   }, [isMobile, isSmallMap, bindInfoWindowInteractions]);
 
@@ -671,6 +665,7 @@ const MapComponent: React.FC<{
           postType: markerData.postType,
           urgency: markerData.urgency,
           categorySlug: markerData.categorySlug,
+          subcategoryLabel: markerData.subcategoryLabel,
           jobData: markerData.jobData,
         };
 
@@ -719,10 +714,19 @@ const MapComponent: React.FC<{
     const pool = markerPoolRef.current;
     const hoveredMarkerData = markers.find(m => m.isHovered);
 
+    if (!hoveredMarkerData) {
+      if (!activeInfoWindowMarkerIdRef.current) {
+        pool.resetStackOrder();
+      }
+      return;
+    }
+
     // Always show infoWindow when hovering over any marker
-    if (hoveredMarkerData && hoveredMarkerData.jobData) {
+    if (hoveredMarkerData.jobData) {
       const marker = pool.getActiveMarkers().get(hoveredMarkerData.id);
       if (marker) {
+        pool.bringToFront(hoveredMarkerData.id);
+
         if (infoWindowTimeoutRef.current) {
           clearTimeout(infoWindowTimeoutRef.current);
           infoWindowTimeoutRef.current = null;
@@ -896,6 +900,7 @@ export interface MapMarker {
   postType?: 'job' | 'contest';
   urgency?: 'low' | 'medium' | 'high';
   categorySlug?: string;
+  subcategoryLabel?: string;
   jobData?: Job;
 }
 

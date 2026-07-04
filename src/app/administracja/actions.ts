@@ -484,6 +484,41 @@ function pickAllowed(input: Record<string, unknown>, allowed: Set<string>): Reco
   return out;
 }
 
+function serializeDateTimeForDb(value: unknown): unknown {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+
+  return parsed.toISOString();
+}
+
+function serializeContestLocationForDb(value: unknown): unknown {
+  if (value === null || value === '') return null;
+  if (typeof value === 'object') return value;
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const commaIdx = trimmed.indexOf(',');
+  if (commaIdx > 0) {
+    const city = trimmed.slice(0, commaIdx).trim();
+    const sublocality = trimmed.slice(commaIdx + 1).trim();
+    return sublocality
+      ? { city, sublocality_level_1: sublocality }
+      : { city: trimmed };
+  }
+
+  return { city: trimmed };
+}
+
 async function updateJobApplicationAdminActionImpl(
   applicationId: string,
   patch: Record<string, unknown>
@@ -549,7 +584,7 @@ async function updateJobListingAdminActionImpl(
   }
 
   await logAdminAction(sb, actorId, 'edit_job_listing', 'jobs', jobId, sanitized);
-  revalidatePath('/administracja/ogloszenia');
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 
@@ -558,21 +593,47 @@ async function updateTenderListingAdminActionImpl(
   patch: Record<string, unknown>
 ): Promise<{ ok: boolean; error?: string }> {
   const { supabase, userId: actorId } = await requirePlatformAdmin('/administracja');
+  const elevated = createAdminClientOrNull();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
+  const sb = (elevated ?? supabase) as any;
 
   const sanitized = pickAllowed(patch, TENDER_LISTING_EDITABLE_FIELDS);
   if (Object.keys(sanitized).length === 0) {
     return { ok: false, error: 'Brak zmian.' };
   }
 
-  const { error } = await sb.from('contests').update(sanitized).eq('id', tenderId);
+  if ('location' in sanitized) {
+    sanitized.location = serializeContestLocationForDb(sanitized.location);
+  }
+
+  if ('submission_deadline' in sanitized) {
+    sanitized.submission_deadline = serializeDateTimeForDb(sanitized.submission_deadline);
+  }
+
+  if ('evaluation_deadline' in sanitized) {
+    sanitized.evaluation_deadline = serializeDateTimeForDb(sanitized.evaluation_deadline);
+  }
+
+  const { data, error } = await sb
+    .from('contests')
+    .update(sanitized)
+    .eq('id', tenderId)
+    .select('id')
+    .maybeSingle();
+
   if (error) {
     return { ok: false, error: error.message };
   }
 
-  await logAdminAction(sb, actorId, 'edit_tender_listing', 'tenders', tenderId, sanitized);
-  revalidatePath('/administracja/ogloszenia');
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Nie zaktualizowano konkursu. Sprawdź uprawnienia administratora.',
+    };
+  }
+
+  await logAdminAction(sb, actorId, 'edit_tender_listing', 'contests', tenderId, sanitized);
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 
@@ -607,7 +668,7 @@ async function pauseJobListingActionImpl(jobId: string, feedback: string): Promi
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await logAdminAction(supabase as any, actorId, 'pause_job', 'jobs', jobId, {});
-  revalidatePath('/administracja/ogloszenia');
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 
@@ -622,7 +683,7 @@ async function resumeJobListingActionImpl(jobId: string): Promise<{ ok: boolean;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await logAdminAction(supabase as any, actorId, 'resume_job', 'jobs', jobId, {});
-  revalidatePath('/administracja/ogloszenia');
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 
@@ -666,7 +727,7 @@ async function pauseTenderListingActionImpl(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await logAdminAction(supabase as any, actorId, 'pause_tender', 'tenders', tenderId, {});
-  revalidatePath('/administracja/ogloszenia');
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 
@@ -683,7 +744,7 @@ async function resumeTenderListingActionImpl(tenderId: string): Promise<{ ok: bo
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await logAdminAction(supabase as any, actorId, 'resume_tender', 'tenders', tenderId, {});
-  revalidatePath('/administracja/ogloszenia');
+  revalidatePath('/administracja/zgloszenia');
   return { ok: true };
 }
 

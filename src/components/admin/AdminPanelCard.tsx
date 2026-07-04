@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 interface AdminPanelCardProps {
   title?: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }
 
-export function AdminPanelCard({ title, children }: AdminPanelCardProps) {
+export function AdminPanelCard({ title, children, contentClassName = 'p-4' }: AdminPanelCardProps) {
   return (
     <Card>
       {title ? (
@@ -14,7 +15,7 @@ export function AdminPanelCard({ title, children }: AdminPanelCardProps) {
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
         </CardHeader>
       ) : null}
-      <CardContent className="p-0">{children}</CardContent>
+      <CardContent className={contentClassName}>{children}</CardContent>
     </Card>
   );
 }

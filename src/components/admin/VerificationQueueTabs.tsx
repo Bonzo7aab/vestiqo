@@ -2,24 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { type ColumnDef } from '@tanstack/react-table';
 import {
   Building2,
   CheckCircle2,
   ChevronRight,
   Clock3,
   HardHat,
+  Landmark,
   Mail,
   XCircle,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
+import { DataTable } from '../ui/data-table';
+import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import { cn } from '../ui/utils';
 import type {
   ApprovedVerificationRow,
@@ -35,21 +31,57 @@ import { VerificationStatusBadge } from './VerificationStatusBadge';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterChip } from './AdminFilterChip';
 import { AdminPanelCard } from './AdminPanelCard';
+import {
+  filterVerificationRowsBySegment,
+  type VerificationUserSegment,
+} from '../../lib/admin/verification-user-segment';
+import {
+  ACCOUNT_ROLES,
+  getAccountRoleDisplayLabel,
+} from '../../lib/profile/account-role-labels';
 
 interface QueueRow extends VerificationQueueRowBase {
   emailConfirmed: boolean;
+  email: string | null;
 }
 
 interface PendingRow extends PendingVerificationRow {
   emailConfirmed: boolean;
+  email: string | null;
 }
 
 interface RejectedRow extends RejectedVerificationRow {
   emailConfirmed: boolean;
+  email: string | null;
 }
 
 interface ApprovedRow extends ApprovedVerificationRow {
   emailConfirmed: boolean;
+  email: string | null;
+}
+
+function resolveUserTypeLabel(row: VerificationQueueRowBase): string {
+  if (row.userType === 'contractor') return 'Wykonawca';
+  if (
+    row.accountRole === ACCOUNT_ROLES.COOPERATIVE_BOARD ||
+    row.accountRole === ACCOUNT_ROLES.COOPERATIVE_ADMIN
+  ) {
+    return getAccountRoleDisplayLabel({
+      userType: 'manager',
+      accountRole: row.accountRole,
+      organizationType: row.organizationType,
+      companyType: row.companyType,
+    });
+  }
+  if (row.accountRole) {
+    return getAccountRoleDisplayLabel({
+      userType: 'manager',
+      accountRole: row.accountRole,
+      organizationType: row.organizationType,
+      companyType: row.companyType,
+    });
+  }
+  return 'Zarządca';
 }
 
 interface VerificationQueueTabsProps {
@@ -58,13 +90,8 @@ interface VerificationQueueTabsProps {
   approved: ApprovedRow[];
 }
 
-type RoleFilter = 'contractor' | 'manager';
+type RoleFilter = VerificationUserSegment;
 type StatusFilter = 'pending' | 'email' | 'rejected' | 'approved';
-
-const USER_TYPE_LABELS: Record<string, string> = {
-  contractor: 'Wykonawca',
-  manager: 'Zarządca',
-};
 
 const STATUS_META: Record<
   StatusFilter,
@@ -101,8 +128,8 @@ function formatDate(value: string | null | undefined): string {
   }
 }
 
-function filterByRole<T extends { userType: string }>(rows: T[], role: RoleFilter): T[] {
-  return rows.filter((r) => r.userType === role);
+function filterByRole<T extends VerificationQueueRowBase>(rows: T[], role: RoleFilter): T[] {
+  return filterVerificationRowsBySegment(rows, role);
 }
 
 function partitionByEmailConfirmation<T extends QueueRow>(rows: T[]): {
@@ -159,213 +186,333 @@ function DocumentsProgress({ submitted, expected }: { submitted: number; expecte
   );
 }
 
-function EmptyState({ message }: { message: string }) {
-  return <AdminEmptyState message={message} />;
+const VERIFICATION_DEFAULT_COLUMN_VISIBILITY = {
+  documents: false,
+} as const;
+
+function navColumn<T extends QueueRow>(): ColumnDef<T> {
+  return {
+    id: 'nav',
+    header: () => null,
+    cell: () => (
+      <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  };
 }
 
-function QueueTableRow({
-  userId,
-  children,
+function emailColumn<T extends QueueRow>(): ColumnDef<T> {
+  return {
+    accessorKey: 'email',
+    meta: { label: 'Email' },
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    cell: ({ row }) => (
+      <span className="max-w-[220px] truncate text-muted-foreground">
+        {row.original.email ?? '—'}
+      </span>
+    ),
+  };
+}
+
+function documentsColumn<T extends QueueRow>(): ColumnDef<T> {
+  return {
+    id: 'documents',
+    meta: { label: 'Dokumenty' },
+    accessorFn: (row) => row.documentsSubmitted / Math.max(row.documentsExpected, 1),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Dokumenty" />,
+    cell: ({ row }) => (
+      <DocumentsProgress
+        submitted={row.original.documentsSubmitted}
+        expected={row.original.documentsExpected}
+      />
+    ),
+  };
+}
+
+function useBaseColumns<T extends QueueRow>(): ColumnDef<T>[] {
+  return useMemo(
+    () => [
+      {
+        id: 'user',
+        meta: { label: 'Użytkownik' },
+        accessorFn: (row) => `${row.lastName} ${row.firstName}`,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Użytkownik" />,
+        cell: ({ row }) => (
+          <div className="font-medium">
+            {row.original.firstName} {row.original.lastName}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'companyName',
+        meta: { label: 'Firma' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Firma" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.companyName ?? '—'}</span>
+        ),
+      },
+      {
+        accessorKey: 'userType',
+        meta: { label: 'Typ konta' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Typ konta" />,
+        cell: ({ row }) => (
+          <Badge variant="outline">{resolveUserTypeLabel(row.original)}</Badge>
+        ),
+      },
+      emailColumn<T>(),
+    ],
+    [],
+  );
+}
+
+function EmailUnconfirmedTable({
+  rows,
+  onNavigate,
 }: {
-  userId: string;
-  children: React.ReactNode;
+  rows: QueueRow[];
+  onNavigate: (userId: string) => void;
 }) {
-  const router = useRouter();
+  const baseColumns = useBaseColumns<QueueRow>();
 
-  return (
-    <TableRow
-      className="group cursor-pointer hover:bg-muted/40"
-      onClick={() => router.push(`/administracja/weryfikacja/${userId}`)}
-    >
-      {children}
-      <TableCell className="w-10 text-right">
-        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-      </TableCell>
-    </TableRow>
+  const columns = useMemo<ColumnDef<QueueRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        accessorKey: 'createdAt',
+        meta: { label: 'Utworzono' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Utworzono" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>
+        ),
+      },
+      navColumn<QueueRow>(),
+    ],
+    [baseColumns],
   );
-}
 
-function EmailUnconfirmedTable({ rows }: { rows: QueueRow[] }) {
   if (rows.length === 0) {
-    return <EmptyState message="Brak kont oczekujących na potwierdzenie email w tej kategorii." />;
+    return <AdminEmptyState message="Brak kont oczekujących na potwierdzenie email w tej kategorii." />;
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Użytkownik</TableHead>
-          <TableHead>Firma</TableHead>
-          <TableHead>Typ konta</TableHead>
-          <TableHead>Utworzono</TableHead>
-          <TableHead className="w-10" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((r) => (
-          <QueueTableRow key={r.userId} userId={r.userId}>
-            <TableCell>
-              <div className="font-medium">
-                {r.firstName} {r.lastName}
-              </div>
-            </TableCell>
-            <TableCell className="text-muted-foreground">{r.companyName ?? '—'}</TableCell>
-            <TableCell>
-              <Badge variant="outline">{USER_TYPE_LABELS[r.userType] ?? r.userType}</Badge>
-            </TableCell>
-            <TableCell className="text-muted-foreground">{formatDate(r.createdAt)}</TableCell>
-          </QueueTableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.userId}
+      onRowClick={(row) => onNavigate(row.userId)}
+      rowClassName="group"
+      filterColumnId="user"
+      filterPlaceholder="Filtruj użytkowników…"
+      showViewOptions
+      initialSorting={[{ id: 'createdAt', desc: true }]}
+    />
   );
 }
 
-function PendingTable({ rows }: { rows: PendingRow[] }) {
-  if (rows.length === 0) {
-    return <EmptyState message="Brak kont oczekujących na weryfikację w tej kategorii." />;
-  }
+function PendingTable({
+  rows,
+  onNavigate,
+}: {
+  rows: PendingRow[];
+  onNavigate: (userId: string) => void;
+}) {
+  const baseColumns = useBaseColumns<PendingRow>();
 
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Użytkownik</TableHead>
-          <TableHead>Firma</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Dokumenty</TableHead>
-          <TableHead>Rozpoczęta</TableHead>
-          <TableHead>Zaktualizowana</TableHead>
-          <TableHead className="w-10" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((r) => {
-          const verificationState = resolveQueueVerificationState(false, r.verificationSubmittedAt);
+  const columns = useMemo<ColumnDef<PendingRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        id: 'status',
+        meta: { label: 'Status' },
+        accessorFn: (row) =>
+          resolveAdminUserStatus({
+            emailConfirmed: row.emailConfirmed,
+            verificationState: resolveQueueVerificationState(false, row.verificationSubmittedAt),
+          }),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
+          const verificationState = resolveQueueVerificationState(
+            false,
+            row.original.verificationSubmittedAt,
+          );
           const displayStatus = resolveAdminUserStatus({
-            emailConfirmed: r.emailConfirmed,
+            emailConfirmed: row.original.emailConfirmed,
             verificationState,
           });
-
-          return (
-            <QueueTableRow key={r.userId} userId={r.userId}>
-              <TableCell>
-                <div className="font-medium">
-                  {r.firstName} {r.lastName}
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{r.companyName ?? '—'}</TableCell>
-              <TableCell>
-                <VerificationStatusBadge state={displayStatus} />
-              </TableCell>
-              <TableCell>
-                <DocumentsProgress submitted={r.documentsSubmitted} expected={r.documentsExpected} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(r.createdAt)}</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(r.updatedAt)}</TableCell>
-            </QueueTableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          return <VerificationStatusBadge state={displayStatus} />;
+        },
+      },
+      documentsColumn<PendingRow>(),
+      {
+        accessorKey: 'createdAt',
+        meta: { label: 'Rozpoczęta' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Rozpoczęta" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>
+        ),
+      },
+      {
+        accessorKey: 'updatedAt',
+        meta: { label: 'Zaktualizowana' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Zaktualizowana" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
+        ),
+      },
+      navColumn<PendingRow>(),
+    ],
+    [baseColumns],
   );
-}
 
-function RejectedTable({ rows }: { rows: RejectedRow[] }) {
   if (rows.length === 0) {
-    return <EmptyState message="Brak odrzuconych weryfikacji w tej kategorii." />;
+    return <AdminEmptyState message="Brak kont oczekujących na weryfikację w tej kategorii." />;
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Użytkownik</TableHead>
-          <TableHead>Firma</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Dokumenty</TableHead>
-          <TableHead>Odrzucono</TableHead>
-          <TableHead>Powód</TableHead>
-          <TableHead className="w-10" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((r) => {
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.userId}
+      onRowClick={(row) => onNavigate(row.userId)}
+      rowClassName="group"
+      filterColumnId="user"
+      filterPlaceholder="Filtruj użytkowników…"
+      showViewOptions
+      initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
+      initialSorting={[{ id: 'updatedAt', desc: true }]}
+    />
+  );
+}
+
+function RejectedTable({
+  rows,
+  onNavigate,
+}: {
+  rows: RejectedRow[];
+  onNavigate: (userId: string) => void;
+}) {
+  const baseColumns = useBaseColumns<RejectedRow>();
+
+  const columns = useMemo<ColumnDef<RejectedRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        id: 'status',
+        meta: { label: 'Status' },
+        accessorFn: () => 'rejected',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
           const displayStatus = resolveAdminUserStatus({
-            emailConfirmed: r.emailConfirmed,
+            emailConfirmed: row.original.emailConfirmed,
             verificationState: 'rejected',
           });
-
-          return (
-            <QueueTableRow key={r.userId} userId={r.userId}>
-              <TableCell>
-                <div className="font-medium">
-                  {r.firstName} {r.lastName}
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{r.companyName ?? '—'}</TableCell>
-              <TableCell>
-                <VerificationStatusBadge state={displayStatus} />
-              </TableCell>
-              <TableCell>
-                <DocumentsProgress submitted={r.documentsSubmitted} expected={r.documentsExpected} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(r.decidedAt)}</TableCell>
-              <TableCell className="max-w-[240px] truncate text-sm text-muted-foreground" title={r.reason ?? undefined}>
-                {r.reason ?? '—'}
-              </TableCell>
-            </QueueTableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          return <VerificationStatusBadge state={displayStatus} />;
+        },
+      },
+      documentsColumn<RejectedRow>(),
+      {
+        accessorKey: 'decidedAt',
+        meta: { label: 'Odrzucono' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Odrzucono" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDate(row.original.decidedAt)}</span>
+        ),
+      },
+      {
+        accessorKey: 'reason',
+        meta: { label: 'Powód' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Powód" />,
+        cell: ({ row }) => (
+          <span
+            className="max-w-[240px] truncate text-sm text-muted-foreground"
+            title={row.original.reason ?? undefined}
+          >
+            {row.original.reason ?? '—'}
+          </span>
+        ),
+      },
+      navColumn<RejectedRow>(),
+    ],
+    [baseColumns],
   );
-}
 
-function ApprovedTable({ rows }: { rows: ApprovedRow[] }) {
   if (rows.length === 0) {
-    return <EmptyState message="Brak zweryfikowanych kont w tej kategorii." />;
+    return <AdminEmptyState message="Brak odrzuconych weryfikacji w tej kategorii." />;
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>Użytkownik</TableHead>
-          <TableHead>Firma</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Dokumenty</TableHead>
-          <TableHead>Zaakceptowano</TableHead>
-          <TableHead className="w-10" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((r) => {
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.userId}
+      onRowClick={(row) => onNavigate(row.userId)}
+      rowClassName="group"
+      filterColumnId="user"
+      filterPlaceholder="Filtruj użytkowników…"
+      showViewOptions
+      initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
+      initialSorting={[{ id: 'decidedAt', desc: true }]}
+    />
+  );
+}
+
+function ApprovedTable({
+  rows,
+  onNavigate,
+}: {
+  rows: ApprovedRow[];
+  onNavigate: (userId: string) => void;
+}) {
+  const baseColumns = useBaseColumns<ApprovedRow>();
+
+  const columns = useMemo<ColumnDef<ApprovedRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        id: 'status',
+        meta: { label: 'Status' },
+        accessorFn: () => 'approved',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
           const displayStatus = resolveAdminUserStatus({
-            emailConfirmed: r.emailConfirmed,
+            emailConfirmed: row.original.emailConfirmed,
             verificationState: 'approved',
           });
+          return <VerificationStatusBadge state={displayStatus} />;
+        },
+      },
+      documentsColumn<ApprovedRow>(),
+      {
+        accessorKey: 'decidedAt',
+        meta: { label: 'Zaakceptowano' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Zaakceptowano" />,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDate(row.original.decidedAt)}</span>
+        ),
+      },
+      navColumn<ApprovedRow>(),
+    ],
+    [baseColumns],
+  );
 
-          return (
-            <QueueTableRow key={r.userId} userId={r.userId}>
-              <TableCell>
-                <div className="font-medium">
-                  {r.firstName} {r.lastName}
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{r.companyName ?? '—'}</TableCell>
-              <TableCell>
-                <VerificationStatusBadge state={displayStatus} />
-              </TableCell>
-              <TableCell>
-                <DocumentsProgress submitted={r.documentsSubmitted} expected={r.documentsExpected} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(r.decidedAt)}</TableCell>
-            </QueueTableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+  if (rows.length === 0) {
+    return <AdminEmptyState message="Brak zweryfikowanych kont w tej kategorii." />;
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.userId}
+      onRowClick={(row) => onNavigate(row.userId)}
+      rowClassName="group"
+      filterColumnId="user"
+      filterPlaceholder="Filtruj użytkowników…"
+      showViewOptions
+      initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
+      initialSorting={[{ id: 'decidedAt', desc: true }]}
+    />
   );
 }
 
@@ -377,6 +524,7 @@ function VerificationQueuePanel({
   pending,
   rejected,
   approved,
+  onNavigate,
 }: {
   role: RoleFilter;
   status: StatusFilter;
@@ -385,6 +533,7 @@ function VerificationQueuePanel({
   pending: PendingRow[];
   rejected: RejectedRow[];
   approved: ApprovedRow[];
+  onNavigate: (userId: string) => void;
 }) {
   const counts = {
     pending: pending.length,
@@ -394,7 +543,12 @@ function VerificationQueuePanel({
   };
 
   const activeMeta = STATUS_META[status];
-  const roleLabel = role === 'contractor' ? 'wykonawców' : 'zarządców';
+  const roleLabel =
+    role === 'contractor'
+      ? 'wykonawców'
+      : role === 'cooperative'
+        ? 'spółdzielni'
+        : 'zarządców';
 
   return (
     <div className="space-y-3">
@@ -425,18 +579,19 @@ function VerificationQueuePanel({
           </>
         }
       >
-        <div className="overflow-x-auto">
-          {status === 'email' && <EmailUnconfirmedTable rows={emailUnconfirmed} />}
-          {status === 'pending' && <PendingTable rows={pending} />}
-          {status === 'rejected' && <RejectedTable rows={rejected} />}
-          {status === 'approved' && <ApprovedTable rows={approved} />}
-        </div>
+        {status === 'email' && (
+          <EmailUnconfirmedTable rows={emailUnconfirmed} onNavigate={onNavigate} />
+        )}
+        {status === 'pending' && <PendingTable rows={pending} onNavigate={onNavigate} />}
+        {status === 'rejected' && <RejectedTable rows={rejected} onNavigate={onNavigate} />}
+        {status === 'approved' && <ApprovedTable rows={approved} onNavigate={onNavigate} />}
       </AdminPanelCard>
     </div>
   );
 }
 
 export function VerificationQueueTabs({ pending, rejected, approved }: VerificationQueueTabsProps) {
+  const router = useRouter();
   const [role, setRole] = useState<RoleFilter>('contractor');
   const [status, setStatus] = useState<StatusFilter>('pending');
 
@@ -447,6 +602,10 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
   const managerPending = useMemo(() => filterByRole(pending, 'manager'), [pending]);
   const managerRejected = useMemo(() => filterByRole(rejected, 'manager'), [rejected]);
   const managerApproved = useMemo(() => filterByRole(approved, 'manager'), [approved]);
+
+  const cooperativePending = useMemo(() => filterByRole(pending, 'cooperative'), [pending]);
+  const cooperativeRejected = useMemo(() => filterByRole(rejected, 'cooperative'), [rejected]);
+  const cooperativeApproved = useMemo(() => filterByRole(approved, 'cooperative'), [approved]);
 
   const contractorPartitioned = useMemo(() => {
     const pendingSplit = partitionByEmailConfirmation(contractorPending);
@@ -482,7 +641,29 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
     };
   }, [managerPending, managerRejected, managerApproved]);
 
-  const activePartition = role === 'contractor' ? contractorPartitioned : managerPartitioned;
+  const cooperativePartitioned = useMemo(() => {
+    const pendingSplit = partitionByEmailConfirmation(cooperativePending);
+    const rejectedSplit = partitionByEmailConfirmation(cooperativeRejected);
+    const approvedSplit = partitionByEmailConfirmation(cooperativeApproved);
+
+    return {
+      emailUnconfirmed: mergeEmailUnconfirmed<QueueRow>(
+        pendingSplit.emailUnconfirmed,
+        rejectedSplit.emailUnconfirmed,
+        approvedSplit.emailUnconfirmed,
+      ),
+      pending: pendingSplit.confirmed,
+      rejected: rejectedSplit.confirmed,
+      approved: approvedSplit.confirmed,
+    };
+  }, [cooperativePending, cooperativeRejected, cooperativeApproved]);
+
+  const activePartition =
+    role === 'contractor'
+      ? contractorPartitioned
+      : role === 'cooperative'
+        ? cooperativePartitioned
+        : managerPartitioned;
   const contractorTotal =
     contractorPartitioned.pending.length +
     contractorPartitioned.emailUnconfirmed.length +
@@ -493,6 +674,15 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
     managerPartitioned.emailUnconfirmed.length +
     managerPartitioned.rejected.length +
     managerPartitioned.approved.length;
+  const cooperativeTotal =
+    cooperativePartitioned.pending.length +
+    cooperativePartitioned.emailUnconfirmed.length +
+    cooperativePartitioned.rejected.length +
+    cooperativePartitioned.approved.length;
+
+  const navigateToUser = (userId: string) => {
+    router.push(`/administracja/weryfikacja/${userId}`);
+  };
 
   return (
     <div className="space-y-3">
@@ -511,6 +701,13 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
           active={role === 'manager'}
           onClick={() => setRole('manager')}
         />
+        <AdminFilterChip
+          label="Spółdzielnie"
+          count={cooperativeTotal}
+          icon={Landmark}
+          active={role === 'cooperative'}
+          onClick={() => setRole('cooperative')}
+        />
       </div>
 
       <VerificationQueuePanel
@@ -521,6 +718,7 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
         pending={activePartition.pending}
         rejected={activePartition.rejected}
         approved={activePartition.approved}
+        onNavigate={navigateToUser}
       />
     </div>
   );
