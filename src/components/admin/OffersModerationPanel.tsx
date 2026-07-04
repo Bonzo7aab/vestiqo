@@ -1,18 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { type ColumnDef } from '@tanstack/react-table';
 import { Briefcase, ChevronDown, ChevronRight, Gavel } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
+import { DataTable } from '../ui/data-table';
+import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import { cn } from '../ui/utils';
 import {
   suspendJobApplicationAction,
@@ -24,7 +19,6 @@ import {
 } from '../../app/administracja/actions';
 import type { AdminJobApplicationRow, AdminTenderBidRow } from '../../lib/database/admin-offers';
 import { offerEffectiveStatus, statusBadgeClass } from '../../lib/admin/status-labels';
-import { SortableHeader, type SortState } from './SortableHeader';
 import { EditableForm, type FormSection } from './EditableForm';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterChip } from './AdminFilterChip';
@@ -34,8 +28,6 @@ interface OffersModerationPanelProps {
   applications: AdminJobApplicationRow[];
   bids: AdminTenderBidRow[];
 }
-
-type OfferSortKey = 'status' | 'submittedAt' | 'updatedAt';
 
 const OFFER_STATUS_OPTIONS = [
   { value: 'submitted', label: 'Złożona' },
@@ -59,41 +51,6 @@ function formatDate(value: string | null): string {
   } catch {
     return value;
   }
-}
-
-function compareString(a: string | null | undefined, b: string | null | undefined): number {
-  if (a === b) return 0;
-  if (!a) return 1;
-  if (!b) return -1;
-  return a.localeCompare(b);
-}
-
-function applySort<TRow>(
-  rows: TRow[],
-  sort: SortState<OfferSortKey> | null,
-  effectiveStatusLabel: (row: TRow) => string,
-  submittedAt: (row: TRow) => string | null,
-  updatedAt: (row: TRow) => string | null
-): TRow[] {
-  if (!sort) return rows;
-  const dir = sort.direction === 'asc' ? 1 : -1;
-  const sorted = [...rows];
-  sorted.sort((a, b) => {
-    let cmp = 0;
-    switch (sort.key) {
-      case 'status':
-        cmp = compareString(effectiveStatusLabel(a), effectiveStatusLabel(b));
-        break;
-      case 'submittedAt':
-        cmp = compareString(submittedAt(a), submittedAt(b));
-        break;
-      case 'updatedAt':
-        cmp = compareString(updatedAt(a), updatedAt(b));
-        break;
-    }
-    return cmp * dir;
-  });
-  return sorted;
 }
 
 function StatusBadge({ baseStatus, adminModerationStatus }: { baseStatus: string; adminModerationStatus: string }) {
@@ -141,13 +98,11 @@ export function OffersModerationPanel({ applications, bids }: OffersModerationPa
           </>
         }
       >
-        <div className="overflow-x-auto">
-          {view === 'job' ? (
-            <JobApplicationsTable rows={applications} />
-          ) : (
-            <TenderBidsTable rows={bids} />
-          )}
-        </div>
+        {view === 'job' ? (
+          <JobApplicationsTable rows={applications} />
+        ) : (
+          <TenderBidsTable rows={bids} />
+        )}
       </AdminPanelCard>
     </div>
   );
@@ -155,18 +110,75 @@ export function OffersModerationPanel({ applications, bids }: OffersModerationPa
 
 function JobApplicationsTable({ rows }: { rows: AdminJobApplicationRow[] }) {
   const [openId, setOpenId] = React.useState<string | null>(null);
-  const [sort, setSort] = React.useState<SortState<OfferSortKey> | null>({ key: 'submittedAt', direction: 'desc' });
 
-  const sorted = React.useMemo(
-    () =>
-      applySort(
-        rows,
-        sort,
-        (r) => offerEffectiveStatus(r.status, r.adminModerationStatus).label,
-        (r) => r.submittedAt,
-        (r) => r.updatedAt
-      ),
-    [rows, sort]
+  const columns = useMemo<ColumnDef<AdminJobApplicationRow>[]>(
+    () => [
+      {
+        id: 'expand',
+        header: () => null,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {openId === row.original.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </span>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        id: 'listing',
+        meta: { label: 'Zgłoszenie' },
+        accessorFn: (row) => row.jobTitle ?? row.jobId,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Zgłoszenie" />,
+        cell: ({ row }) => (
+          <span className="max-w-[260px] truncate font-medium">
+            {row.original.jobTitle ?? row.original.jobId}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'companyName',
+        meta: { label: 'Wykonawca' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Wykonawca" />,
+        cell: ({ row }) => (
+          <span className="max-w-[200px] truncate">{row.original.companyName ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'status',
+        meta: { label: 'Status' },
+        accessorFn: (row) => offerEffectiveStatus(row.status, row.adminModerationStatus).label,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => (
+          <StatusBadge
+            baseStatus={row.original.status}
+            adminModerationStatus={row.original.adminModerationStatus}
+          />
+        ),
+      },
+      {
+        id: 'amount',
+        meta: { label: 'Kwota' },
+        accessorFn: (row) => row.proposedPrice ?? 0,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Kwota" />,
+        cell: ({ row }) =>
+          row.original.proposedPrice != null
+            ? `${row.original.proposedPrice} ${row.original.currency ?? 'PLN'}`
+            : '—',
+      },
+      {
+        accessorKey: 'submittedAt',
+        meta: { label: 'Złożono' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Złożono" />,
+        cell: ({ row }) => formatDate(row.original.submittedAt),
+      },
+      {
+        accessorKey: 'updatedAt',
+        meta: { label: 'Zaktualizowano' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Zaktualizowano" />,
+        cell: ({ row }) => formatDate(row.original.updatedAt),
+      },
+    ],
+    [openId],
   );
 
   if (rows.length === 0) {
@@ -174,73 +186,19 @@ function JobApplicationsTable({ rows }: { rows: AdminJobApplicationRow[] }) {
   }
 
   return (
-    <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-8" />
-            <TableHead>Zgłoszenie</TableHead>
-            <TableHead>Wykonawca</TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey> label="Status" sortKey="status" sort={sort} onSortChange={setSort} />
-            </TableHead>
-            <TableHead>Kwota</TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey>
-                label="Złożono"
-                sortKey="submittedAt"
-                sort={sort}
-                onSortChange={setSort}
-              />
-            </TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey>
-                label="Zaktualizowano"
-                sortKey="updatedAt"
-                sort={sort}
-                onSortChange={setSort}
-              />
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((row) => {
-            const isOpen = openId === row.id;
-            return (
-              <React.Fragment key={row.id}>
-                <TableRow
-                  className="cursor-pointer"
-                  data-state={isOpen ? 'selected' : undefined}
-                  onClick={() => setOpenId(isOpen ? null : row.id)}
-                >
-                  <TableCell className="text-muted-foreground">
-                    {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </TableCell>
-                  <TableCell className="max-w-[260px] truncate font-medium">
-                    {row.jobTitle ?? row.jobId}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{row.companyName ?? '—'}</TableCell>
-                  <TableCell>
-                    <StatusBadge baseStatus={row.status} adminModerationStatus={row.adminModerationStatus} />
-                  </TableCell>
-                  <TableCell>
-                    {row.proposedPrice != null ? `${row.proposedPrice} ${row.currency ?? 'PLN'}` : '—'}
-                  </TableCell>
-                  <TableCell>{formatDate(row.submittedAt)}</TableCell>
-                  <TableCell>{formatDate(row.updatedAt)}</TableCell>
-                </TableRow>
-                {isOpen && (
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell />
-                    <TableCell colSpan={6} className="whitespace-normal py-4 align-top">
-                      <JobApplicationDetails row={row} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </TableBody>
-      </Table>
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.id}
+      expandedRowId={openId}
+      expandedRowColSpan={7}
+      onRowClick={(row) => setOpenId((current) => (current === row.id ? null : row.id))}
+      renderExpandedRow={(row) => <JobApplicationDetails row={row} />}
+      filterColumnId="listing"
+      filterPlaceholder="Filtruj zgłoszenia…"
+      showViewOptions
+      initialSorting={[{ id: 'submittedAt', desc: true }]}
+    />
   );
 }
 
@@ -350,18 +308,75 @@ function JobApplicationDetails({ row }: { row: AdminJobApplicationRow }) {
 
 function TenderBidsTable({ rows }: { rows: AdminTenderBidRow[] }) {
   const [openId, setOpenId] = React.useState<string | null>(null);
-  const [sort, setSort] = React.useState<SortState<OfferSortKey> | null>({ key: 'submittedAt', direction: 'desc' });
 
-  const sorted = React.useMemo(
-    () =>
-      applySort(
-        rows,
-        sort,
-        (r) => offerEffectiveStatus(r.status, r.adminModerationStatus).label,
-        (r) => r.submittedAt,
-        (r) => r.updatedAt
-      ),
-    [rows, sort]
+  const columns = useMemo<ColumnDef<AdminTenderBidRow>[]>(
+    () => [
+      {
+        id: 'expand',
+        header: () => null,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {openId === row.original.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </span>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        id: 'listing',
+        meta: { label: 'Przetarg' },
+        accessorFn: (row) => row.tenderTitle ?? row.tenderId,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Przetarg" />,
+        cell: ({ row }) => (
+          <span className="max-w-[260px] truncate font-medium">
+            {row.original.tenderTitle ?? row.original.tenderId}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'companyName',
+        meta: { label: 'Wykonawca' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Wykonawca" />,
+        cell: ({ row }) => (
+          <span className="max-w-[200px] truncate">{row.original.companyName ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'status',
+        meta: { label: 'Status' },
+        accessorFn: (row) => offerEffectiveStatus(row.status, row.adminModerationStatus).label,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => (
+          <StatusBadge
+            baseStatus={row.original.status}
+            adminModerationStatus={row.original.adminModerationStatus}
+          />
+        ),
+      },
+      {
+        id: 'amount',
+        meta: { label: 'Kwota' },
+        accessorFn: (row) => row.bidAmount ?? 0,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Kwota" />,
+        cell: ({ row }) =>
+          row.original.bidAmount != null
+            ? `${row.original.bidAmount} ${row.original.currency ?? 'PLN'}`
+            : '—',
+      },
+      {
+        accessorKey: 'submittedAt',
+        meta: { label: 'Złożono' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Złożono" />,
+        cell: ({ row }) => formatDate(row.original.submittedAt),
+      },
+      {
+        accessorKey: 'updatedAt',
+        meta: { label: 'Zaktualizowano' },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Zaktualizowano" />,
+        cell: ({ row }) => formatDate(row.original.updatedAt),
+      },
+    ],
+    [openId],
   );
 
   if (rows.length === 0) {
@@ -369,73 +384,19 @@ function TenderBidsTable({ rows }: { rows: AdminTenderBidRow[] }) {
   }
 
   return (
-    <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-8" />
-            <TableHead>Przetarg</TableHead>
-            <TableHead>Wykonawca</TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey> label="Status" sortKey="status" sort={sort} onSortChange={setSort} />
-            </TableHead>
-            <TableHead>Kwota</TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey>
-                label="Złożono"
-                sortKey="submittedAt"
-                sort={sort}
-                onSortChange={setSort}
-              />
-            </TableHead>
-            <TableHead>
-              <SortableHeader<OfferSortKey>
-                label="Zaktualizowano"
-                sortKey="updatedAt"
-                sort={sort}
-                onSortChange={setSort}
-              />
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((row) => {
-            const isOpen = openId === row.id;
-            return (
-              <React.Fragment key={row.id}>
-                <TableRow
-                  className="cursor-pointer"
-                  data-state={isOpen ? 'selected' : undefined}
-                  onClick={() => setOpenId(isOpen ? null : row.id)}
-                >
-                  <TableCell className="text-muted-foreground">
-                    {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </TableCell>
-                  <TableCell className="max-w-[260px] truncate font-medium">
-                    {row.tenderTitle ?? row.tenderId}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{row.companyName ?? '—'}</TableCell>
-                  <TableCell>
-                    <StatusBadge baseStatus={row.status} adminModerationStatus={row.adminModerationStatus} />
-                  </TableCell>
-                  <TableCell>
-                    {row.bidAmount != null ? `${row.bidAmount} ${row.currency ?? 'PLN'}` : '—'}
-                  </TableCell>
-                  <TableCell>{formatDate(row.submittedAt)}</TableCell>
-                  <TableCell>{formatDate(row.updatedAt)}</TableCell>
-                </TableRow>
-                {isOpen && (
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell />
-                    <TableCell colSpan={6} className="whitespace-normal py-4 align-top">
-                      <TenderBidDetails row={row} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </TableBody>
-      </Table>
+    <DataTable
+      columns={columns}
+      data={rows}
+      getRowId={(row) => row.id}
+      expandedRowId={openId}
+      expandedRowColSpan={7}
+      onRowClick={(row) => setOpenId((current) => (current === row.id ? null : row.id))}
+      renderExpandedRow={(row) => <TenderBidDetails row={row} />}
+      filterColumnId="listing"
+      filterPlaceholder="Filtruj przetargi…"
+      showViewOptions
+      initialSorting={[{ id: 'submittedAt', desc: true }]}
+    />
   );
 }
 

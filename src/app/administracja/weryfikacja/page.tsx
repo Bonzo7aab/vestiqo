@@ -6,18 +6,22 @@ import {
   fetchRejectedVerificationQueue,
 } from '../../../lib/database/admin-verification';
 import { createAdminClientOrNull } from '../../../lib/supabase/admin';
-import { fetchEmailConfirmationByUserIds } from '../../../lib/auth/email-confirmation';
+import { fetchAuthUserMetaByUserIds } from '../../../lib/auth/email-confirmation';
 import { VerificationQueueTabs } from '../../../components/admin/VerificationQueueTabs';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 
-function enrichWithEmailConfirmation<T extends { userId: string }>(
+function enrichWithAuthMeta<T extends { userId: string }>(
   rows: T[],
-  emailMap: Map<string, boolean>,
-): Array<T & { emailConfirmed: boolean }> {
-  return rows.map(row => ({
-    ...row,
-    emailConfirmed: emailMap.get(row.userId) ?? false,
-  }));
+  authMetaMap: Map<string, { email: string | null; emailConfirmed: boolean }>,
+): Array<T & { email: string | null; emailConfirmed: boolean }> {
+  return rows.map((row) => {
+    const meta = authMetaMap.get(row.userId);
+    return {
+      ...row,
+      email: meta?.email ?? null,
+      emailConfirmed: meta?.emailConfirmed ?? false,
+    };
+  });
 }
 
 export default async function AdminVerificationQueuePage() {
@@ -35,13 +39,13 @@ export default async function AdminVerificationQueuePage() {
   ];
 
   const elevatedClient = createAdminClientOrNull();
-  const emailMap = elevatedClient
-    ? await fetchEmailConfirmationByUserIds(elevatedClient, allUserIds)
-    : new Map<string, boolean>();
+  const authMetaMap = elevatedClient
+    ? await fetchAuthUserMetaByUserIds(elevatedClient, allUserIds)
+    : new Map<string, { email: string | null; emailConfirmed: boolean }>();
 
-  const pending = enrichWithEmailConfirmation(pendingRaw, emailMap);
-  const rejected = enrichWithEmailConfirmation(rejectedRaw, emailMap);
-  const approved = enrichWithEmailConfirmation(approvedRaw, emailMap);
+  const pending = enrichWithAuthMeta(pendingRaw, authMetaMap);
+  const rejected = enrichWithAuthMeta(rejectedRaw, authMetaMap);
+  const approved = enrichWithAuthMeta(approvedRaw, authMetaMap);
 
   const totalPending = pending.length;
   const totalActionable = pending.filter(r => r.emailConfirmed).length;

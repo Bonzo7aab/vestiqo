@@ -7,6 +7,8 @@ export interface VerificationQueueRowBase {
   firstName: string;
   lastName: string;
   userType: string;
+  accountRole: string | null;
+  organizationType: string | null;
   companyId: string | null;
   companyName: string | null;
   companyType: string | null;
@@ -16,6 +18,8 @@ export interface VerificationQueueRowBase {
   documentsExpected: number;
   /** Set on the server via auth.admin when listing the queue. */
   emailConfirmed?: boolean;
+  /** Set on the server via auth.admin when listing the queue. */
+  email?: string | null;
 }
 
 export interface PendingVerificationRow extends VerificationQueueRowBase {
@@ -151,6 +155,8 @@ interface ProfileQueueSource {
   first_name: string | null;
   last_name: string | null;
   user_type: string | null;
+  account_role?: string | null;
+  organization_type?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   verification_submitted_at?: string | null;
@@ -173,6 +179,8 @@ function buildQueueRowBase(profile: ProfileQueueSource): Omit<VerificationQueueR
     firstName: profile.first_name ?? '',
     lastName: profile.last_name ?? '',
     userType,
+    accountRole: profile.account_role ?? null,
+    organizationType: profile.organization_type ?? null,
     companyId: company?.id ?? null,
     companyName: company?.name ?? null,
     companyType: company?.type ?? null,
@@ -381,6 +389,8 @@ export async function fetchPendingVerificationQueue(
       first_name,
       last_name,
       user_type,
+      account_role,
+      organization_type,
       platform_role,
       verification_submitted_at,
       verification_document_paths,
@@ -491,7 +501,7 @@ async function fetchProfilesByIds(
     .from('user_profiles')
     .select(
       `
-      id, first_name, last_name, user_type, is_verified,
+      id, first_name, last_name, user_type, account_role, organization_type, is_verified,
       created_at, updated_at, verification_submitted_at, verification_document_paths,
       user_companies ( is_primary, companies ( id, name, type ) )
     `
@@ -558,6 +568,8 @@ export async function fetchApprovedVerificationQueue(
       first_name,
       last_name,
       user_type,
+      account_role,
+      organization_type,
       platform_role,
       is_verified,
       created_at,

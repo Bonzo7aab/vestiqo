@@ -32,6 +32,7 @@ export interface FieldDef {
   rows?: number;
   placeholder?: string;
   hint?: string;
+  readOnly?: boolean;
 }
 
 export type FieldValue = string | number | string[] | null | undefined;
@@ -48,6 +49,7 @@ interface EditableFormProps {
   initialValues: EditableFormValues;
   busy?: boolean;
   submitLabel?: string;
+  editing?: boolean;
   onSave: (patch: Record<string, unknown>) => Promise<boolean | void> | boolean | void;
 }
 
@@ -85,28 +87,59 @@ function valuesEqual(a: FieldValue, b: FieldValue): boolean {
   return false;
 }
 
+function cloneValues(source: EditableFormValues): EditableFormValues {
+  return JSON.parse(JSON.stringify(source)) as EditableFormValues;
+}
+
+const editableFieldClass =
+  'bg-background text-sm font-normal normal-case text-foreground placeholder:text-muted-foreground/70';
+
 export function EditableForm({
   sections,
   initialValues,
   busy,
   submitLabel = 'Zapisz zmiany',
+  editing = true,
   onSave,
 }: EditableFormProps) {
   const [values, setValues] = React.useState<EditableFormValues>(initialValues);
-  const initialRef = React.useRef(initialValues);
+  const baselineRef = React.useRef<EditableFormValues>(cloneValues(initialValues));
+  const valuesRef = React.useRef<EditableFormValues>(initialValues);
   const [submitting, setSubmitting] = React.useState(false);
+  const prevEditingRef = React.useRef(editing);
+
+  valuesRef.current = values;
+
+  React.useEffect(() => {
+    if (editing) {
+      if (!prevEditingRef.current) {
+        baselineRef.current = cloneValues(initialValues);
+        setValues(cloneValues(initialValues));
+      }
+    } else {
+      baselineRef.current = cloneValues(initialValues);
+      setValues(cloneValues(initialValues));
+    }
+    prevEditingRef.current = editing;
+  }, [editing, initialValues]);
 
   const setValue = (key: string, next: FieldValue) => {
-    setValues((prev) => ({ ...prev, [key]: next }));
+    setValues((prev) => {
+      const nextValues = { ...prev, [key]: next };
+      valuesRef.current = nextValues;
+      return nextValues;
+    });
   };
 
   const submit = async () => {
+    const currentValues = valuesRef.current;
+    const baseline = baselineRef.current;
     const patch: Record<string, unknown> = {};
-    const initial = initialRef.current;
     for (const section of sections) {
       for (const field of section.fields) {
-        const cur = values[field.key];
-        const init = initial[field.key];
+        if (field.readOnly) continue;
+        const cur = currentValues[field.key];
+        const init = baseline[field.key];
         if (!valuesEqual(cur, init)) {
           patch[field.key] = cur === '' ? null : cur;
         }
@@ -120,8 +153,10 @@ export function EditableForm({
     try {
       const result = await onSave(patch);
       if (result !== false) {
-        initialRef.current = { ...values };
+        baselineRef.current = cloneValues(currentValues);
       }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Błąd zapisu');
     } finally {
       setSubmitting(false);
     }
@@ -142,19 +177,34 @@ export function EditableForm({
                 key={field.key}
                 className={cn('space-y-1', (field.fullWidth || field.type === 'textarea' || field.type === 'string-array') && 'md:col-span-2')}
               >
-                <Label htmlFor={field.key} className="text-xs uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor={field.key} className="text-xs font-medium tracking-wide text-muted-foreground">
                   {field.label}
                 </Label>
-                <FieldInput field={field} value={values[field.key]} onChange={(v) => setValue(field.key, v)} />
+                <FieldInput
+                  field={field}
+                  value={values[field.key]}
+                  readOnly={field.readOnly || !editing}
+                  onChange={(v) => setValue(field.key, v)}
+                />
                 {field.hint && <p className="text-xs text-muted-foreground">{field.hint}</p>}
               </div>
             ))}
           </div>
         </div>
       ))}
-      <Button type="button" size="sm" disabled={busy || submitting} onClick={submit}>
-        {submitting ? 'Zapisywanie…' : submitLabel}
-      </Button>
+      {editing ? (
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || submitting}
+          onClick={(event) => {
+            event.stopPropagation();
+            void submit();
+          }}
+        >
+          {submitting ? 'Zapisywanie…' : submitLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -162,15 +212,67 @@ export function EditableForm({
 interface FieldInputProps {
   field: FieldDef;
   value: FieldValue;
+  readOnly: boolean;
   onChange: (next: FieldValue) => void;
 }
 
-function FieldInput({ field, value, onChange }: FieldInputProps) {
+function formatReadOnlyValue(field: FieldDef, value: FieldValue): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (field.type === 'select') {
+    const match = field.options?.find((opt) => opt.value === value);
+    return match?.label ?? String(value);
+  }
+  if (field.type === 'string-array' && Array.isArray(value)) {
+    return value.length > 0 ? value.join('\n') : '—';
+  }
+  if (field.type === 'date' || field.type === 'datetime') {
+    try {
+      return new Date(String(value)).toLocaleString('pl-PL', {
+        dateStyle: 'short',
+        timeStyle: field.type === 'datetime' ? 'short' : undefined,
+      });
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+function FieldInput({ field, value, readOnly, onChange }: FieldInputProps) {
+  if (readOnly) {
+    const formatted = formatReadOnlyValue(field, value);
+    if (field.type === 'text' || field.type === 'number') {
+      return (
+        <Input
+          id={field.key}
+          readOnly
+          type={field.type === 'number' ? 'number' : 'text'}
+          className="cursor-default bg-muted/40 text-sm font-normal text-muted-foreground"
+          value={formatted === '—' ? '' : formatted}
+          placeholder="—"
+        />
+      );
+    }
+    const multiline = field.type === 'textarea' || field.type === 'string-array';
+    return (
+      <div
+        id={field.key}
+        className={cn(
+          'rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm font-normal text-muted-foreground',
+          multiline ? 'min-h-[72px] whitespace-pre-wrap' : 'min-h-9',
+        )}
+      >
+        {formatted}
+      </div>
+    );
+  }
+
   switch (field.type) {
     case 'textarea':
       return (
         <Textarea
           id={field.key}
+          className={editableFieldClass}
           rows={field.rows ?? 4}
           placeholder={field.placeholder}
           value={(value as string) ?? ''}
@@ -181,6 +283,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <Input
           id={field.key}
+          className={editableFieldClass}
           type="number"
           inputMode="decimal"
           placeholder={field.placeholder}
@@ -196,13 +299,14 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
           }}
         />
       );
-    case 'select':
+    case 'select': {
+      const selectValue = (value as string) ?? '';
       return (
         <Select
-          value={(value as string) ?? ''}
+          value={selectValue.length > 0 ? selectValue : undefined}
           onValueChange={(v) => onChange(v === '__null__' ? null : v)}
         >
-          <SelectTrigger id={field.key}>
+          <SelectTrigger id={field.key} className={editableFieldClass}>
             <SelectValue placeholder={field.placeholder ?? 'Wybierz…'} />
           </SelectTrigger>
           <SelectContent>
@@ -214,10 +318,12 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
           </SelectContent>
         </Select>
       );
+    }
     case 'date':
       return (
         <Input
           id={field.key}
+          className={editableFieldClass}
           type="date"
           value={toInputDate(value)}
           onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
@@ -227,6 +333,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <Input
           id={field.key}
+          className={editableFieldClass}
           type="datetime-local"
           value={toInputDateTime(value)}
           onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
@@ -236,6 +343,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <Textarea
           id={field.key}
+          className={editableFieldClass}
           rows={field.rows ?? 3}
           placeholder={field.placeholder ?? 'Jeden element w linii…'}
           value={toTextareaArray(value)}
@@ -247,6 +355,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <Input
           id={field.key}
+          className={editableFieldClass}
           type="text"
           placeholder={field.placeholder}
           value={(value as string) ?? ''}

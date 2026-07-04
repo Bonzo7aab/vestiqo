@@ -29,7 +29,7 @@ const actions: QuickAction[] = [
     icon: FileWarning,
   },
   {
-    href: '/administracja/ogloszenia',
+    href: '/administracja/zgloszenia',
     label: 'Zgłoszenia zarządców',
     description: 'Zarządzaj ogłoszeniami i przetargami opublikowanymi przez zarządców.',
     icon: Building2,

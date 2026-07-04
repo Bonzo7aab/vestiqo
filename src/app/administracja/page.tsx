@@ -41,7 +41,7 @@ export default async function AdminHomePage() {
             title="Zgłoszenia bez ofert"
             value={postsNoOffers}
             breakdown={`Zgłoszenia: ${metrics.activeJobsWithoutApplications}, przetargi: ${metrics.activeTendersWithoutBids}`}
-            href="/administracja/ogloszenia"
+            href="/administracja/zgloszenia"
             ctaLabel="Moderuj ogłoszenia"
           />
           <AdminDashboardMetricCard

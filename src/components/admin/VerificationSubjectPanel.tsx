@@ -304,18 +304,26 @@ export function VerificationSubjectPanel({
     <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardContent className="space-y-4 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
               <div
                 aria-hidden
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary"
               >
                 {userInitials(firstName, lastName)}
               </div>
-              <div className="min-w-0 space-y-1">
-                <h2 className="text-xl font-semibold">
-                  {firstName} {lastName}
-                </h2>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-semibold">
+                    {firstName} {lastName}
+                  </h2>
+                  <AdminImpersonateButtons
+                    subjectUserId={subjectUserId}
+                    userType={userType}
+                    disabled={busy}
+                    compact
+                  />
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{userTypeLabel(userType)}</Badge>
                   <VerificationStatusBadge state={adminDisplayStatus} />
@@ -334,47 +342,41 @@ export function VerificationSubjectPanel({
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-              <AdminImpersonateButtons
-                subjectUserId={subjectUserId}
-                userType={userType}
-                disabled={busy}
-              />
-              <Button
-                type="button"
-                disabled={busy || !canApprove}
-                onClick={() => void handleApprove()}
-                className={
-                  canApprove ? 'bg-emerald-600 text-white hover:bg-emerald-700' : undefined
-                }
-                title={
-                  missingCount > 0
-                    ? 'Brakuje wymaganych dokumentów w profilu.'
-                    : !allReviewed
-                      ? 'Najpierw oceń wszystkie przesłane dokumenty.'
-                      : rejected > 0
-                        ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
-                        : undefined
-                }
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Akceptuj
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={busy}
-                onClick={() => setRejectOpen((prev) => !prev)}
-              >
-                <ShieldX className="h-4 w-4" />
-                Odrzuć
-              </Button>
-              <AdminDeleteUserAccountButton
-                userId={subjectUserId}
-                userLabel={`${firstName} ${lastName}`.trim()}
-                variant="destructive"
-                size="default"
-              />
+            <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+              <p className="text-sm font-medium text-muted-foreground sm:text-right">Weryfikacja</p>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={busy || !canApprove}
+                  onClick={() => void handleApprove()}
+                  className={
+                    canApprove ? 'bg-emerald-600 text-white hover:bg-emerald-700' : undefined
+                  }
+                  title={
+                    missingCount > 0
+                      ? 'Brakuje wymaganych dokumentów w profilu.'
+                      : !allReviewed
+                        ? 'Najpierw oceń wszystkie przesłane dokumenty.'
+                        : rejected > 0
+                          ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
+                          : undefined
+                  }
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Akceptuj
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={() => setRejectOpen((prev) => !prev)}
+                >
+                  <ShieldX className="h-3.5 w-3.5" />
+                  Odrzuć
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -437,6 +439,15 @@ export function VerificationSubjectPanel({
                 value={formatDate(submittedAt)}
               />
             ) : null}
+          </div>
+
+          <div className="flex justify-end border-t pt-4">
+            <AdminDeleteUserAccountButton
+              userId={subjectUserId}
+              userLabel={`${firstName} ${lastName}`.trim()}
+              variant="destructive"
+              size="sm"
+            />
           </div>
         </CardContent>
 

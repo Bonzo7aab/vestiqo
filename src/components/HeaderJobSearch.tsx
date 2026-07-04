@@ -61,7 +61,13 @@ export function HeaderJobSearch({ className }: { className?: string }) {
         <Input
           type="search"
           value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            setSearchDraft(next);
+            if (next === '' && (filters.searchQuery ?? '').trim() !== '') {
+              applySearch('');
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') commitSearch();
           }}
