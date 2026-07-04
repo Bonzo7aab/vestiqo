@@ -2,10 +2,13 @@ import { CommunitiesPageContent } from '../../components/content/CommunitiesPage
 import { MarketingPageLayout } from '../../components/content/MarketingPageLayout';
 import { communitiesPageContent } from '../../lib/content/dla-uzytkownikow';
 import { staticInfoMetadata } from '../../components/StaticInfoPage';
+import { communitiesKeywords } from '../../lib/seo-keywords';
 
 export const metadata = staticInfoMetadata(
   'Dla Wspólnot i Spółdzielni Mieszkaniowych',
   'Transparentne konkursy ofert dla zarządców nieruchomości i wspólnot mieszkaniowych.',
+  '/dla-wspolnot',
+  { keywords: [...communitiesKeywords] },
 );
 
 export default function CommunitiesPage() {

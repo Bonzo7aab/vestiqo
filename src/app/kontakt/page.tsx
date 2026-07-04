@@ -6,10 +6,13 @@ import { MarketingPageLayout } from '../../components/content/MarketingPageLayou
 import { companyLegal } from '../../lib/content/company-legal';
 import { contactDirectEmails, contactIntro } from '../../lib/content/kontakt';
 import { staticInfoMetadata } from '../../components/StaticInfoPage';
+import { contactKeywords } from '../../lib/seo-keywords';
 
 export const metadata = staticInfoMetadata(
   'Kontakt',
   'Skontaktuj się z zespołem Vestiqo — formularz, e-mail i dane firmy.',
+  '/kontakt',
+  { keywords: [...contactKeywords] },
 );
 
 export default function ContactPage() {

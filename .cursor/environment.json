@@ -1,0 +1,4 @@
+{
+  "name": "Node CI environment",
+  "install": "bash .cursor/install.sh"
+}

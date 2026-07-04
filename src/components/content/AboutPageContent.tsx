@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Building2,
   Eye,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { aboutPageContent } from '../../lib/content/o-nas';
+import { routes } from '../../lib/routes';
 import { ContentSection } from './ContentSection';
 import {
   AudienceCard,
@@ -82,6 +84,31 @@ export function AboutPageContent() {
             );
           })}
         </div>
+      </ContentSection>
+
+      <ContentSection title="Poznaj kolejne kroki">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          <li>
+            <Link href={routes.dlaWspolnot} className="text-primary hover:underline">
+              Rozwiązania dla wspólnot i spółdzielni mieszkaniowych
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.dlaWykonawcow} className="text-primary hover:underline">
+              Strefa wykonawców i firm usługowych
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.aktualnosci} className="text-primary hover:underline">
+              Aktualności i poradniki Vestiqo
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.kontakt} className="text-primary hover:underline">
+              Skontaktuj się z zespołem
+            </Link>
+          </li>
+        </ul>
       </ContentSection>
     </>
   );

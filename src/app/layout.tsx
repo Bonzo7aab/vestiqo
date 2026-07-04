@@ -22,6 +22,15 @@ import { RouteChangeLoader } from '../components/RouteChangeLoader'
 import { NavigationRouteTracker } from '../components/NavigationRouteTracker'
 import { BrowserAuthSync } from '../components/BrowserAuthSync'
 import { DevThemeTools } from '../components/dev/DevThemeTools'
+import {
+  SEO_DEFAULT_DESCRIPTION,
+  SEO_DEFAULT_TITLE,
+  SEO_SITE_NAME,
+  getAbsoluteUrl,
+  getMetadataBaseUrl,
+  getSeoOrigin,
+} from '../lib/seo'
+import { corePlatformKeywords } from '../lib/seo-keywords'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -31,16 +40,32 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Vestiqo - Platforma dla Zarządców i Wykonawców',
-  description: 'Platforma łącząca zarządców nieruchomości z wykwalifikowanymi wykonawcami',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: {
+    default: `${SEO_SITE_NAME} - ${SEO_DEFAULT_TITLE}`,
+    template: `%s | ${SEO_SITE_NAME}`,
+  },
+  description: SEO_DEFAULT_DESCRIPTION,
+  keywords: [...corePlatformKeywords],
+  metadataBase: getMetadataBaseUrl(),
   openGraph: {
     type: 'website',
     locale: 'pl_PL',
-    url: '/',
-    siteName: 'Vestiqo',
-    title: 'Vestiqo - Platforma dla Zarządców i Wykonawców',
-    description: 'Platforma łącząca zarządców nieruchomości z wykwalifikowanymi wykonawcami',
+    url: getAbsoluteUrl('/'),
+    siteName: SEO_SITE_NAME,
+    title: `${SEO_SITE_NAME} - ${SEO_DEFAULT_TITLE}`,
+    description: SEO_DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: getAbsoluteUrl('/brand/vestiqo-logo.svg'),
+        alt: `${SEO_SITE_NAME} logo`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SEO_SITE_NAME} - ${SEO_DEFAULT_TITLE}`,
+    description: SEO_DEFAULT_DESCRIPTION,
+    images: [getAbsoluteUrl('/brand/vestiqo-logo.svg')],
   },
   icons: {
     icon: [{ url: '/brand/vestiqo-mark.svg', type: 'image/svg+xml' }],
@@ -60,6 +85,31 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const appOrigin = getSeoOrigin()
+  const websiteStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SEO_SITE_NAME,
+    url: appOrigin,
+    inLanguage: 'pl-PL',
+  }
+  const organizationStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SEO_SITE_NAME,
+    url: appOrigin,
+    logo: getAbsoluteUrl('/brand/vestiqo-mark.svg'),
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: 'kontakt@vestiqo.pl',
+        areaServed: 'PL',
+        availableLanguage: ['pl'],
+      },
+    ],
+  }
+
   const effectiveContext = await getEffectiveUserContext()
   const impersonationState = toImpersonationClientState(effectiveContext)
   const impersonationSubjectId = impersonationState.isImpersonating
@@ -69,6 +119,14 @@ export default async function RootLayout({
   return (
     <html lang="pl">
       <body className={inter.className}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
+        />
         <ScrollbarManager />
         <ServiceWorkerRegistration />
         <AppProviders

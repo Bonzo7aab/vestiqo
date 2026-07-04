@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { Bell, FileText, HandCoins, Scale, Wrench } from 'lucide-react';
 import { contractorsPageContent } from '../../lib/content/dla-uzytkownikow';
+import { routes } from '../../lib/routes';
 import { ContentSection } from './ContentSection';
 import { HelpTimeline } from './MarketingPageLayout';
 import { FeatureCard, MarketingHeroIntro } from './marketing-primitives';
@@ -39,6 +41,31 @@ export function ContractorsPageContent() {
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
           <HelpTimeline steps={content.steps} />
         </div>
+      </ContentSection>
+
+      <ContentSection title="Przydatne strony dla wykonawców">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          <li>
+            <Link href={routes.pomocDlaWykonawcow} className="text-primary hover:underline">
+              Pomoc dla wykonawców — jak składać oferty
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.kategorieUslug} className="text-primary hover:underline">
+              Kategorie usług — znajdź zlecenia dla swojej specjalizacji
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.faq} className="text-primary hover:underline">
+              FAQ dla firm budowlanych i usługowych
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.rejestracja} className="text-primary hover:underline">
+              Rejestracja firmy w Vestiqo
+            </Link>
+          </li>
+        </ul>
       </ContentSection>
     </>
   );

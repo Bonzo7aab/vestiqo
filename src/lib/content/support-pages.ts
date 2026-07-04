@@ -5,7 +5,7 @@ export interface FaqItem {
 }
 
 export const faqIntro =
-  'Masz pytania dotyczące działania platformy Vestiqo? Przygotowaliśmy odpowiedzi na najważniejsze kwestie techniczne, prawne i organizacyjne. Wybierz odpowiednią sekcję, aby dowiedzieć się więcej.';
+  'Masz pytania dotyczące działania platformy Vestiqo? W tym FAQ znajdziesz odpowiedzi na najważniejsze kwestie techniczne, prawne i organizacyjne dla zarządców nieruchomości oraz wykonawców.';
 
 export const faqManagerItems: FaqItem[] = [
   {

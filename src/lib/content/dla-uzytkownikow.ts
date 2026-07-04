@@ -3,9 +3,9 @@ import { routes } from '../routes';
 export const communitiesPageContent = {
   title: 'Dla Wspólnot i Spółdzielni Mieszkaniowych',
   description:
-    'Transparentne konkursy ofert dla zarządców nieruchomości, zarządów wspólnot i rad nadzorczych spółdzielni.',
+    'Transparentne konkursy ofert i przetargi remontowe dla zarządców nieruchomości, wspólnot i spółdzielni mieszkaniowych.',
   intro:
-    'Wybór wykonawcy dużego remontu – od termomodernizacji po wymianę pionów – to ogromna odpowiedzialność przed mieszkańcami. Vestiqo powstało jako niezależna platforma, która wspiera zarządców nieruchomości, zarządy wspólnot oraz rady nadzorcze spółdzielni w prowadzeniu transparentnych, bezpiecznych i sprawnych konkursów ofert.',
+    'Wybór wykonawcy dużego remontu — od termomodernizacji po wymianę pionów — to ogromna odpowiedzialność przed mieszkańcami. Vestiqo to platforma dla zarządców nieruchomości, która wspiera zarządy wspólnot i rady nadzorcze spółdzielni w prowadzeniu transparentnych, bezpiecznych i szybkich konkursów ofert.',
   pillarsTitle: '3 filary bezpieczeństwa Twojej nieruchomości',
   pillarsIntro:
     'Procesy inwestycyjne w sektorze mieszkaniowym wymagają najwyższych standardów. Platforma Vestiqo została zaprojektowana tak, aby odpowiadać na unikalne wyzwania prawne i organizacyjne wielorodzinnych budynków.',
@@ -60,9 +60,9 @@ export const communitiesPageContent = {
 export const contractorsPageContent = {
   title: 'Dla Wykonawców i Firm',
   description:
-    'Stabilne zlecenia od wypłacalnych partnerów — spółdzielni, wspólnot mieszkaniowych i zarządców nieruchomości.',
+    'Stabilne zlecenia B2B i przetargi remontowe od wypłacalnych partnerów: wspólnot, spółdzielni i zarządców nieruchomości.',
   intro:
-    'Szukasz stabilnych, dobrze przygotowanych zleceń od wypłacalnych partnerów? Vestiqo to platforma B2B, która łączy rzetelne firmy budowlane i usługowe ze spółdzielnią, wspólnotami mieszkaniowymi oraz zarządcami. Otrzymuj zapytania dopasowane dokładnie do Twojej specjalizacji i regionu działania.',
+    'Szukasz stabilnych, dobrze przygotowanych zleceń B2B od wypłacalnych partnerów? Vestiqo łączy rzetelne firmy budowlane i usługowe ze spółdzielniami, wspólnotami mieszkaniowymi oraz zarządcami. Otrzymujesz zapytania ofertowe dopasowane do Twojej specjalizacji i regionu działania.',
   reasonsTitle: 'Trzy powody, dla których warto tu być',
   reasons: [
     {
@@ -103,4 +103,4 @@ export const contractorsPageContent = {
 };
 
 export const serviceCategoriesIntro =
-  'Przeglądaj pełną strukturę zamówień i konkursów ofert realizowanych w zasobach spółdzielni i wspólnot mieszkaniowych. Wybierz interesującą Cię kategorię oraz podkategorię, aby przejść bezpośrednio do aktualnych, otwartych konkursów ofert przypisanych do konkretnej specjalizacji.';
+  'Przeglądaj pełną strukturę kategorii usług remontowo-budowlanych realizowanych w zasobach wspólnot i spółdzielni mieszkaniowych. Wybierz interesującą Cię specjalizację, aby przejść bezpośrednio do aktualnych, otwartych konkursów ofert.';

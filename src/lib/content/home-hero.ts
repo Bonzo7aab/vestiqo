@@ -28,9 +28,9 @@ export interface HomeHeroFlow {
 }
 
 export const homeHeroContent = {
-  headline: 'Transparentne konkursy ofert dla nieruchomości',
+  headline: 'Konkursy ofert i przetargi remontowe dla wspólnot oraz spółdzielni',
   description:
-    'Niezależna platforma wspierająca zarządców nieruchomości, zarządy wspólnot i rady nadzorcze spółdzielni w prowadzeniu transparentnych, bezpiecznych i sprawnych konkursów ofert.',
+    'Niezależna platforma wspierająca zarządców nieruchomości, zarządy wspólnot i firmy wykonawcze w prowadzeniu transparentnych, bezpiecznych i sprawnych konkursów ofert B2B.',
   ctas: [
     {
       label: 'Utwórz konkurs',

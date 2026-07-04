@@ -1,7 +1,7 @@
 export const aboutPageContent = {
   title: 'O nas – Nowy Standard Konkursów Ofert w Nieruchomościach',
   description:
-    'Vestiqo to nowoczesna platforma cyfrowa dla wspólnot, spółdzielni i zarządców nieruchomości.',
+    'Vestiqo to nowoczesna platforma cyfrowa do konkursów ofert i przetargów remontowych dla wspólnot, spółdzielni i zarządców nieruchomości.',
   intro:
     'Vestiqo to nowoczesna, niezależna platforma cyfrowa, która rewolucjonizuje sposób, w jaki wspólnoty mieszkaniowe, spółdzielnie oraz zarządcy nieruchomości wybierają wykonawców usług remontowo-budowlanych i utrzymaniowych. Łączymy świat profesjonalnego zarządzania nieruchomościami z rzetelnymi firmami wykonawczymi, stawiając na absolutną przejrzystość, bezpieczeństwo i oszczędność czasu.',
   whyWeExist: {

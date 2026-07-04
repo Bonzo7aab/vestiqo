@@ -1,7 +1,7 @@
 import { companyLegal } from './company-legal';
 
 export const contactIntro =
-  'Masz pytania dotyczące działania platformy? Potrzebujesz wsparcia przy konfiguracji pierwszego konkursu ofert, a może chcesz zgłosić niestandardowe zapytanie? Jesteśmy do Twojej dyspozycji. Wybierz najwygodniejszą dla siebie formę kontaktu.';
+  'Masz pytania dotyczące działania platformy? Potrzebujesz wsparcia przy konfiguracji konkursu ofert lub złożeniu oferty jako wykonawca? Jesteśmy do Twojej dyspozycji — wybierz najwygodniejszą formę kontaktu.';
 
 export const contactRoleOptions = [
   { value: 'manager', label: 'Zarządcą nieruchomości lub Zarządem Wspólnoty' },

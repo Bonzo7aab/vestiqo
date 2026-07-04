@@ -10,6 +10,7 @@ import { staticInfoMetadata } from '../../components/StaticInfoPage';
 export const metadata = staticInfoMetadata(
   cookiesPageContent.title,
   cookiesPageContent.description,
+  '/ustawienia-plikow-cookie',
 );
 
 export default function CookieSettingsPage() {

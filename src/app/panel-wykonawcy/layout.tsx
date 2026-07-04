@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
 import { getEffectiveUserContext, resolveEffectiveUserId } from '../../lib/auth/effective-user';
@@ -9,6 +10,9 @@ import { isOrdersFeatureEnabled } from '../../lib/flagship/orders-feature';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
 import { ContractorDashboardNav } from '../../components/contractor-dashboard/ContractorDashboardNav';
 import { kontoCompanyDataHref } from '../../lib/konto-tabs';
+import { buildNoIndexMetadata } from '../../lib/seo';
+
+export const metadata: Metadata = buildNoIndexMetadata('Panel wykonawcy');
 
 export default async function ContractorDashboardLayout({
   children,
