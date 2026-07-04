@@ -4,6 +4,7 @@ import { StaticInfoPage, staticInfoMetadata } from '../../../components/StaticIn
 import { newsArticles, newsCategoryStyles } from '../../../lib/content/aktualnosci';
 import { routes } from '../../../lib/routes';
 import { buildPageMetadata } from '../../../lib/seo';
+import { newsKeywords } from '../../../lib/seo-keywords';
 
 interface NewsArticlePageProps {
   params: Promise<{ slug: string }>;
@@ -24,6 +25,7 @@ export async function generateMetadata({ params }: NewsArticlePageProps) {
     description: article.excerpt,
     pathname: `/aktualnosci/${article.slug}`,
     type: 'article',
+    keywords: [...newsKeywords, article.category.toLowerCase()],
   });
 }
 

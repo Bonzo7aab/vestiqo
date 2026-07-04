@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { Building2, FileBarChart, Lock, Shield, Users } from 'lucide-react';
 import { communitiesPageContent } from '../../lib/content/dla-uzytkownikow';
+import { routes } from '../../lib/routes';
 import { ContentSection } from './ContentSection';
 import { HelpTimeline } from './MarketingPageLayout';
 import {
@@ -49,6 +51,31 @@ export function CommunitiesPageContent() {
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
           <HelpTimeline steps={content.steps} />
         </div>
+      </ContentSection>
+
+      <ContentSection title="Przydatne strony dla zarządców">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          <li>
+            <Link href={routes.pomocDlaZarzadcow} className="text-primary hover:underline">
+              Pomoc dla zarządców — instrukcja krok po kroku
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.kategorieUslug} className="text-primary hover:underline">
+              Kategorie usług — szybkie filtrowanie prac remontowych
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.faq} className="text-primary hover:underline">
+              FAQ — najczęstsze pytania o konkursy ofert
+            </Link>
+          </li>
+          <li>
+            <Link href={routes.kontakt} className="text-primary hover:underline">
+              Kontakt z zespołem Vestiqo
+            </Link>
+          </li>
+        </ul>
       </ContentSection>
     </>
   );

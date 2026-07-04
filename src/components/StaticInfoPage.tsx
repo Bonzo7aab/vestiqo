@@ -13,11 +13,17 @@ export function staticInfoMetadata(
   title: string,
   description: string,
   pathname: string = '/',
+  options?: {
+    keywords?: string[]
+    type?: 'website' | 'article'
+  },
 ): Metadata {
   return buildPageMetadata({
     title,
     description,
     pathname,
+    keywords: options?.keywords,
+    type: options?.type,
   });
 }
 

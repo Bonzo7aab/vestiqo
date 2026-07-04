@@ -30,6 +30,7 @@ import {
   getMetadataBaseUrl,
   getSeoOrigin,
 } from '../lib/seo'
+import { corePlatformKeywords } from '../lib/seo-keywords'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -44,6 +45,7 @@ export const metadata: Metadata = {
     template: `%s | ${SEO_SITE_NAME}`,
   },
   description: SEO_DEFAULT_DESCRIPTION,
+  keywords: [...corePlatformKeywords],
   metadataBase: getMetadataBaseUrl(),
   openGraph: {
     type: 'website',
