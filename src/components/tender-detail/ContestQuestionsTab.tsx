@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { HelpCircle, Send } from 'lucide-react';
+import { HelpCircle, MessageCircleQuestion, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -24,6 +23,13 @@ import {
 import { ContestQuestionCommentsList } from '../contest-questions/ContestQuestionCommentsList';
 import { ManagerContestQuestionsPanel } from '../manager-dashboard/ManagerContestQuestionsPanel';
 import { notifyManagerContestQuestionAction } from '../../app/pytania-konkursu/actions';
+import {
+  ContestDetailEmptyState,
+  ContestDetailProse,
+  ContestDetailSection,
+  ContestDetailTabPanel,
+} from './ContestDetailTabLayout';
+import { cn } from '../ui/utils';
 
 interface ContestQuestionsTabProps {
   tenderId: string;
@@ -43,26 +49,51 @@ function ContestQuestionsManagerTab({
   onQuestionsCountChange?: (count: number) => void;
 }): React.ReactElement {
   return (
-    <TabsContent value="contest-qa">
-      <Card>
-        <CardContent className="min-w-0 space-y-6 p-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-primary shrink-0" />
-              Pytania i odpowiedzi do konkursu
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Odpowiadaj na pytania wykonawców — odpowiedzi są widoczne publicznie. Możesz edytować
-              lub usunąć swoje odpowiedzi.
-            </p>
-          </div>
+    <TabsContent value="contest-qa" className="mt-0 focus-visible:outline-none">
+      <ContestDetailTabPanel>
+        <ContestDetailSection
+          icon={HelpCircle}
+          title="Pytania i odpowiedzi"
+          description="Odpowiadaj na pytania wykonawców — odpowiedzi są widoczne publicznie."
+        >
           <ManagerContestQuestionsPanel
             contestId={tenderId}
             onQuestionsChange={onQuestionsCountChange}
           />
-        </CardContent>
-      </Card>
+        </ContestDetailSection>
+      </ContestDetailTabPanel>
     </TabsContent>
+  );
+}
+
+function PendingQuestionCard({ question }: { question: string }): React.ReactElement {
+  return (
+    <article className="rounded-lg border border-dashed border-amber-300/70 bg-amber-50/60 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+        Oczekuje na odpowiedź organizatora
+      </p>
+      <ContestDetailProse className="text-foreground">{question}</ContestDetailProse>
+    </article>
+  );
+}
+
+function PublishedQuestionCard({
+  item,
+}: {
+  item: ContestQuestionPublished;
+}): React.ReactElement {
+  return (
+    <article className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_3px_hsl(var(--brand-navy)/0.04)]">
+      <div className="border-b border-border/60 bg-muted/15 px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {formatContractorQuestionLabel(item.createdAt)}
+        </p>
+      </div>
+      <div className="space-y-3 p-4">
+        <ContestDetailProse className="text-foreground">{item.question}</ContestDetailProse>
+        <ContestQuestionCommentsList comments={item.comments} variant="contractor" />
+      </div>
+    </article>
   );
 }
 
@@ -170,83 +201,81 @@ function ContestQuestionsContractorTab({
     }
   };
 
-  return (
-    <TabsContent value="contest-qa">
-      <Card>
-        <CardContent className="min-w-0 space-y-6 p-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-primary shrink-0" />
-              Pytania i odpowiedzi do konkursu
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Odpowiedzi zarządcy są widoczne dla wszystkich wykonawców. Tożsamość autora pytania
-              pozostaje anonimowa.
-            </p>
-          </div>
+  const blockedReason = !user?.id
+    ? 'Zaloguj się, aby zadać pytanie.'
+    : !allowQuestions
+      ? 'Pytania do tego konkursu są wyłączone.'
+      : deadlinePassed
+        ? 'Termin składania ofert minął — nie można już zadawać pytań.'
+        : contestStatus !== 'active'
+          ? 'Pytania można zadawać tylko w trakcie zbierania ofert.'
+          : null;
 
-          {loadError ? <p className="text-sm text-destructive">{loadError}</p> : null}
+  return (
+    <TabsContent value="contest-qa" className="mt-0 focus-visible:outline-none">
+      <ContestDetailTabPanel>
+        <ContestDetailSection
+          icon={MessageCircleQuestion}
+          title="Pytania i odpowiedzi"
+          description="Odpowiedzi organizatora są widoczne dla wszystkich wykonawców. Tożsamość autora pytania pozostaje anonimowa."
+        >
+          {loadError ? (
+            <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {loadError}
+            </p>
+          ) : null}
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Ładowanie pytań...</p>
+            <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              Ładowanie pytań...
+            </div>
           ) : (
-            <>
+            <div className="space-y-4">
               {pending.length > 0 ? (
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Twoje oczekujące pytania
-                  </h4>
+                  </p>
                   {pending.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg border border-dashed border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-2"
-                    >
-                      <p className="text-xs text-muted-foreground">Oczekuje na odpowiedź zarządcy</p>
-                      <p className="text-sm whitespace-pre-wrap">{item.question}</p>
-                    </div>
+                    <PendingQuestionCard key={item.id} question={item.question} />
                   ))}
                 </div>
               ) : null}
 
               {published.length === 0 && pending.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Brak opublikowanych pytań i odpowiedzi.
-                </p>
+                <ContestDetailEmptyState>Brak opublikowanych pytań i odpowiedzi.</ContestDetailEmptyState>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {published.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-lg border border-border bg-muted/30 p-4 space-y-3"
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">
-                          {formatContractorQuestionLabel(item.createdAt)}
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap">{item.question}</p>
-                      </div>
-                      <ContestQuestionCommentsList
-                        comments={item.comments}
-                        variant="contractor"
-                      />
-                    </article>
+                    <PublishedQuestionCard key={item.id} item={item} />
                   ))}
                 </div>
               )}
-            </>
+            </div>
           )}
+        </ContestDetailSection>
 
-          {canAsk ? (
-            <div className="space-y-3 pt-2 border-t">
-              <Label htmlFor="contest-question">Zadaj pytanie do konkursu</Label>
-              <Textarea
-                id="contest-question"
-                placeholder="Np. Czy papa ma być układana jednowarstwowo czy dwu?"
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
+        {canAsk ? (
+          <section className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_3px_hsl(var(--brand-navy)/0.04)]">
+            <div className="border-b border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
+              <h3 className="text-sm font-semibold text-foreground">Zadaj pytanie do konkursu</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Pytanie trafi do organizatora i po publikacji odpowiedzi będzie widoczne dla wszystkich.
+              </p>
+            </div>
+            <div className="space-y-3 p-4 sm:p-5">
+              <div className="space-y-2">
+                <Label htmlFor="contest-question">Treść pytania</Label>
+                <Textarea
+                  id="contest-question"
+                  placeholder="Np. Czy papa ma być układana jednowarstwowo czy dwu?"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
               <Button
                 onClick={() => void handleSubmit()}
                 disabled={!questionText.trim() || isSubmitting}
@@ -254,32 +283,28 @@ function ContestQuestionsContractorTab({
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Wysyłanie...
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    Zadaj pytanie do konkursu
+                    <Send className="h-4 w-4" />
+                    Wyślij pytanie
                   </>
                 )}
               </Button>
             </div>
-          ) : !isManager ? (
-            <p className="text-sm text-muted-foreground border-t pt-4">
-              {!user?.id
-                ? 'Zaloguj się, aby zadać pytanie.'
-                : !allowQuestions
-                  ? 'Pytania do tego konkursu są wyłączone.'
-                  : deadlinePassed
-                    ? 'Termin składania ofert minął — nie można już zadawać pytań.'
-                    : contestStatus !== 'active'
-                      ? 'Pytania można zadawać tylko w trakcie zbierania ofert.'
-                      : null}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+          </section>
+        ) : !isManager && blockedReason ? (
+          <p
+            className={cn(
+              'rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-sm text-muted-foreground',
+            )}
+          >
+            {blockedReason}
+          </p>
+        ) : null}
+      </ContestDetailTabPanel>
     </TabsContent>
   );
 }

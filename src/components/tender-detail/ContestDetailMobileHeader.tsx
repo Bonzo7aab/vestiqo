@@ -7,10 +7,10 @@ import {
   formatContestLocation,
   formatContestSubmissionDeadline,
 } from '../../lib/contest-display';
-import { ContestStatusBadge } from '../manager-dashboard/ContestStatusBadge';
 import { cn } from '../ui/utils';
 import { formatDaysRemaining, getDaysRemaining } from '../../utils/tenderHelpers';
 import { CONTEST_TAB_ITEMS } from './TenderContestDetailTabs';
+import { ContestDetailStatsBar } from './ContestDetailStatsBar';
 
 interface ContestDetailMobileHeaderProps {
   job: Job & { contestInfo: ContestInfo };
@@ -59,43 +59,40 @@ export function ContestDetailMobileHeader({
   return (
     <header className="md:hidden border-b border-border/60 bg-background">
       <div className="space-y-2 px-4 pb-3 pt-3">
-        <div className="flex items-center justify-between gap-3">
-          {deadlineMeta ? (
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm leading-tight text-foreground">
-              <Clock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="shrink-0 text-muted-foreground">Termin</span>
-              <span
-                className={cn(
-                  'min-w-0 truncate font-medium',
-                  deadlineMeta.isExpired && 'text-muted-foreground',
-                )}
-              >
-                {deadlineMeta.formatted}
-                {deadlineMeta.remaining ? (
-                  <span
-                    className={cn(
-                      'font-semibold',
-                      deadlineMeta.isEndingSoon ? 'text-destructive' : 'text-foreground',
-                    )}
-                  >
-                    {' '}
-                    ({deadlineMeta.remaining})
-                  </span>
-                ) : null}
-              </span>
-            </div>
-          ) : (
-            <span className="flex-1" />
-          )}
-
-          {job.status ? (
-            <div className="shrink-0">
-              <ContestStatusBadge status={job.status} />
-            </div>
-          ) : null}
-        </div>
+        {deadlineMeta ? (
+          <div className="flex min-w-0 items-center gap-1.5 text-sm leading-tight text-foreground">
+            <Clock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="shrink-0 text-muted-foreground">Termin</span>
+            <span
+              className={cn(
+                'min-w-0 truncate font-medium',
+                deadlineMeta.isExpired && 'text-muted-foreground',
+              )}
+            >
+              {deadlineMeta.formatted}
+              {deadlineMeta.remaining ? (
+                <span
+                  className={cn(
+                    'font-semibold',
+                    deadlineMeta.isEndingSoon ? 'text-destructive' : 'text-foreground',
+                  )}
+                >
+                  {' '}
+                  ({deadlineMeta.remaining})
+                </span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
 
         <div>
+          <ContestDetailStatsBar
+            status={job.status}
+            visits={job.visits_count || 0}
+            offers={job.applications || 0}
+            bookmarks={job.bookmarks_count || 0}
+            className="mb-3"
+          />
           <h1 className="line-clamp-2 text-xl font-semibold leading-snug tracking-tight text-foreground">
             {job.title}
           </h1>

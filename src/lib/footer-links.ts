@@ -21,10 +21,10 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Kategorie usług', href: routes.kategorieUslug },
       {
-        label: 'Dla Wspólnot i Spółdzielni Mieszkaniowych',
+        label: 'Wspólnoty i Spółdzielnie',
         href: routes.dlaWspolnot,
       },
-      { label: 'Dla Wykonawców i Firm', href: routes.dlaWykonawcow },
+      { label: 'Wykonawcy i Firmy', href: routes.dlaWykonawcow },
     ],
   },
   {
@@ -44,6 +44,3 @@ export const footerColumns: FooterColumn[] = [
     ],
   },
 ];
-
-export const footerTagline =
-  'Profesjonalna platforma do zarządzania konkursami w nieruchomościach.';

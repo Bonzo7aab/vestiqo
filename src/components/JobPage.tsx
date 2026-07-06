@@ -51,6 +51,7 @@ import {
   TenderContestDetailTabs,
 } from './tender-detail/TenderContestDetailTabs';
 import { ContestDetailMobileHeader } from './tender-detail/ContestDetailMobileHeader';
+import { ContestDetailStatsBar } from './tender-detail/ContestDetailStatsBar';
 import { ManagerJobStatusSelect } from './manager-dashboard/ManagerJobStatusSelect';
 import { canManagerEditJobFields, getJobWorkflowStatusLabel } from '../lib/job-workflow-status';
 import { getContestWorkflowStatusLabel } from '../lib/tender-workflow-status';
@@ -62,7 +63,6 @@ import {
   resolveCategorySlugFromJob,
 } from '../lib/config/categoryConfig';
 import { CategoryIconTile } from './contest/CategoryIconTile';
-import { ContestStatusBadge } from './manager-dashboard/ContestStatusBadge';
 import { VerificationRequiredApplyDialog } from './VerificationRequiredApplyDialog';
 import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
 import { ContestOfferSubmissionDialog } from './contest-offer/ContestOfferSubmissionDialog';
@@ -1184,13 +1184,20 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
+                {job.contestInfo ? (
+                  <ContestDetailStatsBar
+                    status={job.status}
+                    visits={job.visits_count || 0}
+                    offers={job.applications || 0}
+                    bookmarks={job.bookmarks_count || 0}
+                    className="mb-3"
+                  />
+                ) : null}
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 mb-1.5 sm:mb-2">
                   <h1 className="text-lg sm:text-2xl md:text-3xl font-bold break-words">
                     {job.title}
                   </h1>
-                  {job.contestInfo && job.status ? (
-                    <ContestStatusBadge status={job.status} />
-                  ) : job.status ? (
+                  {!job.contestInfo && job.status ? (
                     <Badge variant={getStatusBadgeVariant(job.status)} className="shrink-0 text-[10px] sm:text-xs md:text-sm">
                       {getStatusLabel(job.status, Boolean(job.contestInfo))}
                     </Badge>
@@ -1887,7 +1894,8 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
               </Card>
             )}
 
-            {/* Job Stats */}
+            {/* Job Stats — contests show stats in header */}
+            {!job.contestInfo && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Statystyki</CardTitle>
@@ -1907,6 +1915,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         </div>
       </div>

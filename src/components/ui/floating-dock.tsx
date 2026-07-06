@@ -52,7 +52,7 @@ function FloatingDockDesktop({
       onMouseMove={(e) => mouseX.set(e.pageX)}
       onMouseLeave={() => mouseX.set(Infinity)}
       className={cn(
-        "fixed bottom-8 left-1/2 z-50 h-16 items-end gap-4 rounded-2xl bg-muted/80 backdrop-blur-xl border border-border px-4 pb-3 -translate-x-1/2 hidden md:flex",
+        "fixed bottom-8 left-1/2 z-50 h-16 items-end gap-4 rounded-2xl bg-muted/80 backdrop-blur-xl border border-border px-4 pb-3 -translate-x-1/2 hidden lg:flex",
         className
       )}
     >
@@ -74,7 +74,7 @@ function FloatingDockMobile({
     <nav
       aria-label="Nawigacja mobilna"
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 md:hidden",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 lg:hidden",
         className
       )}
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}

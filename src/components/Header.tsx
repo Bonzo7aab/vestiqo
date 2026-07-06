@@ -427,33 +427,34 @@ export function Header({
 
           {/* 3. Right Side Actions - Messages (always visible), notifications, user */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            {userIsAuthenticated ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                onClick={handleMessagingClick}
-                aria-label="Wiadomości"
-              >
-                <MessagesSquare className="h-5 w-5" />
-              </Button>
-            ) : (
-              <AuthPromptPopover
-                title={AUTH_PROMPT_MESSAGES.title}
-                description={AUTH_PROMPT_MESSAGES.description}
-              >
+            {!isAdmin &&
+              (userIsAuthenticated ? (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  onClick={handleMessagingClick}
                   aria-label="Wiadomości"
                 >
                   <MessagesSquare className="h-5 w-5" />
                 </Button>
-              </AuthPromptPopover>
-            )}
+              ) : (
+                <AuthPromptPopover
+                  title={AUTH_PROMPT_MESSAGES.title}
+                  description={AUTH_PROMPT_MESSAGES.description}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    aria-label="Wiadomości"
+                  >
+                    <MessagesSquare className="h-5 w-5" />
+                  </Button>
+                </AuthPromptPopover>
+              ))}
             {showFavoritesNav &&
               (userIsAuthenticated ? (
                 <Button

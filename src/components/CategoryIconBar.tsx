@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, FileText, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { useFilterContext } from '../contexts/FilterContext';
 import { createClient } from '../lib/supabase/client';
 import { fetchAllCategoriesWithSubcategories } from '../lib/database/categories';
@@ -175,8 +175,6 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
     return counts;
   }, [jobs]);
 
-  const selectedCount = filters.categories?.length ?? 0;
-
   const handleCategoryClick = (filterKey: string, categorySlug: string) => {
     setFilters((prev) => {
       const currentCategories = prev.categories || [];
@@ -213,14 +211,6 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
     });
   };
 
-  const handleClearCategories = () => {
-    setFilters((prev) => ({
-      ...prev,
-      categories: [],
-      subcategories: [],
-    }));
-  };
-
   const isCategorySelected = (filterKey: string, categorySlug: string) => {
     return (filters.categories || []).some((key) =>
       categoryFilterKeysMatch(key, filterKey, categorySlug),
@@ -247,21 +237,6 @@ export default function CategoryIconBar({ jobs = [] }: CategoryIconBarProps) {
   return (
     <div className="border-t border-border/60 bg-muted/15">
       <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 md:px-6 lg:px-8">
-        {selectedCount > 0 ? (
-          <div className="mb-2 flex justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-              onClick={handleClearCategories}
-            >
-              <X className="h-3.5 w-3.5" />
-              Wyczyść ({selectedCount})
-            </Button>
-          </div>
-        ) : null}
-
         <CategoryPillsScroller itemCount={filterCategoryTree.length}>
           {filterCategoryTree.map((category) => {
             const config = getCategoryConfig(category.slug);

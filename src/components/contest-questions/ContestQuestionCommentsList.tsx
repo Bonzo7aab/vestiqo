@@ -25,25 +25,25 @@ export function ContestQuestionCommentsList({
   if (comments.length === 0) return null;
 
   return (
-    <div className="border-t border-border pt-3 space-y-3">
-      <p className="text-xs font-medium text-primary">
+    <div className="rounded-lg border border-primary/15 bg-primary/[0.04] p-3 space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
         {comments.length === 1 ? 'Odpowiedź organizatora' : 'Odpowiedzi organizatora'}
       </p>
       {comments.map((comment, index) => (
         <div
           key={comment.id}
-          className={index > 0 ? 'border-t border-border/60 pt-3' : undefined}
+          className={index > 0 ? 'border-t border-primary/10 pt-3' : undefined}
         >
           {variant === 'manager' && comment.authorDisplayName ? (
-            <p className="text-xs text-muted-foreground mb-1">
+            <p className="mb-1.5 text-xs text-muted-foreground">
               {comment.authorDisplayName} — {formatCommentTimestamp(comment.createdAt)}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground mb-1">
+            <p className="mb-1.5 text-xs text-muted-foreground">
               Organizator ({formatCommentTimestamp(comment.createdAt)})
             </p>
           )}
-          <p className="text-sm whitespace-pre-wrap">{comment.body}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{comment.body}</p>
         </div>
       ))}
     </div>

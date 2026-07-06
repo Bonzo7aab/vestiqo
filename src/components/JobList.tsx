@@ -227,12 +227,35 @@ export default function JobList({
 
   return (
     <div className="flex-1 p-2 sm:p-3 lg:px-2 lg:py-3 max-w-full overflow-x-hidden">
-      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <h2 className="shrink-0 text-base font-bold whitespace-nowrap sm:text-lg">
-          Konkursy: {sortedJobs.length}
-        </h2>
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 md:flex-nowrap md:justify-between">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <h2 className="shrink-0 text-base font-bold whitespace-nowrap sm:text-lg">
+            Konkursy: {sortedJobs.length}
+          </h2>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+          {filters && onFilterChange && !isManager && (
+            <Toggle
+              variant="outline"
+              size="sm"
+              pressed={filters.favoritesOnly}
+              onPressedChange={(pressed) =>
+                onFilterChange((prev) => ({ ...prev, favoritesOnly: pressed }))
+              }
+              aria-label="Pokaż tylko zapisane"
+              className="h-8 gap-1.5 px-2.5"
+            >
+              <Star
+                className={cn(
+                  'h-4 w-4 shrink-0',
+                  filters.favoritesOnly && 'fill-primary text-primary',
+                )}
+              />
+              <span className="text-sm whitespace-nowrap">Zapisane</span>
+            </Toggle>
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5 md:ml-auto">
           {onToggleMap && (
             <div className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2">
               <Map className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -261,27 +284,6 @@ export default function JobList({
             </SelectContent>
           </Select>
         </div>
-
-        {filters && onFilterChange && !isManager && (
-          <Toggle
-            variant="outline"
-            size="sm"
-            pressed={filters.favoritesOnly}
-            onPressedChange={(pressed) =>
-              onFilterChange((prev) => ({ ...prev, favoritesOnly: pressed }))
-            }
-            aria-label="Pokaż tylko zapisane"
-            className="h-8 gap-1.5 px-2.5"
-          >
-            <Star
-              className={cn(
-                'h-4 w-4 shrink-0',
-                filters.favoritesOnly && 'fill-primary text-primary',
-              )}
-            />
-            <span className="text-sm whitespace-nowrap">Zapisane</span>
-          </Toggle>
-        )}
       </div>
 
       {isLoadingJobs && sortedJobs.length === 0 && (
