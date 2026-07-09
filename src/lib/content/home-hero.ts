@@ -1,8 +1,7 @@
 import {
-  Bell,
   Building2,
   CheckCircle,
-  ClipboardList,
+  Clock,
   FileText,
   Search,
   Shield,
@@ -10,10 +9,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { routes } from '../routes';
-import {
-  communitiesPageContent,
-  contractorsPageContent,
-} from './dla-uzytkownikow';
 
 export interface HomeHeroFlowStep {
   title: string;
@@ -28,37 +23,62 @@ export interface HomeHeroFlow {
 }
 
 export const homeHeroContent = {
-  headline: 'Konkursy ofert i przetargi remontowe dla wspólnot oraz spółdzielni',
+  headline: 'Konkursy ofert dla wspólnot oraz spółdzielni',
   description:
     'Niezależna platforma wspierająca zarządców nieruchomości, zarządy wspólnot i firmy wykonawcze w prowadzeniu transparentnych, bezpiecznych i sprawnych konkursów ofert B2B.',
   ctas: [
     {
-      label: 'Utwórz konkurs',
-      href: routes.wyborTypuKonkursu,
-      variant: 'default' as const,
-    },
-    {
-      label: 'Dołącz jako wykonawca',
+      label: 'Dołącz jako wykonawca albo zarządca',
       href: routes.rejestracja,
-      variant: 'outline' as const,
+      variant: 'default' as const,
     },
   ],
   managerFlow: {
     title: 'Dla zarządców',
     icon: Building2,
-    steps: communitiesPageContent.steps.map((step, index) => ({
-      title: step.title,
-      description: step.description,
-      icon: [FileText, ClipboardList, CheckCircle][index] ?? FileText,
-    })),
+    steps: [
+      {
+        title: 'Dodaj bezpłatny konkurs',
+        description:
+          'Opisz zakres prac i załącz dokumentację — utworzenie konkursu na platformie jest bezpłatne.',
+        icon: FileText,
+      },
+      {
+        title: 'Czekaj na oferty',
+        description:
+          'Zaproszeni wykonawcy i firmy z platformy składają wiążące oferty w wyznaczonym terminie.',
+        icon: Clock,
+      },
+      {
+        title: 'Wybierz najlepszą',
+        description:
+          'Porównaj ceny, terminy i warunki w jednym miejscu, a następnie wybierz najkorzystniejszą ofertę.',
+        icon: CheckCircle,
+      },
+    ],
   } satisfies HomeHeroFlow,
   contractorFlow: {
     title: 'Dla wykonawców',
     icon: Wrench,
-    steps: contractorsPageContent.steps.map((step, index) => ({
-      title: step.title,
-      description: step.description,
-      icon: [Search, Shield, Bell][index] ?? Search,
-    })),
+    steps: [
+      {
+        title: 'Szybka rejestracja i weryfikacja',
+        description:
+          'Załóż konto firmy — system zweryfikuje dane po NIP-ie w CEIDG lub KRS.',
+        icon: Shield,
+      },
+      {
+        title: 'Przeglądasz i wyceniasz',
+        description:
+          'Przeglądaj konkursy w swoim regionie, analizuj dokumentację i przygotuj wycenę.',
+        icon: Search,
+      },
+      {
+        title: 'Ocena oferty',
+        description:
+          'Złóż wiążącą ofertę online — zamawiający ją oceni i powiadomi Cię o wyniku konkursu.',
+        icon: CheckCircle,
+      },
+    ],
   } satisfies HomeHeroFlow,
 };
