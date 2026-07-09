@@ -85,9 +85,6 @@ export function LoginPage() {
     <AuthPageLayout
       testId="login-page"
       title="Zaloguj się"
-      subtitle="Wróć do konkursów i wiadomości na swoim koncie."
-      sideVariant="simple"
-      showSideLogo={false}
       trustNote="Dane chronione zgodnie z RODO."
       side={{
         heading: 'Konkursy usług dla nieruchomości',

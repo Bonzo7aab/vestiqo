@@ -778,10 +778,8 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       testId="register-page"
       headingTestId="register-heading"
       contentMaxWidth="lg"
-      showSideLogo={false}
       showMobileLogo={false}
       title="Zarejestruj się"
-      subtitle="Kilka pól — i możesz korzystać z platformy."
       trustNote={sideCopy.trustNote}
       side={{
         heading: sideCopy.heading,

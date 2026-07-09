@@ -72,7 +72,6 @@ export function ForgotPasswordPage() {
         testId="forgot-password-page"
         title="Email wysłany!"
         subtitle="Jeśli konto o podanym adresie email istnieje, wyślemy nowe, tymczasowe hasło."
-        sideVariant="simple"
         trustNote="Dane chronione zgodnie z RODO."
         side={authSide}
         footer={
@@ -126,7 +125,6 @@ export function ForgotPasswordPage() {
       testId="forgot-password-page"
       title="Zapomniałeś hasła?"
       subtitle="Podaj adres email powiązany z kontem — wyślemy nowe, tymczasowe hasło."
-      sideVariant="simple"
       trustNote="Dane chronione zgodnie z RODO."
       side={authSide}
       footer={
