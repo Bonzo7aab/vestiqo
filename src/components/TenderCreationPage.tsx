@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { cn } from './ui/utils';
+import { Loader2 } from 'lucide-react';
 
 interface TenderCreationPageProps {
   onBack: () => void;
@@ -46,6 +47,7 @@ export default function TenderCreationPage({
   const { user, session, isLoading } = useUserProfile();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirectingAfterPublish, setIsRedirectingAfterPublish] = useState(false);
   const [isLoadingTender, setIsLoadingTender] = useState(Boolean(tenderId || duplicateFromId));
   const [initialTender, setInitialTender] = useState<TenderWithCompany | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -180,6 +182,7 @@ export default function TenderCreationPage({
     }
 
     setIsSubmitting(true);
+    let keepSubmittingOverlay = false;
     try {
       const supabase = createClient();
       const { data: company, error: companyError } = await fetchUserPrimaryCompany(supabase, user.id);
@@ -277,12 +280,22 @@ export default function TenderCreationPage({
             : 'Konkurs zapisany jako szkic'
           : 'Konkurs został opublikowany',
       );
+
+      if (status === 'active') {
+        keepSubmittingOverlay = true;
+        setIsRedirectingAfterPublish(true);
+        router.push('/panel-zarzadcy/konkursy');
+        return;
+      }
+
       router.push('/panel-zarzadcy/konkursy');
     } catch (error) {
       console.error('Error saving contest:', error);
       toast.error('Wystąpił błąd podczas zapisywania konkursu');
     } finally {
-      setIsSubmitting(false);
+      if (!keepSubmittingOverlay) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -317,6 +330,18 @@ export default function TenderCreationPage({
 
   return (
     <div className="min-h-screen bg-muted/40">
+      {(isSubmitting || isRedirectingAfterPublish) && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            {isRedirectingAfterPublish ? 'Przekierowywanie do listy konkursów…' : 'Zapisywanie konkursu…'}
+          </p>
+        </div>
+      )}
       {!hidePageHeader ? (
         <TenderContestPageHeader
           onBack={onBack}
@@ -368,7 +393,7 @@ export default function TenderCreationPage({
             <TenderContestForm
               layout="create"
               onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
+              isSubmitting={isSubmitting || isRedirectingAfterPublish}
               initialForm={initialForm}
               existingDocuments={existingDocuments}
             />
@@ -376,7 +401,7 @@ export default function TenderCreationPage({
         ) : (
           <TenderContestForm
             onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
+            isSubmitting={isSubmitting || isRedirectingAfterPublish}
             initialForm={initialForm}
             existingDocuments={existingDocuments}
           />

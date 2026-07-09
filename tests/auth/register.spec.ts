@@ -201,8 +201,8 @@ test.describe('Registration Page', () => {
     await page.waitForTimeout(2000);
     
     // Check for error message (could be in alert or redirect with error param)
-    const hasError = await page.locator('text=/hasło|password|6/i').isVisible().catch(() => false) ||
-                     page.url().includes('error');
+    const hasError = await page.locator('text=/hasło|password|8/i').isVisible().catch(() => false) ||
+                     page.url().includes('error=');
     
     // If still on register page, there should be an error
     if (page.url().includes('/rejestracja')) {

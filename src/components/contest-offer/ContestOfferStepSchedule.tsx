@@ -1,18 +1,20 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, MapPin } from 'lucide-react';
 import type { ReactElement } from 'react';
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
 import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
-import { Alert, AlertDescription } from '../ui/alert';
 import { cn } from '../ui/utils';
+import {
+  contestOfferSectionCardClass,
+  contestOfferSectionIconClass,
+} from './ContestOfferFormalDocBlock';
 import {
   ContestOfferFieldError,
   ContestOfferRequiredLabel,
-  fieldErrorInputClass,
 } from './ContestOfferFieldError';
 
 interface ContestOfferStepScheduleProps {
@@ -30,52 +32,94 @@ export function ContestOfferStepSchedule({
   fieldErrors,
   onPatch,
 }: ContestOfferStepScheduleProps): ReactElement {
-  return (
-    <div className="space-y-6">
-      <div>
-        <ContestOfferRequiredLabel htmlFor="contest-offer-proposedCompletionDate">
-          Oferowany termin wykonania
-        </ContestOfferRequiredLabel>
-        <Input
-          id="contest-offer-proposedCompletionDate"
-          type="date"
-          value={form.proposedCompletionDate}
-          onChange={(e) => onPatch({ proposedCompletionDate: e.target.value })}
-          className={cn(
-            'mt-1.5 max-w-xs',
-            fieldErrorInputClass(Boolean(fieldErrors.proposedCompletionDate)),
-          )}
-          aria-invalid={Boolean(fieldErrors.proposedCompletionDate)}
-        />
-        <ContestOfferFieldError message={fieldErrors.proposedCompletionDate} />
-        {completionWarning ? (
-          <Alert variant="default" className="mt-3 border-amber-200 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 text-amber-700" />
-            <AlertDescription className="text-amber-900">{completionWarning}</AlertDescription>
-          </Alert>
-        ) : null}
-      </div>
+  const showSiteVisit = contestInfo.siteVisitType === 'mandatory';
 
-      {contestInfo.siteVisitType === 'mandatory' ? (
-        <div>
-          <label
-            id="contest-offer-siteVisitConfirmed"
-            className="flex items-start gap-2 cursor-pointer"
+  return (
+    <div className="space-y-4">
+      <section
+        className={cn(
+          contestOfferSectionCardClass,
+          fieldErrors.proposedCompletionDate && 'border-destructive',
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className={contestOfferSectionIconClass}
+            aria-hidden
           >
-            <Checkbox
-              checked={form.siteVisitConfirmed}
-              onCheckedChange={(v) => onPatch({ siteVisitConfirmed: v === true })}
-              aria-invalid={Boolean(fieldErrors.siteVisitConfirmed)}
-            />
-            <span className="text-sm leading-snug">
-              <span className="text-destructive" aria-hidden="true">
-                *{' '}
-              </span>
-              Potwierdzam odbycie wizji lokalnej w terminie wskazanym przez zarządcę.
-            </span>
-          </label>
-          <ContestOfferFieldError message={fieldErrors.siteVisitConfirmed} />
+            <CalendarDays className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <ContestOfferRequiredLabel htmlFor="contest-offer-proposedCompletionDate">
+              Oferowany termin wykonania
+            </ContestOfferRequiredLabel>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Podaj datę zakończenia prac zgodnie z harmonogramem Twojej oferty.
+            </p>
+            <div className="mt-3">
+              <Input
+                id="contest-offer-proposedCompletionDate"
+                type="date"
+                value={form.proposedCompletionDate}
+                onChange={(e) => onPatch({ proposedCompletionDate: e.target.value })}
+                className="h-10 w-full max-w-[13rem] border-border/60 bg-white dark:bg-card"
+                aria-invalid={Boolean(fieldErrors.proposedCompletionDate)}
+              />
+            </div>
+            <ContestOfferFieldError message={fieldErrors.proposedCompletionDate} />
+            {completionWarning ? (
+              <div
+                className="mt-3 flex items-start gap-2 rounded-md border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100"
+                role="status"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <p>{completionWarning}</p>
+              </div>
+            ) : null}
+          </div>
         </div>
+      </section>
+
+      {showSiteVisit ? (
+        <section
+          className={cn(
+            contestOfferSectionCardClass,
+            fieldErrors.siteVisitConfirmed && 'border-destructive',
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <div className={contestOfferSectionIconClass} aria-hidden>
+              <MapPin className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <ContestOfferRequiredLabel htmlFor="contest-offer-siteVisitConfirmed">
+                Wizja lokalna
+              </ContestOfferRequiredLabel>
+              <p className="mt-1 text-sm text-muted-foreground">{contestInfo.siteVisitTypeLabel}</p>
+              {contestInfo.siteVisitNotes ? (
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {contestInfo.siteVisitNotes}
+                </p>
+              ) : null}
+              <label
+                htmlFor="contest-offer-siteVisitConfirmed"
+                className="mt-3 flex cursor-pointer items-start gap-3 rounded-md border border-border/50 bg-muted/20 px-3 py-2.5"
+              >
+                <Checkbox
+                  id="contest-offer-siteVisitConfirmed"
+                  checked={form.siteVisitConfirmed}
+                  onCheckedChange={(v) => onPatch({ siteVisitConfirmed: v === true })}
+                  aria-invalid={Boolean(fieldErrors.siteVisitConfirmed)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm leading-snug text-foreground">
+                  Potwierdzam odbycie wizji lokalnej w terminie wskazanym przez zarządcę.
+                </span>
+              </label>
+              <ContestOfferFieldError message={fieldErrors.siteVisitConfirmed} />
+            </div>
+          </div>
+        </section>
       ) : null}
     </div>
   );

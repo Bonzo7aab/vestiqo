@@ -38,9 +38,12 @@ export function ContestOfferRequiredLabel({
   className,
 }: ContestOfferRequiredLabelProps): ReactElement {
   return (
-    <Label htmlFor={htmlFor} className={cn('text-sm font-semibold text-foreground', className)}>
+    <Label
+      htmlFor={htmlFor}
+      className={cn('inline-flex items-baseline gap-0.5 text-sm font-semibold text-foreground', className)}
+    >
       {children}
-      <span className="ml-1 text-destructive" aria-hidden="true">
+      <span className="text-destructive" aria-hidden="true">
         *
       </span>
     </Label>

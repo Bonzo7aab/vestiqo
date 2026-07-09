@@ -57,9 +57,12 @@ export function ContestApplyOfferButton({
       <Button
         asChild
         type="button"
-        variant="secondary"
+        variant="outline"
         size={size}
-        className={cn('group', className)}
+        className={cn(
+          className,
+          'group border-border/60 bg-muted/45 text-muted-foreground shadow-none hover:bg-muted/65 hover:text-foreground',
+        )}
       >
         <Link
           href={CONTRACTOR_OFFERS_PAGE_HREF}
@@ -77,7 +80,7 @@ export function ContestApplyOfferButton({
     return (
       <>
         <Button type="button" className={className} size={size} onClick={handleApplyClick}>
-          Kontynuuj szkic oferty
+          Szkic
         </Button>
         <VerificationRequiredApplyDialog
           open={verificationDialogOpen}

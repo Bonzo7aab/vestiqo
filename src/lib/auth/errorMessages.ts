@@ -7,6 +7,9 @@ export const REGISTRATION_ERRORS = {
     'Osiągnięto limit wysyłki wiadomości e-mail. Odczekaj kilka minut i spróbuj ponownie. Jeśli problem się powtarza, napisz na kontakt@vestiqo.pl.',
 } as const;
 
+export const EMAIL_CONFIRMED_LOGIN_MESSAGE =
+  'Adres email został potwierdzony. Zaloguj się, aby kontynuować.';
+
 const AUTH_ERROR_TRANSLATIONS: Record<string, string> = {
   'Invalid login credentials':
     'Nieprawidłowy adres email lub hasło. Sprawdź dane i spróbuj ponownie.',
@@ -14,7 +17,7 @@ const AUTH_ERROR_TRANSLATIONS: Record<string, string> = {
   'User already registered': REGISTRATION_ERRORS.emailAlreadyRegistered,
   'A user with this email address has already been registered':
     REGISTRATION_ERRORS.emailAlreadyRegistered,
-  'Password should be at least 6 characters': 'Hasło musi mieć co najmniej 6 znaków.',
+  'Password should be at least 6 characters': 'Hasło musi mieć co najmniej 8 znaków.',
   'Signup requires a valid password': `Hasło musi mieć co najmniej ${8} znaków i zawierać literę oraz cyfrę.`,
   'email rate limit exceeded': REGISTRATION_ERRORS.emailRateLimitExceeded,
   'over_email_send_rate_limit': REGISTRATION_ERRORS.emailRateLimitExceeded,
@@ -77,7 +80,7 @@ export function translateAuthErrorMessage(message: string): string {
   }
 
   if (matchesPkceVerifierMissing(lower)) {
-    return 'Link wygasł lub został otwarty w innej przeglądarce. Zaloguj się hasłem lub wyślij ponownie link potwierdzający.';
+    return EMAIL_CONFIRMED_LOGIN_MESSAGE;
   }
 
   if (matchesNipAlreadyRegistered(lower)) {

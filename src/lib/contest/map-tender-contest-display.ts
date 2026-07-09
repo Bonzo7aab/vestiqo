@@ -72,6 +72,7 @@ export interface ContestDisplayInfo {
   submissionDeadline: string;
   evaluationDeadline: string | null;
   completionDate: string | null;
+  publishedAt: string | null;
   siteVisitType: SiteVisitType;
   siteVisitTypeLabel: string;
   siteVisitNotes: string | null;
@@ -115,6 +116,7 @@ export function mapTenderRowToContestDisplay(
     submissionDeadline: tender.submission_deadline,
     evaluationDeadline: tender.evaluation_deadline ?? null,
     completionDate,
+    publishedAt: tender.published_at ?? tender.created_at ?? null,
     siteVisitType: form.siteVisitType,
     siteVisitTypeLabel: SITE_VISIT_LABELS[form.siteVisitType],
     siteVisitNotes:

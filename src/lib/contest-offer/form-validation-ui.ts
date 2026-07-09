@@ -9,6 +9,9 @@ export function getContestOfferStepsWithErrors(
 ): ContestOfferWizardStep[] {
   const steps: ContestOfferWizardStep[] = [];
 
+  if (errors.offerDocumentation) {
+    steps.push(1);
+  }
   if (errors.proposedCompletionDate || errors.siteVisitConfirmed) {
     steps.push(2);
   }
@@ -81,6 +84,10 @@ export function firstContestOfferErrorSelector(
   step: ContestOfferWizardStep,
   errors: ContestOfferFieldErrors,
 ): string | null {
+  if (step === 1) {
+    if (errors.offerDocumentation) return '#contest-offer-offerDocumentation';
+  }
+
   if (step === 2) {
     if (errors.proposedCompletionDate) return '#contest-offer-proposedCompletionDate';
     if (errors.siteVisitConfirmed) return '#contest-offer-siteVisitConfirmed';

@@ -83,13 +83,38 @@ async function uploadStagedFiles(
 
   for (const [key, files] of Object.entries(staged)) {
     if (!files?.length) continue;
+
+    if (key === 'other') {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const { data, error } = await uploadBidAttachment(file, userId, tenderId);
+        if (error || !data) {
+          return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
+        }
+        next.extraAttachments = [
+          ...next.extraAttachments,
+          {
+            id: `${Date.now()}-${key}-${i}`,
+            name: file.name,
+            path: data.path,
+            url: data.url,
+            type: data.type === 'image' ? ('image' as const) : ('document' as const),
+            source: 'override' as const,
+            requirementKey: key,
+            size: file.size,
+          },
+        ];
+      }
+      continue;
+    }
+
     const file = files[0];
     const { data, error } = await uploadBidAttachment(file, userId, tenderId);
     if (error || !data) {
       return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
     }
 
-    if (key === 'deposit' || key === 'other') {
+    if (key === 'deposit') {
       next.extraAttachments = [
         ...next.extraAttachments,
         {
@@ -150,6 +175,7 @@ function buildRowFromForm(
 export type ContestOfferWizardStep = 1 | 2 | 3 | 4;
 
 export interface ContestOfferFieldErrors {
+  offerDocumentation?: string;
   proposedCompletionDate?: string;
   siteVisitConfirmed?: string;
   referencesText?: string;
@@ -171,6 +197,7 @@ export const FORMAL_REQUIREMENT_LABELS: Record<FormalRequirementKey, string> = {
 
 export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boolean {
   if (
+    errors.offerDocumentation ||
     errors.proposedCompletionDate ||
     errors.siteVisitConfirmed ||
     errors.referencesText ||
@@ -185,12 +212,25 @@ export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boo
   return Boolean(errors.formal && Object.keys(errors.formal).length > 0);
 }
 
+function hasOfferDocumentation(form: ContestOfferFormData): boolean {
+  const offerDocs = form.extraAttachments.filter((a) => a.requirementKey !== 'deposit');
+  const stagedOther = form.stagedFiles.other?.length ?? 0;
+  return offerDocs.length > 0 || stagedOther > 0;
+}
+
 export function getContestOfferStepFieldErrors(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): ContestOfferFieldErrors {
   const errors: ContestOfferFieldErrors = {};
+
+  if (step === 1) {
+    if (!hasOfferDocumentation(form)) {
+      errors.offerDocumentation = 'Dodaj co najmniej jeden plik dokumentacji ofertowej';
+    }
+    return errors;
+  }
 
   if (step === 2) {
     if (!form.proposedCompletionDate) {
@@ -259,6 +299,7 @@ export function getContestOfferAllFieldErrors(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): ContestOfferFieldErrors {
+  const step1 = getContestOfferStepFieldErrors(1, form, contestInfo);
   const step2 = getContestOfferStepFieldErrors(2, form, contestInfo);
   const step3 = getContestOfferStepFieldErrors(3, form, contestInfo);
   const step4 = getContestOfferStepFieldErrors(4, form, contestInfo);
@@ -266,6 +307,7 @@ export function getContestOfferAllFieldErrors(
   const formal = { ...step3.formal };
 
   return {
+    offerDocumentation: step1.offerDocumentation,
     proposedCompletionDate: step2.proposedCompletionDate,
     siteVisitConfirmed: step2.siteVisitConfirmed,
     referencesText: step3.referencesText,
@@ -284,7 +326,7 @@ export function filterFieldErrorsForStep(
 ): ContestOfferFieldErrors {
   switch (step) {
     case 1:
-      return {};
+      return { offerDocumentation: errors.offerDocumentation };
     case 2:
       return {
         proposedCompletionDate: errors.proposedCompletionDate,
@@ -311,6 +353,7 @@ export function filterFieldErrorsForStep(
 export function firstContestOfferStepWithErrors(
   errors: ContestOfferFieldErrors,
 ): ContestOfferWizardStep | null {
+  if (errors.offerDocumentation) return 1;
   if (errors.proposedCompletionDate || errors.siteVisitConfirmed) return 2;
   if (errors.referencesText || (errors.formal && Object.keys(errors.formal).length > 0)) {
     return 3;
@@ -328,6 +371,7 @@ export function firstContestOfferStepWithErrors(
 }
 
 function firstFieldErrorMessage(errors: ContestOfferFieldErrors): string | null {
+  if (errors.offerDocumentation) return errors.offerDocumentation;
   if (errors.proposedCompletionDate) return errors.proposedCompletionDate;
   if (errors.siteVisitConfirmed) return errors.siteVisitConfirmed;
   if (errors.referencesText) return errors.referencesText;
@@ -367,7 +411,6 @@ export function validateContestOfferStep(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): string | null {
-  if (step === 1) return null;
   const errors = getContestOfferStepFieldErrors(step, form, contestInfo);
   return firstFieldErrorMessage(errors);
 }

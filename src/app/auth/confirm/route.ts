@@ -2,6 +2,7 @@ import { type EmailOtpType } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   establishSessionFromAuthCallback,
+  resolveAuthCallbackFailureRedirect,
   resolvePostAuthCallbackRedirect,
 } from '../../../lib/auth/handle-auth-callback';
 import { translateAuthErrorMessage } from '../../../lib/auth/errorMessages';
@@ -41,6 +42,11 @@ export async function GET(request: NextRequest) {
   });
 
   if (result.ok === false) {
+    const crossDeviceRedirect = resolveAuthCallbackFailureRedirect(result.error);
+    if (crossDeviceRedirect) {
+      return NextResponse.redirect(new URL(crossDeviceRedirect, origin));
+    }
+
     const message =
       result.error === 'missing_params'
         ? 'Nieprawidłowy lub niekompletny link potwierdzający.'

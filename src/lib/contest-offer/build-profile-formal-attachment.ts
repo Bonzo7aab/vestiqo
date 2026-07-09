@@ -4,6 +4,15 @@ import type {
   ResolvedContractorDocument,
 } from '../../types/contest-offer';
 
+/** Profile autofill is not offered for these requirements (upload-only in the offer wizard). */
+export const CONTEST_OFFER_PROFILE_AUTOFILL_EXCLUDED: FormalRequirementKey[] = [
+  'zusUsCertificates',
+];
+
+export function supportsContestOfferProfileAutofill(key: FormalRequirementKey): boolean {
+  return !CONTEST_OFFER_PROFILE_AUTOFILL_EXCLUDED.includes(key);
+}
+
 export function buildFormalAttachmentFromProfile(
   doc: ResolvedContractorDocument,
 ): ContestOfferAttachmentRef | null {
@@ -26,6 +35,7 @@ export function applyProfileDocumentsToForm(
   const next = { ...existing };
   for (const doc of docs) {
     if (doc.requirementKey === 'references') continue;
+    if (!supportsContestOfferProfileAutofill(doc.requirementKey)) continue;
     if (next[doc.requirementKey]) continue;
     const attachment = buildFormalAttachmentFromProfile(doc);
     if (attachment) {

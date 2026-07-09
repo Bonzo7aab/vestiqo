@@ -31,44 +31,18 @@ function ContextSection({
   title,
   children,
   className,
-  compact = false,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
-  compact?: boolean;
 }): ReactElement {
   return (
-    <section className={cn(compact ? 'space-y-1.5' : 'space-y-2', className)}>
-      <h4
-        className={cn(
-          'font-semibold uppercase tracking-wide text-muted-foreground',
-          compact ? 'text-[11px]' : 'text-[11px]',
-        )}
-      >
+    <section className={cn('space-y-1.5', className)}>
+      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h4>
       {children}
     </section>
-  );
-}
-
-function ContextDetailCard({
-  children,
-  compact = false,
-}: {
-  children: ReactNode;
-  compact?: boolean;
-}): ReactElement {
-  return (
-    <div
-      className={cn(
-        'rounded-md border border-border/60 bg-background text-foreground',
-        compact ? 'px-3 py-2.5 text-sm leading-normal' : 'px-3 py-2.5 text-sm',
-      )}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -80,7 +54,7 @@ function ContextContent({
   compact?: boolean;
 }): ReactElement {
   return (
-    <div className={cn('text-foreground', compact ? 'space-y-3 text-sm' : 'space-y-4 text-sm')}>
+    <div className={cn('text-sm text-foreground', compact ? 'space-y-3' : 'space-y-4')}>
       {children}
     </div>
   );
@@ -97,64 +71,60 @@ function ContestInfoStepContent({
   return (
     <ContextContent compact>
       {(description || hasMeta) && (
-        <ContextDetailCard compact>
-          <div className="space-y-2.5">
-            {description ? (
-              <p className="line-clamp-4 whitespace-pre-wrap leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            ) : (
-              <p className="leading-relaxed text-muted-foreground">
-                Przeczytaj dokumentację konkursu przed złożeniem oferty.
-              </p>
-            )}
+        <div className="space-y-2.5">
+          {description ? (
+            <p className="line-clamp-4 whitespace-pre-wrap leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          ) : (
+            <p className="leading-relaxed text-muted-foreground">
+              Przeczytaj dokumentację konkursu przed złożeniem oferty.
+            </p>
+          )}
 
-            {(category || subcategory) && (
-              <div className="flex flex-wrap items-center gap-2">
-                {category ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium text-foreground">
-                    <Tag className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                    {category}
-                  </span>
-                ) : null}
-                {subcategory ? (
-                  <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
-                    {subcategory}
-                  </span>
-                ) : null}
-              </div>
-            )}
-
-            {contestInfo.entityName || contestInfo.entityAddress ? (
-              <p className="flex min-w-0 items-start gap-2 text-muted-foreground">
-                <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span className="min-w-0 leading-snug">
-                  {contestInfo.entityName ? (
-                    <span className="font-medium text-foreground">{contestInfo.entityName}</span>
-                  ) : null}
-                  {contestInfo.entityName && contestInfo.entityAddress ? (
-                    <span className="text-muted-foreground"> · </span>
-                  ) : null}
-                  {contestInfo.entityAddress ? (
-                    <span>{contestInfo.entityAddress}</span>
-                  ) : null}
+          {(category || subcategory) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {category ? (
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium text-foreground">
+                  <Tag className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                  {category}
                 </span>
-              </p>
-            ) : null}
-          </div>
-        </ContextDetailCard>
+              ) : null}
+              {subcategory ? (
+                <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
+                  {subcategory}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {contestInfo.entityName || contestInfo.entityAddress ? (
+            <p className="flex min-w-0 items-start gap-2 text-muted-foreground">
+              <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="min-w-0 leading-snug">
+                {contestInfo.entityName ? (
+                  <span className="font-medium text-foreground">{contestInfo.entityName}</span>
+                ) : null}
+                {contestInfo.entityName && contestInfo.entityAddress ? (
+                  <span className="text-muted-foreground"> · </span>
+                ) : null}
+                {contestInfo.entityAddress ? <span>{contestInfo.entityAddress}</span> : null}
+              </span>
+            </p>
+          ) : null}
+        </div>
       )}
 
       {contestInfo.documents.length > 0 ? (
-        <ContextSection title="Dokumentacja" compact>
-          <ul className="overflow-hidden rounded-md border border-border/60 bg-background">
+        <ContextSection title="Dokumentacja">
+          <ul className="space-y-1">
             {contestInfo.documents.map((doc) => (
-              <li key={doc.id} className="border-t border-border/50 first:border-t-0">
+              <li key={doc.id}>
                 <StorageDocumentLink
                   name={doc.name}
                   path={doc.path}
                   url={doc.url}
-                  className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left text-sm font-medium text-primary transition-colors hover:bg-muted/30 hover:underline disabled:opacity-50"
+                  className="flex w-full min-w-0 items-center gap-2 py-1 text-left text-sm font-medium text-primary transition-colors hover:underline disabled:opacity-50"
                   leadingIcon={<FileText className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />}
                 />
               </li>
@@ -201,13 +171,15 @@ export function ContestOfferContextPanel({
           <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
         </span>
       </CollapsibleTrigger>
-      <CollapsibleContent className="border-t border-border/60 bg-muted/15 px-3.5 py-3">
-        {renderContextContent(currentStep, {
-          description,
-          category,
-          subcategory,
-          contestInfo,
-        })}
+      <CollapsibleContent className="border-t border-border/60">
+        <div className="px-3.5 py-3">
+          {renderContextContent(currentStep, {
+            description,
+            category,
+            subcategory,
+            contestInfo,
+          })}
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );
@@ -234,37 +206,33 @@ function renderContextContent(
     return (
       <ContextContent>
         <ContextSection title="Terminy">
-          <ContextDetailCard>
-            <p>
-              Oferty przyjmowane są do:{' '}
-              <span className="font-semibold text-brand-navy">
-                {new Date(contestInfo.submissionDeadline).toLocaleString('pl-PL', {
+          <p className="leading-relaxed text-muted-foreground">
+            Oferty przyjmowane są do:{' '}
+            <span className="font-semibold text-foreground">
+              {new Date(contestInfo.submissionDeadline).toLocaleString('pl-PL', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+              })}
+            </span>
+          </p>
+          {contestInfo.completionDate ? (
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              Preferowany termin zakończenia prac:{' '}
+              <span className="font-semibold text-foreground">
+                {new Date(contestInfo.completionDate).toLocaleDateString('pl-PL', {
                   dateStyle: 'long',
-                  timeStyle: 'short',
                 })}
               </span>
             </p>
-            {contestInfo.completionDate ? (
-              <p className="mt-2">
-                Preferowany termin zakończenia prac:{' '}
-                <span className="font-semibold text-brand-navy">
-                  {new Date(contestInfo.completionDate).toLocaleDateString('pl-PL', {
-                    dateStyle: 'long',
-                  })}
-                </span>
-              </p>
-            ) : null}
-          </ContextDetailCard>
+          ) : null}
         </ContextSection>
         <ContextSection title="Wizja lokalna">
-          <ContextDetailCard>
-            <p className="font-medium">{contestInfo.siteVisitTypeLabel}</p>
-            {contestInfo.siteVisitNotes ? (
-              <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
-                {contestInfo.siteVisitNotes}
-              </p>
-            ) : null}
-          </ContextDetailCard>
+          <p className="font-medium text-foreground">{contestInfo.siteVisitTypeLabel}</p>
+          {contestInfo.siteVisitNotes ? (
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed text-muted-foreground">
+              {contestInfo.siteVisitNotes}
+            </p>
+          ) : null}
         </ContextSection>
       </ContextContent>
     );
@@ -275,7 +243,7 @@ function renderContextContent(
       <ContextContent>
         <ContextSection title="Wymagane dokumenty">
           {contestInfo.formalRequirementLines.length > 0 ? (
-            <ul className="space-y-1.5 rounded-md border border-border/60 bg-background px-3 py-2.5 text-muted-foreground">
+            <ul className="space-y-1.5 text-muted-foreground">
               {contestInfo.formalRequirementLines.map((line) => (
                 <li key={line} className="flex gap-2 leading-relaxed">
                   <span className="text-primary" aria-hidden>
@@ -286,11 +254,9 @@ function renderContextContent(
               ))}
             </ul>
           ) : (
-            <ContextDetailCard>
-              <p className="text-muted-foreground">
-                Uzupełnij wymagane dokumenty zgodnie z regulaminem konkursu.
-              </p>
-            </ContextDetailCard>
+            <p className="leading-relaxed text-muted-foreground">
+              Uzupełnij wymagane dokumenty zgodnie z regulaminem konkursu.
+            </p>
           )}
         </ContextSection>
       </ContextContent>
@@ -303,10 +269,10 @@ function renderContextContent(
     <ContextContent>
       {criteriaItems.length > 0 ? (
         <ContextSection title="Kryteria oceny ofert">
-          <ul className="overflow-hidden rounded-md border border-border/60 bg-background divide-y divide-border/60">
+          <ul className="space-y-2">
             {criteriaItems.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="font-medium">{item.name}</span>
+              <li key={item.id} className="flex items-center justify-between gap-3">
+                <span className="font-medium text-foreground">{item.name}</span>
                 {item.weight != null ? (
                   <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
                     {item.weight}%
@@ -323,23 +289,21 @@ function renderContextContent(
         contestInfo.warrantyPeriod ||
         contestInfo.guaranteePeriod) && (
         <ContextSection title="Warunki finansowe">
-          <ContextDetailCard>
+          <div className="space-y-2 leading-relaxed text-muted-foreground">
             {contestInfo.depositRequired ? (
-              <div className="mb-2 last:mb-0">
+              <div>
                 {contestInfo.depositAmount != null ? (
                   <p>
                     Wadium:{' '}
-                    <span className="font-semibold text-brand-navy">
+                    <span className="font-semibold text-foreground">
                       {contestInfo.depositAmount.toLocaleString('pl-PL')} zł
                     </span>
                   </p>
                 ) : (
-                  <p className="font-medium">Wadium jest wymagane</p>
+                  <p className="font-medium text-foreground">Wadium jest wymagane</p>
                 )}
                 {contestInfo.depositInstructions ? (
-                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
-                    {contestInfo.depositInstructions}
-                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{contestInfo.depositInstructions}</p>
                 ) : null}
               </div>
             ) : null}
@@ -347,31 +311,33 @@ function renderContextContent(
             (contestInfo.paymentTerms.customDays ?? 0) > 14 ? (
               <p>
                 Termin płatności faktury:{' '}
-                <span className="font-semibold">{contestInfo.paymentTerms.customDays} dni</span>
+                <span className="font-semibold text-foreground">
+                  {contestInfo.paymentTerms.customDays} dni
+                </span>
               </p>
             ) : null}
             {contestInfo.warrantyPeriod ? (
               <p>
                 Minimalny okres gwarancji:{' '}
-                <span className="font-semibold">{contestInfo.warrantyPeriod}</span>
+                <span className="font-semibold text-foreground">{contestInfo.warrantyPeriod}</span>
               </p>
             ) : null}
             {contestInfo.guaranteePeriod ? (
               <p>
                 Minimalny okres rękojmi:{' '}
-                <span className="font-semibold">{contestInfo.guaranteePeriod}</span>
+                <span className="font-semibold text-foreground">{contestInfo.guaranteePeriod}</span>
               </p>
             ) : null}
-          </ContextDetailCard>
+          </div>
         </ContextSection>
       )}
       {!criteriaItems.length &&
       !contestInfo.depositRequired &&
       !contestInfo.warrantyPeriod &&
       !contestInfo.guaranteePeriod ? (
-        <ContextDetailCard>
-          <p className="text-muted-foreground">Podaj wycenę oraz okresy gwarancji i rękojmi.</p>
-        </ContextDetailCard>
+        <p className="leading-relaxed text-muted-foreground">
+          Podaj wycenę oraz okresy gwarancji i rękojmi.
+        </p>
       ) : null}
     </ContextContent>
   );

@@ -3,30 +3,42 @@
 import { useRef, type ReactElement } from 'react';
 import { FileText, Upload, X } from 'lucide-react';
 import type { ContestOfferFormData } from '../../types/contest-offer';
+import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
 import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
-import { ContestOfferRequiredLabel } from './ContestOfferFieldError';
+import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOfferFieldError';
+import {
+  contestOfferStagedFileRowClass,
+  contestOfferUploadedFileRowClass,
+} from './ContestOfferFormalDocBlock';
+import { cn } from '../ui/utils';
 
 interface ContestOfferStepBasicProps {
   form: ContestOfferFormData;
-  onStageFile: (file: File) => void;
+  onStageFiles: (files: File[]) => void;
   onRemoveExtra: (id: string) => void;
+  onRemoveStaged: (index: number) => void;
+  fieldErrors?: Pick<ContestOfferFieldErrors, 'offerDocumentation'>;
 }
 
 export function ContestOfferStepBasic({
   form,
-  onStageFile,
+  onStageFiles,
   onRemoveExtra,
+  onRemoveStaged,
+  fieldErrors,
 }: ContestOfferStepBasicProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const offerDocs = form.extraAttachments.filter((a) => a.requirementKey !== 'deposit');
-  const stagedName = form.stagedFiles.other?.[0]?.name;
+  const stagedFiles = form.stagedFiles.other ?? [];
+  const hasFiles = offerDocs.length > 0 || stagedFiles.length > 0;
+  const hasError = Boolean(fieldErrors?.offerDocumentation);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" id="contest-offer-offerDocumentation">
       <div>
         <ContestOfferRequiredLabel>Dokumentacja ofertowa</ContestOfferRequiredLabel>
-        <p className="text-sm text-muted-foreground mt-1 mb-3">
+        <p className="mb-3 mt-1 text-sm text-muted-foreground">
           Dodaj pliki oferty — kosztorys, opis techniczny, załączniki wymagane w konkursie.
         </p>
         <Dropzone
@@ -38,27 +50,29 @@ export function ContestOfferStepBasic({
           }}
           maxFiles={10}
           onDrop={(files) => {
-            const file = files[0];
-            if (file) onStageFile(file);
+            if (files.length > 0) onStageFiles(files);
           }}
-          className="min-h-[180px] border-dashed"
+          className={cn('min-h-[180px] border-dashed', hasError && 'border-destructive')}
         >
           <DropzoneEmptyState>
-            <p className="font-medium text-sm">Przeciągnij pliki tutaj lub kliknij, aby wybrać</p>
-            <p className="text-muted-foreground text-xs mt-1">PDF, DOC, DOCX lub obrazy</p>
+            <p className="text-sm font-medium">Przeciągnij pliki tutaj lub kliknij, aby wybrać</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
+            </p>
           </DropzoneEmptyState>
           <DropzoneContent />
         </Dropzone>
+        <ContestOfferFieldError message={fieldErrors?.offerDocumentation} />
       </div>
 
-      {(offerDocs.length > 0 || stagedName) && (
+      {hasFiles ? (
         <ul className="space-y-2">
           {offerDocs.map((att) => (
             <li
               key={att.id}
-              className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+              className={contestOfferUploadedFileRowClass}
             >
-              <span className="flex items-center gap-2 min-w-0">
+              <span className="flex min-w-0 items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{att.name}</span>
               </span>
@@ -66,7 +80,7 @@ export function ContestOfferStepBasic({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="shrink-0 h-8 w-8"
+                className="h-8 w-8 shrink-0"
                 aria-label={`Usuń ${att.name}`}
                 onClick={() => onRemoveExtra(att.id)}
               >
@@ -74,23 +88,39 @@ export function ContestOfferStepBasic({
               </Button>
             </li>
           ))}
-          {stagedName ? (
-            <li className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-              <Upload className="h-4 w-4 shrink-0" />
-              <span className="truncate">Do wgrania przy zapisie: {stagedName}</span>
+          {stagedFiles.map((file, index) => (
+            <li
+              key={`${file.name}-${file.size}-${index}`}
+              className={contestOfferStagedFileRowClass}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <Upload className="h-4 w-4 shrink-0" />
+                <span className="truncate">Do wgrania przy zapisie: {file.name}</span>
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label={`Usuń ${file.name}`}
+                onClick={() => onRemoveStaged(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </li>
-          ) : null}
+          ))}
         </ul>
-      )}
+      ) : null}
 
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept=".pdf,.doc,.docx,image/*"
         className="sr-only"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onStageFile(file);
+          const files = Array.from(e.target.files ?? []);
+          if (files.length > 0) onStageFiles(files);
           e.target.value = '';
         }}
       />

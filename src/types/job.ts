@@ -146,6 +146,7 @@ export interface ContestInfo {
   submissionDeadline: string;
   evaluationDeadline: string | null;
   completionDate: string | null;
+  publishedAt: string | null;
   siteVisitType: SiteVisitType;
   siteVisitTypeLabel: string;
   siteVisitNotes: string | null;

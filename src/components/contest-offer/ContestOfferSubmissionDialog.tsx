@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import type { ContestInfo } from '../../types/job';
 import type {
   ContestOfferFormData,
@@ -70,6 +71,11 @@ import { ContestOfferStepBasic } from './ContestOfferStepBasic';
 import { ContestOfferStepSchedule } from './ContestOfferStepSchedule';
 import { ContestOfferStepFormal } from './ContestOfferStepFormal';
 import { ContestOfferStepFinancial } from './ContestOfferStepFinancial';
+import { CategoryIconTile } from '../contest/CategoryIconTile';
+import {
+  getCategoryColor,
+  resolveCategorySlugFromJob,
+} from '../../lib/config/categoryConfig';
 
 const STEP_LABELS = [
   'Informacje podstawowe',
@@ -125,6 +131,15 @@ export function ContestOfferSubmissionDialog({
   const shouldFocusFieldErrorRef = useRef(false);
 
   const totalSteps = 4;
+
+  const categorySlug = useMemo(
+    () => resolveCategorySlugFromJob({ category }),
+    [category],
+  );
+  const categoryColor = useMemo(
+    () => (categorySlug ? getCategoryColor(categorySlug) : 'hsl(var(--primary))'),
+    [categorySlug],
+  );
 
   const grossDisplay = useMemo(() => {
     const net = Number.parseFloat(form.netPrice);
@@ -372,6 +387,36 @@ export function ContestOfferSubmissionDialog({
     setCurrentStep((s) => Math.max(1, s - 1) as ContestOfferWizardStep);
   };
 
+  const stageOtherFiles = (files: File[]): void => {
+    if (files.length === 0) return;
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.offerDocumentation;
+      return next;
+    });
+    setForm((prev) => ({
+      ...prev,
+      stagedFiles: {
+        ...prev.stagedFiles,
+        other: [...(prev.stagedFiles.other ?? []), ...files],
+      },
+    }));
+  };
+
+  const removeStagedOther = (index: number): void => {
+    setForm((prev) => {
+      const other = [...(prev.stagedFiles.other ?? [])];
+      other.splice(index, 1);
+      const stagedFiles = { ...prev.stagedFiles };
+      if (other.length > 0) {
+        stagedFiles.other = other;
+      } else {
+        delete stagedFiles.other;
+      }
+      return { ...prev, stagedFiles };
+    });
+  };
+
   const stageFile = (key: keyof ContestOfferFormData['stagedFiles'], file: File): void => {
     setFieldErrors((prev) => {
       if (key === 'deposit') {
@@ -435,31 +480,75 @@ export function ContestOfferSubmissionDialog({
     }));
   };
 
+  const removeDeposit = (): void => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.deposit;
+      return next;
+    });
+    setForm((prev) => {
+      const { deposit: _deposit, ...stagedFiles } = prev.stagedFiles;
+      return {
+        ...prev,
+        extraAttachments: prev.extraAttachments.filter((a) => a.requirementKey !== 'deposit'),
+        stagedFiles,
+      };
+    });
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="flex max-h-[92vh] min-h-0 flex-col gap-0 overflow-hidden p-0 lg:max-w-4xl"
+        className="flex max-h-[92vh] min-h-0 flex-col gap-0 overflow-hidden rounded-2xl border border-border/60 bg-background p-0 shadow-lg lg:max-w-4xl"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <DialogHeader className="shrink-0 space-y-3 border-b bg-muted/30 px-6 py-4 pr-12">
-          <div className="space-y-1">
-            <DialogTitle className="text-left text-lg leading-snug">
-              Składasz ofertę w konkursie
-            </DialogTitle>
-            <DialogDescription className="text-left text-sm">
-              <span className="font-medium text-foreground">{jobTitle}</span>
-            </DialogDescription>
+        <DialogHeader className="shrink-0 border-b bg-muted/20 px-6 py-5 pr-12 text-left">
+          <div className="flex items-start gap-3">
+            <CategoryIconTile
+              categorySlug={categorySlug}
+              color={categoryColor}
+              className="h-11 w-11 shrink-0 rounded-xl"
+            />
+            <div className="min-w-0 flex-1">
+              {(category || subcategory) ? (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  {category ? (
+                    <Badge variant="outline" className="text-[11px] font-medium text-muted-foreground">
+                      {category}
+                    </Badge>
+                  ) : null}
+                  {subcategory ? (
+                    <Badge variant="outline" className="text-[11px] font-medium text-muted-foreground">
+                      {subcategory}
+                    </Badge>
+                  ) : null}
+                </div>
+              ) : null}
+              <DialogDescription className="mb-1 text-xs font-medium text-muted-foreground">
+                Składasz ofertę w konkursie
+              </DialogDescription>
+              <DialogTitle className="text-xl font-semibold leading-tight tracking-tight text-foreground">
+                {jobTitle}
+              </DialogTitle>
+              <div
+                className="mt-2.5 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] leading-snug text-muted-foreground shadow-sm"
+                role="status"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
+                  <span className="font-medium">Czas na złożenie</span>
+                </span>
+                <span className="hidden h-2.5 w-px shrink-0 bg-border/70 sm:inline" aria-hidden />
+                <span className="font-semibold tabular-nums tracking-tight text-foreground">
+                  {contestCountdownLabel(contestInfo.submissionDeadline)}
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-            <span>
-              Czas na złożenie oferty:{' '}
-              <span className="font-medium text-foreground">
-                {contestCountdownLabel(contestInfo.submissionDeadline)}
-              </span>
-            </span>
-          </p>
+        </DialogHeader>
+
+        <div className="shrink-0 space-y-4 border-b bg-muted/10 px-6 py-4">
           <ContestOfferWizardStepper
             currentStep={currentStep}
             totalSteps={totalSteps}
@@ -474,7 +563,7 @@ export function ContestOfferSubmissionDialog({
               contestInfo={contestInfo}
             />
           ) : null}
-        </DialogHeader>
+        </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {isLoading ? (
@@ -486,8 +575,10 @@ export function ContestOfferSubmissionDialog({
               {currentStep === 1 && (
                 <ContestOfferStepBasic
                   form={form}
-                  onStageFile={(file) => stageFile('other', file)}
+                  fieldErrors={displayedFieldErrors}
+                  onStageFiles={stageOtherFiles}
                   onRemoveExtra={removeExtraAttachment}
+                  onRemoveStaged={removeStagedOther}
                 />
               )}
               {currentStep === 2 && (
@@ -509,8 +600,9 @@ export function ContestOfferSubmissionDialog({
                   onUseProfile={applyProfileDocument}
                   onUploadFormal={replaceFormalDocument}
                   onRemoveFormal={removeFormalDocument}
-                  onStageOther={(file) => stageFile('other', file)}
+                  onStageOtherFiles={stageOtherFiles}
                   onRemoveExtra={removeExtraAttachment}
+                  onRemoveStagedOther={removeStagedOther}
                 />
               )}
               {currentStep === 4 && (
@@ -521,6 +613,7 @@ export function ContestOfferSubmissionDialog({
                   fieldErrors={displayedFieldErrors}
                   onPatch={patchForm}
                   onStageDeposit={(file) => stageFile('deposit', file)}
+                  onRemoveDeposit={removeDeposit}
                 />
               )}
             </>
@@ -528,28 +621,6 @@ export function ContestOfferSubmissionDialog({
         </div>
 
         <DialogFooter className="shrink-0 flex-col gap-2 border-t bg-muted/20 px-6 py-4 sm:flex-row sm:justify-between">
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={currentStep <= 1 || isLoading}
-              onClick={handlePrevStep}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Wstecz
-            </Button>
-            {currentStep < totalSteps && (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={isLoading}
-                onClick={handleNextStep}
-              >
-                Dalej
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
-          </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center">
             {hasExistingDraft ? (
               <Button
@@ -580,6 +651,28 @@ export function ContestOfferSubmissionDialog({
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Wyślij ofertę
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={currentStep <= 1 || isLoading}
+              onClick={handlePrevStep}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Wstecz
+            </Button>
+            {currentStep < totalSteps && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isLoading}
+                onClick={handleNextStep}
+              >
+                Dalej
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
           </div>

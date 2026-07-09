@@ -96,6 +96,8 @@ export function ContractorContestOffersContent({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [abandonTarget, setAbandonTarget] = useState<ContractorContestOfferRow | null>(null);
   const [isAbandoning, setIsAbandoning] = useState(false);
+  const [withdrawTarget, setWithdrawTarget] = useState<ContractorContestOfferRow | null>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [continueDraftDialog, setContinueDraftDialog] =
     useState<ContinueDraftDialogContext | null>(null);
   const [loadingDraftId, setLoadingDraftId] = useState<string | null>(null);
@@ -121,7 +123,9 @@ export function ContractorContestOffersContent({
     });
   }, [offers, statusFilter, search]);
 
-  const handleWithdraw = async (bidId: string) => {
+  const handleWithdraw = async (): Promise<void> => {
+    if (!withdrawTarget) return;
+
     const supabase = createClient();
     const {
       data: { user },
@@ -132,9 +136,10 @@ export function ContractorContestOffersContent({
       return;
     }
 
+    setIsWithdrawing(true);
     try {
       const { cancelTenderBid } = await import('../../lib/database/jobs');
-      const result = await cancelTenderBid(supabase, bidId, user.id);
+      const result = await cancelTenderBid(supabase, withdrawTarget.id, user.id);
 
       if (result.error) {
         const err = result.error;
@@ -145,10 +150,13 @@ export function ContractorContestOffersContent({
       }
 
       toast.success('Oferta została wycofana');
+      setWithdrawTarget(null);
       router.refresh();
     } catch (error) {
       console.error('Error withdrawing contest offer:', error);
       toast.error('Wystąpił błąd podczas wycofywania oferty');
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -321,7 +329,7 @@ export function ContractorContestOffersContent({
               {messageAllowed || abandonAllowed ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => void handleWithdraw(row.id)}
+                onClick={() => setWithdrawTarget(row)}
               >
                 Wycofaj ofertę
               </DropdownMenuItem>
@@ -479,7 +487,7 @@ export function ContractorContestOffersContent({
                               ) : (
                                 <FilePen className="h-4 w-4 mr-1.5" />
                               )}
-                              Kontynuuj szkic
+                              Szkic
                             </Button>
                           ) : null}
                           {cooperationReviewAllowed && !hasReview ? (
@@ -532,6 +540,34 @@ export function ContractorContestOffersContent({
               }}
             >
               {isAbandoning ? 'Usuwanie…' : 'Odrzuć szkic'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={withdrawTarget !== null}
+        onOpenChange={(open) => !open && !isWithdrawing && setWithdrawTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wycofać ofertę?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Oferta w konkursie „{withdrawTarget?.contestTitle}” zostanie wycofana. Nie będziesz
+              brać udziału w tym postępowaniu — tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isWithdrawing}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isWithdrawing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void handleWithdraw();
+              }}
+            >
+              {isWithdrawing ? 'Wycofywanie…' : 'Wycofaj ofertę'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

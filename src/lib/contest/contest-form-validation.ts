@@ -1,5 +1,6 @@
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../../types/tender-contest';
 import { selectionCriteriaTotalWeight } from '../../types/tender-contest';
+import { isDateOnOrBefore } from './contest-schedule-dates';
 
 export interface TenderContestFormFieldErrors {
   title?: string;
@@ -20,11 +21,11 @@ export interface TenderContestFormFieldErrors {
 }
 
 function isCompletionOnOrBeforeSubmission(completion: Date, submission: Date): boolean {
-  const completionDay = new Date(completion);
-  completionDay.setHours(0, 0, 0, 0);
-  const submissionDay = new Date(submission);
-  submissionDay.setHours(0, 0, 0, 0);
-  return completionDay.getTime() <= submissionDay.getTime();
+  return isDateOnOrBefore(submission, completion);
+}
+
+function isCompletionOnOrBeforeEvaluation(completion: Date, evaluation: Date): boolean {
+  return isDateOnOrBefore(evaluation, completion);
 }
 
 export function getTenderContestFormFieldErrors(
@@ -51,19 +52,26 @@ export function getTenderContestFormFieldErrors(
   }
 
   if (
-    (form.siteVisitType === 'optional' || form.siteVisitType === 'mandatory') &&
-    !form.siteVisitNotes.trim()
+    form.completionDate &&
+    form.evaluationDeadline &&
+    !Number.isNaN(form.evaluationDeadline.getTime()) &&
+    isCompletionOnOrBeforeEvaluation(form.completionDate, form.evaluationDeadline)
   ) {
-    errors.siteVisitNotes = 'Podaj osobę do kontaktu i terminy wizji lokalnej';
-  }
-
-  if (
+    errors.completionDate = 'Termin wykonania musi być po dacie rozstrzygnięcia konkursu';
+  } else if (
     form.completionDate &&
     form.submissionDeadline &&
     !Number.isNaN(form.submissionDeadline.getTime()) &&
     isCompletionOnOrBeforeSubmission(form.completionDate, form.submissionDeadline)
   ) {
     errors.completionDate = 'Termin wykonania musi być po dacie zakończenia przyjmowania ofert';
+  }
+
+  if (
+    (form.siteVisitType === 'optional' || form.siteVisitType === 'mandatory') &&
+    !form.siteVisitNotes.trim()
+  ) {
+    errors.siteVisitNotes = 'Podaj osobę do kontaktu i terminy wizji lokalnej';
   }
 
   if (form.depositRequired) {

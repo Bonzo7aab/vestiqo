@@ -27,7 +27,7 @@
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 28px;">
                 <tr>
                   <td align="center" style="border-radius:10px;background-color:#2563EB;">
-                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;border-radius:10px;line-height:1.2;">
+                    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup" target="_blank" style="display:inline-block;padding:14px 32px;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;border-radius:10px;line-height:1.2;">
                       Potwierdź adres email
                     </a>
                   </td>
@@ -38,7 +38,7 @@
                   <td style="padding:16px 18px;">
                     <p style="margin:0 0 8px;color:#64748B;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Link zapasowy</p>
                     <p style="margin:0;color:#475569;font-size:13px;line-height:1.55;word-break:break-all;">
-                      <a href="{{ .ConfirmationURL }}" style="color:#2563EB;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup" style="color:#2563EB;text-decoration:underline;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup</a>
                     </p>
                   </td>
                 </tr>

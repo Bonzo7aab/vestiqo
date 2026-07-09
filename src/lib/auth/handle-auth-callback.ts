@@ -1,12 +1,36 @@
 import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import { EMAIL_CONFIRMED_LOGIN_MESSAGE } from './errorMessages';
 import { sanitizeRedirectPath } from './redirectPath';
+
+export { EMAIL_CONFIRMED_LOGIN_MESSAGE };
 
 export interface AuthCallbackSearchParams {
   code: string | null;
   token_hash: string | null;
   type: EmailOtpType | null;
   next: string | null;
+}
+
+/** PKCE session exchange fails on another device; Supabase may already have confirmed the email. */
+export function isCrossDevicePkceSessionError(error: string): boolean {
+  const lower = error.toLowerCase();
+  return (
+    lower.includes('pkce code verifier not found') ||
+    lower.includes('code verifier should be non-empty') ||
+    lower.includes('flow_state_not_found')
+  );
+}
+
+export function loginPathAfterCrossDeviceEmailConfirmation(): string {
+  return `/logowanie?message=${encodeURIComponent(EMAIL_CONFIRMED_LOGIN_MESSAGE)}`;
+}
+
+export function resolveAuthCallbackFailureRedirect(error: string): string | null {
+  if (isCrossDevicePkceSessionError(error)) {
+    return loginPathAfterCrossDeviceEmailConfirmation();
+  }
+  return null;
 }
 
 export async function establishSessionFromAuthCallback(
@@ -59,7 +83,7 @@ export async function resolvePostAuthCallbackRedirect(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return `/logowanie?message=${encodeURIComponent('Adres email został potwierdzony. Zaloguj się, aby kontynuować.')}`;
+    return `/logowanie?message=${encodeURIComponent(EMAIL_CONFIRMED_LOGIN_MESSAGE)}`;
   }
 
   const message = encodeURIComponent('Adres email został potwierdzony.');

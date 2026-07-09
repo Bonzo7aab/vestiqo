@@ -15,7 +15,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  CircleAlert,
   ClipboardList,
   FileCheck,
   UserCircle,
@@ -26,7 +25,7 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
 import { registerAction } from '../lib/auth/actions';
 import { translateRegistrationErrorMessage } from '../lib/auth/errorMessages';
@@ -63,6 +62,8 @@ import {
 } from '../lib/profile/account-role-labels';
 import { AuthFormPanel, AuthPageLayout, authFieldClassName } from './auth/AuthPageLayout';
 import { AuthFieldError } from './auth/AuthFieldError';
+import { AuthFormError } from './auth/AuthFormError';
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from '../lib/auth/password-policy';
 import { cn } from './ui/utils';
 
 interface RegisterPageProps {
@@ -415,14 +416,24 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const router = useRouter();
   const { refreshSession } = useUserProfile();
   const [isPending, startTransition] = useTransition();
-  const [formError, setFormError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const urlError = searchParams?.get('error');
-  const error =
-    formError ||
-    (urlError ? translateRegistrationErrorMessage(urlError) : undefined);
+  const [formError, setFormError] = useState<string | null>(() => {
+    const param = searchParams?.get('error');
+    return param ? translateRegistrationErrorMessage(param) : null;
+  });
   const message = searchParams?.get('message') || undefined;
   const defaultUserTypeParam = searchParams?.get('userType') as 'contractor' | 'manager' | null;
+
+  useEffect(() => {
+    if (!searchParams?.get('error')) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('error');
+    const query = params.toString();
+    router.replace(query ? `/rejestracja?${query}` : '/rejestracja', { scroll: false });
+  }, [router, searchParams]);
 
   const [registrationEntityType, setRegistrationEntityType] = useState<RegistrationEntityType>(
     () => resolveDefaultEntityType(registrationSettings, defaultUserTypeParam),
@@ -606,6 +617,12 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       return;
     }
 
+    const passwordCheck = validatePasswordStrength(password);
+    if (!passwordCheck.valid) {
+      setFormError(passwordCheck.message ?? 'Nieprawidłowe hasło');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setFormError(PASSWORD_MISMATCH_MESSAGE);
       return;
@@ -762,6 +779,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       headingTestId="register-heading"
       contentMaxWidth="lg"
       showSideLogo={false}
+      showMobileLogo={false}
       title="Zarejestruj się"
       subtitle="Kilka pól — i możesz korzystać z platformy."
       trustNote={sideCopy.trustNote}
@@ -779,19 +797,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
         </>
       }
     >
-      {error && (
-        <Alert
-          variant="destructive"
-          className="mb-4 border-destructive bg-destructive/15 shadow-sm"
-          data-testid="register-error"
-        >
-          <CircleAlert className="h-5 w-5" />
-          <AlertTitle className="text-destructive">Nie udało się zarejestrować</AlertTitle>
-          <AlertDescription className="text-sm font-medium text-destructive">
-            {error}
-          </AlertDescription>
-        </Alert>
-      )}
+      {formError ? <AuthFormError message={formError} testId="register-error" /> : null}
       {message && (
         <Alert className="mb-4 border-emerald-500/30 bg-emerald-500/5">
           <AlertDescription>{message}</AlertDescription>
@@ -977,9 +983,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-foreground">Bezpieczeństwo</p>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="password">Hasło</Label>
                 <div className="relative">
@@ -990,9 +994,10 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => handlePasswordChange(e.target.value)}
-                    placeholder="Co najmniej 6 znaków"
+                    placeholder={`Co najmniej ${MIN_PASSWORD_LENGTH} znaków`}
                     className={cn('pl-10 pr-10', authFieldClassName)}
                     required
+                    minLength={MIN_PASSWORD_LENGTH}
                     disabled={isPending}
                     autoComplete="new-password"
                   />
@@ -1047,7 +1052,6 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                 <AuthFieldError message={passwordMismatchError} id="confirm-password-error" />
               </div>
             </div>
-          </div>
 
           <div className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
             <Checkbox

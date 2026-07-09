@@ -136,6 +136,7 @@ export function TenderContestDetailTabs({
             description="Kluczowe terminy obowiązujące wykonawców."
           >
             <ContestScheduleTimeline
+              publishedAt={contestInfo.publishedAt}
               submissionDeadline={contestInfo.submissionDeadline}
               evaluationDeadline={contestInfo.evaluationDeadline}
               completionDate={contestInfo.completionDate}

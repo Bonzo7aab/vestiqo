@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, type ReactElement } from 'react';
-import { Upload } from 'lucide-react';
+import { type ReactElement } from 'react';
+import { Banknote, FileText, Receipt, Shield, Upload, X } from 'lucide-react';
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
 import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
@@ -9,11 +9,18 @@ import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import { cn } from '../ui/utils';
 import {
   formatMonthsLabel,
   warrantyMonthsOptions,
 } from '../../lib/contest-offer/warranty-period-options';
+import {
+  contestOfferSectionCardClass,
+  contestOfferSectionIconClass,
+  contestOfferStagedFileRowClass,
+  contestOfferUploadedFileRowClass,
+} from './ContestOfferFormalDocBlock';
 import {
   ContestOfferFieldError,
   ContestOfferRequiredLabel,
@@ -27,7 +34,13 @@ interface ContestOfferStepFinancialProps {
   fieldErrors: ContestOfferFieldErrors;
   onPatch: (patch: Partial<ContestOfferFormData>) => void;
   onStageDeposit: (file: File) => void;
+  onRemoveDeposit: () => void;
 }
+
+const DEPOSIT_FILE_ACCEPT = {
+  'application/pdf': ['.pdf'],
+  'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+} as const;
 
 export function ContestOfferStepFinancial({
   form,
@@ -36,169 +49,282 @@ export function ContestOfferStepFinancial({
   fieldErrors,
   onPatch,
   onStageDeposit,
+  onRemoveDeposit,
 }: ContestOfferStepFinancialProps): ReactElement {
-  const depositFileRef = useRef<HTMLInputElement>(null);
   const warrantyOptions = warrantyMonthsOptions(contestInfo.warrantyPeriod);
   const guaranteeOptions = warrantyMonthsOptions(contestInfo.guaranteePeriod);
   const showCustomPayment =
     contestInfo.paymentTerms.mode === 'custom' &&
     (contestInfo.paymentTerms.customDays ?? 0) > 14;
+  const depositAttachment = form.extraAttachments.find((a) => a.requirementKey === 'deposit');
+  const stagedDeposit = form.stagedFiles.deposit?.[0];
+  const depositDisplayName = stagedDeposit?.name ?? depositAttachment?.name;
+  const hasDepositFile = Boolean(depositDisplayName);
+  const isDepositStaged = Boolean(stagedDeposit);
+
+  const hasPricingError = Boolean(fieldErrors.netPrice);
+  const hasWarrantyError = Boolean(fieldErrors.warrantyMonths || fieldErrors.guaranteeMonths);
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <ContestOfferRequiredLabel htmlFor="contest-offer-netPrice">
-              Cena netto za całość prac (zł)
-            </ContestOfferRequiredLabel>
-            <Input
-              id="contest-offer-netPrice"
-              type="number"
-              min={0}
-              step="0.01"
-              value={form.netPrice}
-              onChange={(e) => onPatch({ netPrice: e.target.value })}
-              className={cn('mt-1.5', fieldErrorInputClass(Boolean(fieldErrors.netPrice)))}
-              aria-invalid={Boolean(fieldErrors.netPrice)}
-            />
-            <ContestOfferFieldError message={fieldErrors.netPrice} />
+    <div className="space-y-4">
+      <section
+        className={cn(contestOfferSectionCardClass, hasPricingError && 'border-destructive')}
+      >
+        <div className="flex items-start gap-3">
+          <div className={contestOfferSectionIconClass} aria-hidden>
+            <Banknote className="h-4 w-4" />
           </div>
-          <div>
-            <ContestOfferRequiredLabel>Stawka VAT</ContestOfferRequiredLabel>
-            <Select
-              value={form.vatRate}
-              onValueChange={(v) =>
-                onPatch({ vatRate: v as ContestOfferFormData['vatRate'] })
-              }
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="8">8%</SelectItem>
-                <SelectItem value="23">23%</SelectItem>
-                <SelectItem value="zw">zw.</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="min-w-0 flex-1">
+            <ContestOfferRequiredLabel>Wycena oferty</ContestOfferRequiredLabel>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Podaj cenę netto za całość prac oraz stawkę VAT obowiązującą w Twojej ofercie.
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="contest-offer-netPrice"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Cena netto (zł)
+                </label>
+                <Input
+                  id="contest-offer-netPrice"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.netPrice}
+                  onChange={(e) => onPatch({ netPrice: e.target.value })}
+                  className={cn(
+                    'mt-1.5 border-border/60 bg-white dark:bg-card',
+                    fieldErrorInputClass(Boolean(fieldErrors.netPrice)),
+                  )}
+                  aria-invalid={Boolean(fieldErrors.netPrice)}
+                />
+                <ContestOfferFieldError message={fieldErrors.netPrice} />
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">Stawka VAT</span>
+                <Select
+                  value={form.vatRate}
+                  onValueChange={(v) =>
+                    onPatch({ vatRate: v as ContestOfferFormData['vatRate'] })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 border-border/60 bg-white dark:bg-card">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="8">8%</SelectItem>
+                    <SelectItem value="23">23%</SelectItem>
+                    <SelectItem value="zw">zw.</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mt-4 inline-flex min-w-[10rem] flex-col rounded-md border border-border/50 bg-muted/20 px-3 py-2">
+              <span className="text-xs text-muted-foreground">Cena brutto (obliczona)</span>
+              <span className="text-lg font-semibold tabular-nums text-foreground">
+                {grossDisplay === '—' ? '—' : `${grossDisplay} zł`}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="rounded-lg border bg-muted/30 px-4 py-3 max-w-xs">
-          <p className="text-xs text-muted-foreground mb-0.5">Cena brutto (obliczona)</p>
-          <p className="text-xl font-semibold">
-            {grossDisplay === '—' ? '—' : `${grossDisplay} zł`}
-          </p>
-        </div>
-      </div>
+      </section>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <ContestOfferRequiredLabel>Oferowany okres gwarancji</ContestOfferRequiredLabel>
-          <Select
-            value={form.warrantyMonths}
-            onValueChange={(v) => onPatch({ warrantyMonths: v })}
-          >
-            <SelectTrigger
-              id="contest-offer-warrantyMonths"
-              className={cn('mt-1.5', fieldErrorInputClass(Boolean(fieldErrors.warrantyMonths)))}
-              aria-invalid={Boolean(fieldErrors.warrantyMonths)}
-            >
-              <SelectValue placeholder="Wybierz" />
-            </SelectTrigger>
-            <SelectContent>
-              {warrantyOptions.map((m) => (
-                <SelectItem key={m} value={String(m)}>
-                  {formatMonthsLabel(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ContestOfferFieldError message={fieldErrors.warrantyMonths} />
+      <section
+        className={cn(contestOfferSectionCardClass, hasWarrantyError && 'border-destructive')}
+      >
+        <div className="flex items-start gap-3">
+          <div className={contestOfferSectionIconClass} aria-hidden>
+            <Shield className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <ContestOfferRequiredLabel>Gwarancja i rękojmia</ContestOfferRequiredLabel>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Wybierz okresy gwarancji i rękojmi oferowane w ramach tej oferty.
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Oferowany okres gwarancji
+                </span>
+                <Select
+                  value={form.warrantyMonths}
+                  onValueChange={(v) => onPatch({ warrantyMonths: v })}
+                >
+                  <SelectTrigger
+                    id="contest-offer-warrantyMonths"
+                    className={cn(
+                      'mt-1.5 border-border/60 bg-white dark:bg-card',
+                      fieldErrorInputClass(Boolean(fieldErrors.warrantyMonths)),
+                    )}
+                    aria-invalid={Boolean(fieldErrors.warrantyMonths)}
+                  >
+                    <SelectValue placeholder="Wybierz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warrantyOptions.map((m) => (
+                      <SelectItem key={m} value={String(m)}>
+                        {formatMonthsLabel(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <ContestOfferFieldError message={fieldErrors.warrantyMonths} />
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Oferowany okres rękojmi
+                </span>
+                <Select
+                  value={form.guaranteeMonths}
+                  onValueChange={(v) => onPatch({ guaranteeMonths: v })}
+                >
+                  <SelectTrigger
+                    id="contest-offer-guaranteeMonths"
+                    className={cn(
+                      'mt-1.5 border-border/60 bg-white dark:bg-card',
+                      fieldErrorInputClass(Boolean(fieldErrors.guaranteeMonths)),
+                    )}
+                    aria-invalid={Boolean(fieldErrors.guaranteeMonths)}
+                  >
+                    <SelectValue placeholder="Wybierz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {guaranteeOptions.map((m) => (
+                      <SelectItem key={m} value={String(m)}>
+                        {formatMonthsLabel(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <ContestOfferFieldError message={fieldErrors.guaranteeMonths} />
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <ContestOfferRequiredLabel>Oferowany okres rękojmi</ContestOfferRequiredLabel>
-          <Select
-            value={form.guaranteeMonths}
-            onValueChange={(v) => onPatch({ guaranteeMonths: v })}
-          >
-            <SelectTrigger
-              id="contest-offer-guaranteeMonths"
-              className={cn('mt-1.5', fieldErrorInputClass(Boolean(fieldErrors.guaranteeMonths)))}
-              aria-invalid={Boolean(fieldErrors.guaranteeMonths)}
-            >
-              <SelectValue placeholder="Wybierz" />
-            </SelectTrigger>
-            <SelectContent>
-              {guaranteeOptions.map((m) => (
-                <SelectItem key={m} value={String(m)}>
-                  {formatMonthsLabel(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ContestOfferFieldError message={fieldErrors.guaranteeMonths} />
-        </div>
-      </div>
+      </section>
 
       {contestInfo.depositRequired ? (
-        <div>
-          <ContestOfferRequiredLabel htmlFor="contest-offer-deposit">
-            Potwierdzenie przelewu wadium (PDF lub zdjęcie)
-          </ContestOfferRequiredLabel>
-          <input
-            ref={depositFileRef}
-            type="file"
-            accept=".pdf,image/*"
-            className="sr-only"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onStageDeposit(file);
-              e.target.value = '';
-            }}
-          />
-          <Button
-            id="contest-offer-deposit"
-            type="button"
-            variant="outline"
-            className={cn(
-              'mt-1.5 w-full max-w-md border-dashed gap-2',
-              fieldErrors.deposit && 'border-destructive',
-            )}
-            onClick={() => depositFileRef.current?.click()}
-          >
-            <Upload className="h-4 w-4" />
-            Wgraj potwierdzenie przelewu wadium
-          </Button>
-          {form.stagedFiles.deposit?.[0] ? (
-            <p className="text-xs text-muted-foreground mt-2">
-              Wybrano: {form.stagedFiles.deposit[0].name}
-            </p>
-          ) : null}
-          <ContestOfferFieldError message={fieldErrors.deposit} />
-        </div>
+        <section
+          className={cn(contestOfferSectionCardClass, fieldErrors.deposit && 'border-destructive')}
+          id="contest-offer-deposit"
+        >
+          <div className="flex items-start gap-3">
+            <div className={contestOfferSectionIconClass} aria-hidden>
+              <Receipt className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <ContestOfferRequiredLabel>Potwierdzenie przelewu wadium</ContestOfferRequiredLabel>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Dołącz skan lub zdjęcie potwierdzenia wpłaty wadium wymaganego w konkursie.
+              </p>
+              {contestInfo.depositAmount != null ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Wymagane wadium:{' '}
+                  <span className="font-semibold text-foreground">
+                    {contestInfo.depositAmount.toLocaleString('pl-PL')} zł
+                  </span>
+                </p>
+              ) : null}
+              <div className="mt-3">
+                <Dropzone
+                  accept={DEPOSIT_FILE_ACCEPT}
+                  maxFiles={1}
+                  onDrop={(files) => {
+                    const file = files[0];
+                    if (file) onStageDeposit(file);
+                  }}
+                  className={cn('min-h-[120px] border-dashed', fieldErrors.deposit && 'border-destructive')}
+                >
+                  <DropzoneEmptyState>
+                    <p className="text-sm font-medium">Przeciągnij plik tutaj lub kliknij, aby wybrać</p>
+                    <p className="mt-1 text-xs text-muted-foreground">PDF lub obraz</p>
+                  </DropzoneEmptyState>
+                  <DropzoneContent />
+                </Dropzone>
+              </div>
+              <ContestOfferFieldError message={fieldErrors.deposit} />
+              {hasDepositFile ? (
+                <ul className="mt-3 space-y-2">
+                  <li
+                    className={
+                      isDepositStaged ? contestOfferStagedFileRowClass : contestOfferUploadedFileRowClass
+                    }
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      {isDepositStaged ? (
+                        <Upload className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="truncate">
+                        {isDepositStaged
+                          ? `Do wgrania przy zapisie: ${depositDisplayName}`
+                          : depositDisplayName}
+                      </span>
+                    </span>
+                    {onRemoveDeposit ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        aria-label={`Usuń ${depositDisplayName}`}
+                        onClick={onRemoveDeposit}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </li>
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {showCustomPayment ? (
-        <div>
-          <label
-            id="contest-offer-paymentTermsAccepted"
-            className="flex items-start gap-2 cursor-pointer"
-          >
-            <Checkbox
-              checked={form.paymentTermsAccepted}
-              onCheckedChange={(v) => onPatch({ paymentTermsAccepted: v === true })}
-              aria-invalid={Boolean(fieldErrors.paymentTermsAccepted)}
-            />
-            <span className="text-sm leading-snug">
-              <span className="text-destructive" aria-hidden="true">
-                *{' '}
-              </span>
-              Akceptuję wymagany przez zarządcę termin płatności faktury wynoszący{' '}
-              {contestInfo.paymentTerms.customDays} dni.
-            </span>
-          </label>
-          <ContestOfferFieldError message={fieldErrors.paymentTermsAccepted} />
-        </div>
+        <section
+          className={cn(
+            contestOfferSectionCardClass,
+            fieldErrors.paymentTermsAccepted && 'border-destructive',
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <div className={contestOfferSectionIconClass} aria-hidden>
+              <Banknote className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <ContestOfferRequiredLabel htmlFor="contest-offer-paymentTermsAccepted">
+                Termin płatności
+              </ContestOfferRequiredLabel>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Zarządca wymaga terminu płatności faktury wynoszącego{' '}
+                <span className="font-medium text-foreground">
+                  {contestInfo.paymentTerms.customDays} dni
+                </span>
+                .
+              </p>
+              <label
+                htmlFor="contest-offer-paymentTermsAccepted"
+                className="mt-3 flex cursor-pointer items-start gap-3 rounded-md border border-border/50 bg-muted/20 px-3 py-2.5"
+              >
+                <Checkbox
+                  id="contest-offer-paymentTermsAccepted"
+                  checked={form.paymentTermsAccepted}
+                  onCheckedChange={(v) => onPatch({ paymentTermsAccepted: v === true })}
+                  aria-invalid={Boolean(fieldErrors.paymentTermsAccepted)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm leading-snug text-foreground">
+                  Akceptuję wymagany przez zarządcę termin płatności faktury.
+                </span>
+              </label>
+              <ContestOfferFieldError message={fieldErrors.paymentTermsAccepted} />
+            </div>
+          </div>
+        </section>
       ) : null}
     </div>
   );

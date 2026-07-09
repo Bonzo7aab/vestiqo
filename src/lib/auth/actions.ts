@@ -76,8 +76,6 @@ export interface UpdateUserData {
 async function loginActionImpl(
   formData: FormData
 ): Promise<{ success: true; redirectTo: string } | { error: string }> {
-  const supabase = await createClient()
-
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const requestedRedirect = sanitizeRedirectPath(formData.get('redirectTo') as string | null, '')
@@ -86,54 +84,65 @@ async function loginActionImpl(
     return { error: 'Email i hasło są wymagane' }
   }
 
-  const { data: signInData, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  try {
+    const supabase = await createClient()
 
-  if (error) {
-    return { error: translateAuthErrorMessage(error.message) }
-  }
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-  const userId = signInData.user?.id
-  let redirectTo = '/'
-
-  if (userId) {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('user_type, platform_role')
-      .eq('id', userId)
-      .single()
-
-    const isAdmin = profile?.platform_role === 'platform_admin'
-    const isContractor = profile?.user_type === 'contractor'
-
-    const roleHome = isAdmin
-      ? '/administracja'
-      : isContractor
-        ? '/panel-wykonawcy'
-        : '/panel-zarzadcy'
-
-    if (isAdmin) {
-      // Admins always land on /administracja regardless of `redirectTo`.
-      redirectTo = '/administracja'
-    } else if (requestedRedirect) {
-      const forbiddenForContractor =
-        isContractor && isRedirectForbiddenForContractor(requestedRedirect)
-      const forbiddenForManager =
-        !isContractor &&
-        (requestedRedirect.startsWith('/administracja') ||
-          requestedRedirect.startsWith('/panel-wykonawcy'))
-
-      redirectTo =
-        forbiddenForContractor || forbiddenForManager ? roleHome : requestedRedirect
-    } else {
-      redirectTo = roleHome
+    if (error) {
+      return { error: translateAuthErrorMessage(error.message) }
     }
-  }
 
-  revalidatePath('/', 'layout')
-  return { success: true, redirectTo }
+    const userId = signInData.user?.id
+    let redirectTo = '/'
+
+    if (userId) {
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_type, platform_role')
+        .eq('id', userId)
+        .single()
+
+      if (profileError) {
+        return { error: translateAuthErrorMessage(profileError.message) }
+      }
+
+      const isAdmin = profile?.platform_role === 'platform_admin'
+      const isContractor = profile?.user_type === 'contractor'
+
+      const roleHome = isAdmin
+        ? '/administracja'
+        : isContractor
+          ? '/panel-wykonawcy'
+          : '/panel-zarzadcy'
+
+      if (isAdmin) {
+        // Admins always land on /administracja regardless of `redirectTo`.
+        redirectTo = '/administracja'
+      } else if (requestedRedirect) {
+        const forbiddenForContractor =
+          isContractor && isRedirectForbiddenForContractor(requestedRedirect)
+        const forbiddenForManager =
+          !isContractor &&
+          (requestedRedirect.startsWith('/administracja') ||
+            requestedRedirect.startsWith('/panel-wykonawcy'))
+
+        redirectTo =
+          forbiddenForContractor || forbiddenForManager ? roleHome : requestedRedirect
+      } else {
+        redirectTo = roleHome
+      }
+    }
+
+    revalidatePath('/', 'layout')
+    return { success: true, redirectTo }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Wystąpił błąd. Spróbuj ponownie.'
+    return { error: translateAuthErrorMessage(message) }
+  }
 }
 
 export type RegisterActionResult =

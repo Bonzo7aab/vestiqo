@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { cn } from '../ui/utils';
 
-export type ScheduleStepId = 'submission' | 'evaluation' | 'completion';
+export type ScheduleStepId = 'start' | 'submission' | 'evaluation' | 'completion';
 
 interface ScheduleStep {
   id: ScheduleStepId;
@@ -12,6 +12,7 @@ interface ScheduleStep {
 }
 
 interface ContestScheduleTimelineProps {
+  publishedAt?: string | null;
   submissionDeadline: string;
   evaluationDeadline?: string | null;
   completionDate?: string | null;
@@ -33,6 +34,7 @@ function formatLongDate(value: string, withTime = false): string {
 
 export function resolveActiveScheduleStep(
   contestStatus: string | undefined,
+  publishedAt: string | null | undefined,
   submissionDeadline: string,
   evaluationDeadline: string | null | undefined,
   completionDate: string | null | undefined,
@@ -42,23 +44,32 @@ export function resolveActiveScheduleStep(
   const evaluation = evaluationDeadline ? parseDate(evaluationDeadline) : null;
   const completion = completionDate ? parseDate(completionDate) : null;
 
-  if (contestStatus === 'evaluation' || contestStatus === 'no_offers' || contestStatus === 'cancelled') {
-    return 'evaluation';
-  }
-
   if (contestStatus === 'awarded') {
     return 'completion';
   }
 
-  if (contestStatus === 'active' || contestStatus === 'draft') {
+  if (contestStatus === 'evaluation' || contestStatus === 'no_offers' || contestStatus === 'cancelled') {
+    return 'evaluation';
+  }
+
+  if (
+    contestStatus === 'active' ||
+    contestStatus === 'draft' ||
+    contestStatus === 'paused'
+  ) {
     if (submission && now >= submission) {
       return 'evaluation';
     }
-    return 'submission';
+    return 'start';
+  }
+
+  const start = publishedAt ? parseDate(publishedAt) : null;
+  if (start && now < start) {
+    return 'start';
   }
 
   if (submission && now < submission) {
-    return 'submission';
+    return 'start';
   }
 
   if (evaluation && now < evaluation) {
@@ -73,6 +84,7 @@ export function resolveActiveScheduleStep(
 }
 
 export function ContestScheduleTimeline({
+  publishedAt,
   submissionDeadline,
   evaluationDeadline,
   completionDate,
@@ -83,13 +95,23 @@ export function ContestScheduleTimeline({
   const now = new Date(renderedAtMs);
   const activeStepId = resolveActiveScheduleStep(
     contestStatus,
+    publishedAt,
     submissionDeadline,
     evaluationDeadline,
     completionDate,
     now,
   );
 
+  const startDateLabel = publishedAt
+    ? formatLongDate(publishedAt, true)
+    : 'Nie określono';
+
   const steps: ScheduleStep[] = [
+    {
+      id: 'start',
+      title: 'Początek konkursu',
+      dateLabel: startDateLabel,
+    },
     {
       id: 'submission',
       title: 'Zakończenie przyjmowania ofert',
@@ -107,11 +129,14 @@ export function ContestScheduleTimeline({
     },
   ];
 
+  const activeIndex = steps.findIndex((step) => step.id === activeStepId);
+
   return (
     <ol className="relative m-0 list-none p-0">
       {steps.map((step, index) => {
         const isActive = step.id === activeStepId;
         const isLast = index === steps.length - 1;
+        const isPast = index < activeIndex;
 
         return (
           <li key={step.id} className="flex gap-3.5">
@@ -121,7 +146,11 @@ export function ContestScheduleTimeline({
                   aria-hidden
                   className={cn(
                     'z-10 block h-3.5 w-3.5 shrink-0 rounded-full',
-                    isActive ? 'bg-primary' : 'bg-muted-foreground/35',
+                    isActive
+                      ? 'bg-primary'
+                      : isPast
+                        ? 'bg-muted-foreground/50'
+                        : 'bg-muted-foreground/35',
                   )}
                 />
               </div>
@@ -130,7 +159,7 @@ export function ContestScheduleTimeline({
                   aria-hidden
                   className={cn(
                     'mb-2 mt-2 w-0.5 flex-1',
-                    isActive ? 'bg-primary' : 'bg-border',
+                    isPast ? 'bg-muted-foreground/35' : isActive ? 'bg-primary' : 'bg-border',
                   )}
                 />
               ) : null}

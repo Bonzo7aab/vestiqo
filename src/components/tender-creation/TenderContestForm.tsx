@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { File, FileText, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
+import { File, FileText, Loader2, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
 import type { FileRejection } from 'react-dropzone';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -42,6 +42,16 @@ import {
 } from '../contest-offer/ContestOfferFieldError';
 import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
+import { ScheduleDateOffsetChips } from './ScheduleDateOffsetChips';
+import {
+  COMPLETION_DAY_OFFSET_OPTIONS,
+  EVALUATION_DAY_OFFSET_OPTIONS,
+  completionDateFromEvaluationOffset,
+  evaluationDateFromSubmissionOffset,
+  isDateOnOrBefore,
+  minCompletionDateAfterEvaluation,
+  minEvaluationDateAfterSubmission,
+} from '../../lib/contest/contest-schedule-dates';
 
 interface ContestFormSectionProps {
   title: string;
@@ -140,18 +150,15 @@ function toDateInputValue(date: Date | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function isCompletionOnOrBeforeSubmission(completion: Date, submission: Date): boolean {
-  const completionDay = new Date(completion);
-  completionDay.setHours(0, 0, 0, 0);
-  const submissionDay = new Date(submission);
-  submissionDay.setHours(0, 0, 0, 0);
-  return completionDay.getTime() <= submissionDay.getTime();
-}
-
-function minCompletionDateAfterSubmission(submission: Date): string {
-  const min = new Date(submission);
-  min.setDate(min.getDate() + 1);
-  return toDateInputValue(min);
+function isCompletionInvalid(
+  completion: Date,
+  evaluation: Date | null,
+  submission: Date,
+): boolean {
+  if (evaluation && !Number.isNaN(evaluation.getTime())) {
+    return isDateOnOrBefore(evaluation, completion);
+  }
+  return isDateOnOrBefore(submission, completion);
 }
 
 export function TenderContestForm({
@@ -197,10 +204,28 @@ export function TenderContestForm({
     [form.submissionDeadline],
   );
 
-  const completionMinDate = useMemo(() => {
+  const hasValidEvaluationDeadline = useMemo(
+    () => Boolean(form.evaluationDeadline && !Number.isNaN(form.evaluationDeadline.getTime())),
+    [form.evaluationDeadline],
+  );
+
+  const evaluationMinDate = useMemo(() => {
     if (!hasValidSubmissionDeadline) return undefined;
-    return minCompletionDateAfterSubmission(form.submissionDeadline);
+    return toDateInputValue(minEvaluationDateAfterSubmission(form.submissionDeadline));
   }, [form.submissionDeadline, hasValidSubmissionDeadline]);
+
+  const completionMinDate = useMemo(() => {
+    if (hasValidEvaluationDeadline) {
+      return toDateInputValue(minCompletionDateAfterEvaluation(form.evaluationDeadline!));
+    }
+    if (!hasValidSubmissionDeadline) return undefined;
+    return toDateInputValue(minEvaluationDateAfterSubmission(form.submissionDeadline));
+  }, [
+    form.evaluationDeadline,
+    form.submissionDeadline,
+    hasValidEvaluationDeadline,
+    hasValidSubmissionDeadline,
+  ]);
 
   useEffect(() => {
     if (!initialForm) return;
@@ -370,7 +395,7 @@ export function TenderContestForm({
       const next: TenderContestFormData = { ...prev, submissionDeadline: d };
       if (
         prev.completionDate &&
-        isCompletionOnOrBeforeSubmission(prev.completionDate, d)
+        isCompletionInvalid(prev.completionDate, prev.evaluationDeadline, d)
       ) {
         next.completionDate = null;
       }
@@ -379,6 +404,26 @@ export function TenderContestForm({
         prev.evaluationDeadline.getTime() <= d.getTime()
       ) {
         next.evaluationDeadline = null;
+      }
+      return next;
+    });
+  };
+
+  const handleEvaluationDeadlineChange = (value: string): void => {
+    const evaluationDeadline = value ? new Date(value) : null;
+    if (showFieldErrors) {
+      setFieldErrors((prev) =>
+        clearTenderContestFieldErrorsForPatch(prev, { evaluationDeadline }),
+      );
+    }
+    setForm((prev) => {
+      const next: TenderContestFormData = { ...prev, evaluationDeadline };
+      if (
+        evaluationDeadline &&
+        prev.completionDate &&
+        isCompletionInvalid(prev.completionDate, evaluationDeadline, prev.submissionDeadline)
+      ) {
+        next.completionDate = null;
       }
       return next;
     });
@@ -633,12 +678,20 @@ export function TenderContestForm({
               className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.evaluationDeadline)))}
               aria-invalid={Boolean(displayedErrors.evaluationDeadline)}
               disabled={!hasValidSubmissionDeadline}
-              min={minCompletionDateAfterSubmission(form.submissionDeadline)}
+              min={evaluationMinDate}
               value={toDateInputValue(form.evaluationDeadline)}
-              onChange={(e) => {
-                patchForm({
-                  evaluationDeadline: e.target.value ? new Date(e.target.value) : null,
-                });
+              onChange={(e) => handleEvaluationDeadlineChange(e.target.value)}
+            />
+            <ScheduleDateOffsetChips
+              offsets={EVALUATION_DAY_OFFSET_OPTIONS}
+              disabled={!hasValidSubmissionDeadline || isSubmitting}
+              onSelect={(days) => {
+                if (!hasValidSubmissionDeadline) return;
+                handleEvaluationDeadlineChange(
+                  toDateInputValue(
+                    evaluationDateFromSubmissionOffset(form.submissionDeadline, days),
+                  ),
+                );
               }}
             />
             <ContestOfferFieldError message={displayedErrors.evaluationDeadline} />
@@ -651,12 +704,22 @@ export function TenderContestForm({
               type="date"
               className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.completionDate)))}
               aria-invalid={Boolean(displayedErrors.completionDate)}
-              disabled={!hasValidSubmissionDeadline}
+              disabled={!hasValidEvaluationDeadline}
               min={completionMinDate}
               value={toDateInputValue(form.completionDate)}
               onChange={(e) => {
                 patchForm({
                   completionDate: e.target.value ? new Date(e.target.value) : null,
+                });
+              }}
+            />
+            <ScheduleDateOffsetChips
+              offsets={COMPLETION_DAY_OFFSET_OPTIONS}
+              disabled={!hasValidEvaluationDeadline || isSubmitting}
+              onSelect={(days) => {
+                if (!form.evaluationDeadline) return;
+                patchForm({
+                  completionDate: completionDateFromEvaluationOffset(form.evaluationDeadline, days),
                 });
               }}
             />
@@ -1145,7 +1208,14 @@ export function TenderContestForm({
             className={cn(isCreateLayout && 'h-11 w-full sm:w-auto')}
           >
             <Send className="h-4 w-4 mr-2" />
-            {isSubmitting ? 'Publikowanie…' : 'Opublikuj konkurs'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publikowanie…
+              </>
+            ) : (
+              'Opublikuj konkurs'
+            )}
           </Button>
         </div>
       </div>

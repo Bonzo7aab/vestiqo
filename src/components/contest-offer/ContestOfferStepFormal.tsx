@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type ReactElement } from 'react';
+import { type ReactElement } from 'react';
 import { FileText, Upload, X } from 'lucide-react';
 import type { ContestInfo } from '../../types/job';
 import type {
@@ -11,8 +11,13 @@ import type {
 import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import { cn } from '../ui/utils';
-import { ContestOfferFormalDocBlock } from './ContestOfferFormalDocBlock';
+import {
+  contestOfferStagedFileRowClass,
+  contestOfferUploadedFileRowClass,
+  ContestOfferFormalDocBlock,
+} from './ContestOfferFormalDocBlock';
 import {
   ContestOfferFieldError,
   ContestOfferOptionalLabel,
@@ -29,8 +34,9 @@ interface ContestOfferStepFormalProps {
   onUseProfile: (doc: ResolvedContractorDocument) => void;
   onUploadFormal: (key: FormalRequirementKey, file: File) => void;
   onRemoveFormal: (key: FormalRequirementKey) => void;
-  onStageOther: (file: File) => void;
+  onStageOtherFiles: (files: File[]) => void;
   onRemoveExtra: (id: string) => void;
+  onRemoveStagedOther: (index: number) => void;
 }
 
 export function ContestOfferStepFormal({
@@ -42,10 +48,13 @@ export function ContestOfferStepFormal({
   onUseProfile,
   onUploadFormal,
   onRemoveFormal,
-  onStageOther,
+  onStageOtherFiles,
   onRemoveExtra,
+  onRemoveStagedOther,
 }: ContestOfferStepFormalProps): ReactElement {
-  const otherFileRef = useRef<HTMLInputElement>(null);
+  const extraDocs = form.extraAttachments.filter((a) => a.requirementKey !== 'deposit');
+  const stagedOther = form.stagedFiles.other ?? [];
+  const hasExtraFiles = extraDocs.length > 0 || stagedOther.length > 0;
 
   return (
     <div className="space-y-6">
@@ -84,60 +93,71 @@ export function ContestOfferStepFormal({
 
       <div>
         <ContestOfferOptionalLabel>Inne załączniki</ContestOfferOptionalLabel>
-        <div className="mt-3 space-y-3">
-          {form.extraAttachments.filter((a) => a.requirementKey !== 'deposit').length > 0 ? (
-            <ul className="space-y-2">
-              {form.extraAttachments
-                .filter((a) => a.requirementKey !== 'deposit')
-                .map((att) => (
-                  <li
-                    key={att.id}
-                    className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <FileText className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{att.name}</span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="shrink-0 h-8 w-8"
-                      aria-label={`Usuń ${att.name}`}
-                      onClick={() => onRemoveExtra(att.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-            </ul>
-          ) : null}
-          {form.stagedFiles.other?.[0] ? (
-            <p className="text-xs text-muted-foreground">
-              Do wgrania przy zapisie: {form.stagedFiles.other[0].name}
+        <p className="mb-3 mt-1 text-sm text-muted-foreground">
+          Dodatkowe pliki, które chcesz dołączyć do oferty.
+        </p>
+        <Dropzone
+          accept={{
+            'application/pdf': ['.pdf'],
+            'application/msword': ['.doc'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+          }}
+          maxFiles={10}
+          onDrop={(files) => {
+            if (files.length > 0) onStageOtherFiles(files);
+          }}
+          className="min-h-[140px] border-dashed"
+        >
+          <DropzoneEmptyState>
+            <p className="text-sm font-medium">Przeciągnij pliki tutaj lub kliknij, aby wybrać</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
             </p>
-          ) : null}
-          <input
-            ref={otherFileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,image/*"
-            className="sr-only"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onStageOther(file);
-              e.target.value = '';
-            }}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-dashed gap-2"
-            onClick={() => otherFileRef.current?.click()}
-          >
-            <Upload className="h-4 w-4" />
-            Dodaj załącznik
-          </Button>
-        </div>
+          </DropzoneEmptyState>
+          <DropzoneContent />
+        </Dropzone>
+
+        {hasExtraFiles ? (
+          <ul className="mt-3 space-y-2">
+            {extraDocs.map((att) => (
+              <li key={att.id} className={contestOfferUploadedFileRowClass}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{att.name}</span>
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Usuń ${att.name}`}
+                  onClick={() => onRemoveExtra(att.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+            {stagedOther.map((file, index) => (
+              <li key={`${file.name}-${file.size}-${index}`} className={contestOfferStagedFileRowClass}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <Upload className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Do wgrania przy zapisie: {file.name}</span>
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Usuń ${file.name}`}
+                  onClick={() => onRemoveStagedOther(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </div>
   );

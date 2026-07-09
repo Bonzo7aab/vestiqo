@@ -40,6 +40,8 @@ interface AuthPageLayoutProps {
   sideVariant?: 'default' | 'simple';
   /** Hide Vestiqo logo link on the left panel (e.g. login). */
   showSideLogo?: boolean;
+  /** Hide mobile header logo above the form title. */
+  showMobileLogo?: boolean;
   side: {
     heading: string;
     body: string;
@@ -220,6 +222,7 @@ export function AuthPageLayout({
   trustNote,
   sideVariant = 'default',
   showSideLogo = true,
+  showMobileLogo = true,
   side,
 }: AuthPageLayoutProps) {
   return (
@@ -234,12 +237,14 @@ export function AuthPageLayout({
               contentMaxWidth === 'lg' ? 'max-w-xl' : 'max-w-md',
             )}
           >
-            <div className="mb-6 lg:hidden">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <BrandLogo variant="mark" className="h-8 w-8" />
-                <span className="text-xl font-bold tracking-tight text-primary">{BRAND.name}</span>
-              </Link>
-            </div>
+            {showMobileLogo ? (
+              <div className="mb-6 lg:hidden">
+                <Link href="/" className="inline-flex items-center gap-2">
+                  <BrandLogo variant="mark" className="h-8 w-8" />
+                  <span className="text-xl font-bold tracking-tight text-primary">{BRAND.name}</span>
+                </Link>
+              </div>
+            ) : null}
 
             <header className="mb-6">
               <h1
