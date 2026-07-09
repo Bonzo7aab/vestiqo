@@ -32,6 +32,7 @@ import {
   fetchTenderBidDraft,
   fetchTenderBidOfferState,
   hydrateContestOfferFormFromBid,
+  migrateLegacyOfferAttachments,
   firstContestOfferStepWithErrors,
   filterFieldErrorsForStep,
   getContestOfferAllFieldErrors,
@@ -61,6 +62,7 @@ import {
   getContestOfferStepsWithErrors,
   scrollToFirstContestOfferError,
 } from '../../lib/contest-offer/form-validation-ui';
+import { uploadContestOfferStagedFiles } from '../../lib/contest-offer/upload-staged-offer-files';
 import {
   loadContractorReferencesPrefill,
 } from '../../lib/contest-offer/resolve-contractor-documents';
@@ -285,10 +287,21 @@ export function ContestOfferSubmissionDialog({
   const handleSaveDraft = async (): Promise<void> => {
     setIsSavingDraft(true);
     try {
+      const { form: uploadedForm, error: uploadError } = await uploadContestOfferStagedFiles(
+        contractorId,
+        tenderId,
+        form,
+      );
+      if (uploadError) {
+        toast.error(uploadError);
+        return;
+      }
+      setForm(uploadedForm);
+
       const { error } = await upsertTenderBidDraft(
         tenderId,
         contractorId,
-        form,
+        uploadedForm,
         currentStep,
       );
       if (error) {
@@ -337,14 +350,25 @@ export function ContestOfferSubmissionDialog({
     setValidatedSteps(new Set());
     setIsSubmitting(true);
     try {
+      const { form: uploadedForm, error: uploadError } = await uploadContestOfferStagedFiles(
+        contractorId,
+        tenderId,
+        form,
+      );
+      if (uploadError) {
+        toast.error(uploadError);
+        return;
+      }
+      setForm(uploadedForm);
+
       const { error } = await submitTenderBid(
         tenderId,
         contractorId,
-        form,
+        uploadedForm,
         contestInfo,
       );
       if (error) {
-        const inlineErrors = getContestOfferAllFieldErrors(form, contestInfo);
+        const inlineErrors = getContestOfferAllFieldErrors(uploadedForm, contestInfo);
         if (hasContestOfferFieldErrors(inlineErrors)) {
           applyValidationErrors(inlineErrors, getContestOfferStepsWithErrors(inlineErrors));
           return;
@@ -387,13 +411,41 @@ export function ContestOfferSubmissionDialog({
     setCurrentStep((s) => Math.max(1, s - 1) as ContestOfferWizardStep);
   };
 
-  const stageOtherFiles = (files: File[]): void => {
+  const stageOfferDocumentationFiles = (files: File[]): void => {
     if (files.length === 0) return;
     setFieldErrors((prev) => {
       const next = { ...prev };
       delete next.offerDocumentation;
       return next;
     });
+    setForm((prev) => {
+      const migrated = migrateLegacyOfferAttachments(prev);
+      return {
+        ...migrated,
+        stagedFiles: {
+          ...migrated.stagedFiles,
+          offerDocumentation: [...(migrated.stagedFiles.offerDocumentation ?? []), ...files],
+        },
+      };
+    });
+  };
+
+  const removeStagedOfferDocumentation = (index: number): void => {
+    setForm((prev) => {
+      const offerDocumentation = [...(prev.stagedFiles.offerDocumentation ?? [])];
+      offerDocumentation.splice(index, 1);
+      const stagedFiles = { ...prev.stagedFiles };
+      if (offerDocumentation.length > 0) {
+        stagedFiles.offerDocumentation = offerDocumentation;
+      } else {
+        delete stagedFiles.offerDocumentation;
+      }
+      return { ...prev, stagedFiles };
+    });
+  };
+
+  const stageOtherFiles = (files: File[]): void => {
+    if (files.length === 0) return;
     setForm((prev) => ({
       ...prev,
       stagedFiles: {
@@ -424,8 +476,8 @@ export function ContestOfferSubmissionDialog({
         delete next.deposit;
         return next;
       }
-      if (key !== 'other') {
-        return clearContestOfferFormalFieldError(prev, key);
+      if (key !== 'other' && key !== 'offerDocumentation') {
+        return clearContestOfferFormalFieldError(prev, key as FormalRequirementKey);
       }
       return prev;
     });
@@ -576,9 +628,9 @@ export function ContestOfferSubmissionDialog({
                 <ContestOfferStepBasic
                   form={form}
                   fieldErrors={displayedFieldErrors}
-                  onStageFiles={stageOtherFiles}
+                  onStageFiles={stageOfferDocumentationFiles}
                   onRemoveExtra={removeExtraAttachment}
-                  onRemoveStaged={removeStagedOther}
+                  onRemoveStaged={removeStagedOfferDocumentation}
                 />
               )}
               {currentStep === 2 && (
@@ -642,19 +694,8 @@ export function ContestOfferSubmissionDialog({
               {isSavingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Zapisz jako szkic
             </Button>
-            {currentStep === totalSteps && (
-              <Button
-                type="button"
-                className="bg-primary hover:bg-primary/90"
-                disabled={isSubmitting || isLoading}
-                onClick={() => void handleSubmit()}
-              >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Wyślij ofertę
-              </Button>
-            )}
           </div>
-          <div className="flex gap-2 w-full sm:w-auto sm:justify-end">
+          <div className="flex gap-2 w-full sm:w-auto sm:ml-auto sm:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -673,6 +714,17 @@ export function ContestOfferSubmissionDialog({
               >
                 Dalej
                 <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+            {currentStep === totalSteps && (
+              <Button
+                type="button"
+                className="bg-primary hover:bg-primary/90"
+                disabled={isSubmitting || isLoading}
+                onClick={() => void handleSubmit()}
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Wyślij ofertę
               </Button>
             )}
           </div>

@@ -131,6 +131,10 @@ const nextConfig = {
   },
   compress: true,
   poweredByHeader: false,
+  serverActions: {
+    // Fallback for actions that still carry small payloads; large files upload via uploadBidAttachment.
+    bodySizeLimit: '12mb',
+  },
   async headers() {
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },

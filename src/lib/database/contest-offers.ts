@@ -15,7 +15,7 @@ import {
   requiredFormalKeys,
 } from '../../types/contest-offer';
 import type { SiteVisitType } from '../../types/tender-contest';
-import { uploadBidAttachment } from '../storage/bid-attachments';
+import { uploadContestOfferStagedFiles } from '../contest-offer/upload-staged-offer-files';
 
 export type TenderBidOfferState = 'none' | 'draft' | 'submitted';
 
@@ -78,73 +78,7 @@ async function uploadStagedFiles(
   tenderId: string,
   form: ContestOfferFormData,
 ): Promise<{ form: ContestOfferFormData; error: string | null }> {
-  const next = { ...form, formalAttachments: { ...form.formalAttachments } };
-  const staged = form.stagedFiles;
-
-  for (const [key, files] of Object.entries(staged)) {
-    if (!files?.length) continue;
-
-    if (key === 'other') {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const { data, error } = await uploadBidAttachment(file, userId, tenderId);
-        if (error || !data) {
-          return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
-        }
-        next.extraAttachments = [
-          ...next.extraAttachments,
-          {
-            id: `${Date.now()}-${key}-${i}`,
-            name: file.name,
-            path: data.path,
-            url: data.url,
-            type: data.type === 'image' ? ('image' as const) : ('document' as const),
-            source: 'override' as const,
-            requirementKey: key,
-            size: file.size,
-          },
-        ];
-      }
-      continue;
-    }
-
-    const file = files[0];
-    const { data, error } = await uploadBidAttachment(file, userId, tenderId);
-    if (error || !data) {
-      return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
-    }
-
-    if (key === 'deposit') {
-      next.extraAttachments = [
-        ...next.extraAttachments,
-        {
-          id: `${Date.now()}-${key}`,
-          name: file.name,
-          path: data.path,
-          url: data.url,
-          type: data.type === 'image' ? ('image' as const) : ('document' as const),
-          source: 'override' as const,
-          requirementKey: key,
-          size: file.size,
-        },
-      ];
-    } else {
-      const formalKey = key as FormalRequirementKey;
-      next.formalAttachments[formalKey] = {
-        id: `${Date.now()}-${key}`,
-        name: file.name,
-        path: data.path,
-        url: data.url,
-        type: data.type === 'image' ? ('image' as const) : ('document' as const),
-        source: 'override' as const,
-        requirementKey: formalKey,
-        size: file.size,
-      };
-    }
-  }
-
-  next.stagedFiles = {};
-  return { form: next, error: null };
+  return uploadContestOfferStagedFiles(userId, tenderId, form);
 }
 
 function buildRowFromForm(
@@ -213,9 +147,25 @@ export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boo
 }
 
 function hasOfferDocumentation(form: ContestOfferFormData): boolean {
-  const offerDocs = form.extraAttachments.filter((a) => a.requirementKey !== 'deposit');
-  const stagedOther = form.stagedFiles.other?.length ?? 0;
-  return offerDocs.length > 0 || stagedOther > 0;
+  const offerDocs = form.extraAttachments.filter((a) => a.requirementKey === 'offerDocumentation');
+  const staged = form.stagedFiles.offerDocumentation?.length ?? 0;
+  return offerDocs.length > 0 || staged > 0;
+}
+
+export function migrateLegacyOfferAttachments(form: ContestOfferFormData): ContestOfferFormData {
+  const hasOfferDocKey = form.extraAttachments.some((a) => a.requirementKey === 'offerDocumentation');
+  if (hasOfferDocKey) return form;
+
+  const extraAttachments = form.extraAttachments.map((a) =>
+    a.requirementKey === 'other' ? { ...a, requirementKey: 'offerDocumentation' as const } : a,
+  );
+  const stagedFiles = { ...form.stagedFiles };
+  if (stagedFiles.other?.length && !stagedFiles.offerDocumentation?.length) {
+    stagedFiles.offerDocumentation = stagedFiles.other;
+    delete stagedFiles.other;
+  }
+
+  return { ...form, extraAttachments, stagedFiles };
 }
 
 export function getContestOfferStepFieldErrors(
@@ -707,7 +657,12 @@ export function hydrateContestOfferFormFromBid(bid: TenderBidRowLite | null): Co
       id: string;
       size?: number;
     }>) {
-      if (att.requirementKey && att.requirementKey !== 'deposit' && att.requirementKey !== 'other') {
+      if (
+        att.requirementKey &&
+        att.requirementKey !== 'deposit' &&
+        att.requirementKey !== 'other' &&
+        att.requirementKey !== 'offerDocumentation'
+      ) {
         form.formalAttachments[att.requirementKey as FormalRequirementKey] = {
           id: att.id,
           name: att.name,
@@ -726,13 +681,17 @@ export function hydrateContestOfferFormFromBid(bid: TenderBidRowLite | null): Co
           url: att.url,
           type: att.type === 'image' ? 'image' : 'document',
           source: 'extra',
-          requirementKey: att.requirementKey as 'deposit' | 'other' | undefined,
+          requirementKey: att.requirementKey as
+            | 'deposit'
+            | 'offerDocumentation'
+            | 'other'
+            | undefined,
           size: att.size,
         });
       }
     }
   }
-  return form;
+  return migrateLegacyOfferAttachments(form);
 }
 
 export function contestCountdownLabel(deadlineIso: string): string {

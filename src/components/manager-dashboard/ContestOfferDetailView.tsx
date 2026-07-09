@@ -184,7 +184,15 @@ export function ContestOfferDetailView({
       )
     : [];
   const offerDocs = (details?.extraAttachments ?? []).filter(
-    (ref) => ref.requirementKey !== 'deposit',
+    (ref) =>
+      ref.requirementKey === 'offerDocumentation' ||
+      (ref.requirementKey === 'other' &&
+        !(details?.extraAttachments ?? []).some((a) => a.requirementKey === 'offerDocumentation')),
+  );
+  const optionalExtras = (details?.extraAttachments ?? []).filter(
+    (ref) =>
+      ref.requirementKey === 'other' &&
+      (details?.extraAttachments ?? []).some((a) => a.requirementKey === 'offerDocumentation'),
   );
   const depositDoc = (details?.extraAttachments ?? []).find(
     (ref) => ref.requirementKey === 'deposit',
@@ -295,6 +303,16 @@ export function ContestOfferDetailView({
         <SectionCard icon={FileText} title="Dokumentacja ofertowa">
           <div className="space-y-2">
             {offerDocs.map((ref) => (
+              <AttachmentDownloadButton key={ref.id} attachment={ref} />
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {optionalExtras.length > 0 ? (
+        <SectionCard icon={FileText} title="Inne załączniki">
+          <div className="space-y-2">
+            {optionalExtras.map((ref) => (
               <AttachmentDownloadButton key={ref.id} attachment={ref} />
             ))}
           </div>

@@ -16,7 +16,7 @@ export interface ContestOfferAttachmentRef {
   url?: string;
   type: 'document' | 'image';
   source: 'profile' | 'override' | 'extra';
-  requirementKey?: FormalRequirementKey | 'deposit' | 'other';
+  requirementKey?: FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other';
   size?: number;
 }
 
@@ -46,7 +46,9 @@ export interface ContestOfferFormData {
   paymentTermsAccepted: boolean;
   formalAttachments: Partial<Record<FormalRequirementKey, ContestOfferAttachmentRef>>;
   extraAttachments: ContestOfferAttachmentRef[];
-  stagedFiles: Partial<Record<FormalRequirementKey | 'deposit' | 'other', File[]>>;
+  stagedFiles: Partial<
+    Record<FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other', File[]>
+  >;
 }
 
 export interface ResolvedContractorDocument {

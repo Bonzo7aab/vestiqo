@@ -258,11 +258,7 @@ export function ContestOfferStepFinancial({
                       ) : (
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
-                      <span className="truncate">
-                        {isDepositStaged
-                          ? `Do wgrania przy zapisie: ${depositDisplayName}`
-                          : depositDisplayName}
-                      </span>
+                      <span className="truncate">{depositDisplayName}</span>
                     </span>
                     {onRemoveDeposit ? (
                       <Button

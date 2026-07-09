@@ -52,7 +52,7 @@ export function ContestOfferStepFormal({
   onRemoveExtra,
   onRemoveStagedOther,
 }: ContestOfferStepFormalProps): ReactElement {
-  const extraDocs = form.extraAttachments.filter((a) => a.requirementKey !== 'deposit');
+  const extraDocs = form.extraAttachments.filter((a) => a.requirementKey === 'other');
   const stagedOther = form.stagedFiles.other ?? [];
   const hasExtraFiles = extraDocs.length > 0 || stagedOther.length > 0;
 
@@ -142,7 +142,7 @@ export function ContestOfferStepFormal({
               <li key={`${file.name}-${file.size}-${index}`} className={contestOfferStagedFileRowClass}>
                 <span className="flex min-w-0 items-center gap-2">
                   <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate">Do wgrania przy zapisie: {file.name}</span>
+                  <span className="truncate">{file.name}</span>
                 </span>
                 <Button
                   type="button"
