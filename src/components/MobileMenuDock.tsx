@@ -12,6 +12,7 @@ import {
   Menu,
   SlidersHorizontal,
   Map,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -30,19 +31,25 @@ import { HeaderJobSearch } from './HeaderJobSearch';
 import {
   MobileNavMenuPanel,
   type MobileNavMenuItem,
+  type MobileNavMenuSection,
 } from './navigation/MobileNavMenuPanel';
+import { getAccountRoleDisplayLabel } from '../lib/profile/account-role-labels';
 
 interface NavMenuItemConfig {
   title: string;
   icon: LucideIcon;
   href?: string;
+  description?: string;
+  emphasis?: boolean;
   onClick: () => void;
 }
+
+const ICON_SIZE = 'h-[18px] w-[18px]';
 
 export function MobileMenuDock() {
   const router = useNavigationWithLoading();
   const pathname = usePathname();
-  const { isAuthenticated } = useUserProfile();
+  const { isAuthenticated, user } = useUserProfile();
   const { isMapExpanded, setIsMapExpanded } = useLayoutContext();
   const { filters, setFilters, primaryLocation, onLocationChangeRequest } = useFilterContext();
   const { loadedJobs } = useJobsContext();
@@ -57,7 +64,10 @@ export function MobileMenuDock() {
   }, []);
 
   const isHomepage = pathname === '/';
-  const isCompactMode = isHomepage || isMapExpanded;
+  const isCompactMode = isHomepage;
+  const canCreateContest =
+    !user || (user.userType !== 'contractor' && user.platformRole !== 'platform_admin');
+  const isAdmin = user?.platformRole === 'platform_admin';
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
@@ -66,108 +76,174 @@ export function MobileMenuDock() {
       'Strona główna': '/',
       'Zapisane': '/zapisane-zgloszenia',
       'Wiadomości': '/wiadomosci',
+      'Utwórz konkurs': '/dodaj-konkurs',
       'Profil': '/konto',
+      'Zaloguj się': '/logowanie',
       'Zaloguj': '/logowanie',
     };
     return titleToPath[title] || '';
   };
 
-  const allMenuItems: NavMenuItemConfig[] = [
+  const closeDrawers = (): void => {
+    setMenuDrawerOpen(false);
+    setSearchDrawerOpen(false);
+    setFiltersDrawerOpen(false);
+  };
+
+  const navigateToCreateContest = (): void => {
+    closeDrawers();
+    setTimeout(() => router.push('/dodaj-konkurs'), 150);
+  };
+
+  const openSearch = (): void => {
+    setMenuDrawerOpen(false);
+    setFiltersDrawerOpen(false);
+    setSearchDrawerOpen(true);
+  };
+
+  const menuUser = user
+    ? {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roleLabel: isAdmin
+          ? 'ADMIN'
+          : getAccountRoleDisplayLabel({
+              userType: user.userType,
+              accountRole: user.accountRole,
+              organizationType: user.organizationType,
+            }),
+      }
+    : null;
+
+  const browseItems: NavMenuItemConfig[] = [
     {
       title: 'Strona główna',
       icon: Home,
       href: '/',
+      description: 'Przeglądaj otwarte konkursy',
       onClick: () => {
+        closeDrawers();
         router.push('/');
-        setMenuDrawerOpen(false);
-      },
-    },
-    {
-      title: 'Zapisane',
-      icon: Star,
-      href: '/zapisane-zgloszenia',
-      onClick: () => {
-        router.push('/zapisane-zgloszenia');
-        setMenuDrawerOpen(false);
       },
     },
     ...(isAuthenticated
       ? [
           {
-            title: 'Wiadomości',
-            icon: MessagesSquare,
-            href: '/wiadomosci',
+            title: 'Zapisane',
+            icon: Star,
+            href: '/zapisane-zgloszenia',
+            description: 'Twoje ulubione ogłoszenia',
             onClick: () => {
-              router.push('/wiadomosci');
-              setMenuDrawerOpen(false);
+              closeDrawers();
+              router.push('/zapisane-zgloszenia');
             },
-          },
-          {
-            title: 'Profil',
-            icon: User,
-            href: '/konto',
-            onClick: () => {
-              router.push('/konto');
-              setMenuDrawerOpen(false);
-            },
-          },
+          } satisfies NavMenuItemConfig,
         ]
-      : [
-          {
-            title: 'Zaloguj',
-            icon: User,
-            href: '/logowanie',
-            onClick: () => {
-              router.push('/logowanie');
-              setMenuDrawerOpen(false);
-            },
-          },
-        ]),
+      : []),
   ];
 
-  const navMenuPanelItems: MobileNavMenuItem[] = allMenuItems.map((item) => ({
-    label: item.title,
-    icon: item.icon,
-    href: item.href,
-    onClick: item.onClick,
-  }));
+  const accountItems: NavMenuItemConfig[] = isAuthenticated
+    ? [
+        {
+          title: 'Wiadomości',
+          icon: MessagesSquare,
+          href: '/wiadomosci',
+          description: 'Rozmowy z wykonawcami i zarządcami',
+          onClick: () => {
+            closeDrawers();
+            router.push('/wiadomosci');
+          },
+        },
+        {
+          title: 'Profil',
+          icon: User,
+          href: '/konto',
+          description: 'Ustawienia konta i firmy',
+          onClick: () => {
+            closeDrawers();
+            router.push('/konto');
+          },
+        },
+      ]
+    : [];
 
-  const openSearch = (): void => {
-    setMenuDrawerOpen(false);
-    setSearchDrawerOpen(true);
+  const menuSections: MobileNavMenuSection[] = [
+    ...(canCreateContest
+      ? [
+          {
+            title: 'Szybkie działania',
+            items: [
+              {
+                label: 'Utwórz konkurs',
+                icon: FileText,
+                href: '/dodaj-konkurs',
+                description: 'Opublikuj nowe ogłoszenie bezpłatnie',
+                emphasis: isAuthenticated,
+                onClick: navigateToCreateContest,
+              },
+            ],
+          } satisfies MobileNavMenuSection,
+        ]
+      : []),
+    {
+      title: 'Przeglądaj',
+      items: browseItems.map(toMenuItem),
+    },
+    ...(accountItems.length > 0
+      ? [
+          {
+            title: 'Konto',
+            items: accountItems.map(toMenuItem),
+          } satisfies MobileNavMenuSection,
+        ]
+      : []),
+  ];
+
+  const messagesDockItem: FloatingDockItem = {
+    title: 'Wiadomości',
+    icon: <MessagesSquare className={ICON_SIZE} strokeWidth={2} />,
+    href: isAuthenticated ? '/wiadomosci' : '/logowanie',
+    isActive: isActive('/wiadomosci'),
+    onClick: () => {
+      closeDrawers();
+      setTimeout(() => {
+        router.push(isAuthenticated ? '/wiadomosci' : '/logowanie');
+      }, 150);
+    },
+  };
+
+  const createContestDockItem: FloatingDockItem = {
+    title: 'Konkurs',
+    icon: <FileText className={ICON_SIZE} strokeWidth={2} />,
+    href: '/dodaj-konkurs',
+    isActive: isAuthenticated && pathname.startsWith('/dodaj-konkurs'),
+    onClick: navigateToCreateContest,
   };
 
   const mainMenuItems: FloatingDockItem[] = [
     {
-      title: 'Strona główna',
-      icon: <Home className="size-5" strokeWidth={2.25} />,
+      title: 'Start',
+      icon: <Home className={ICON_SIZE} strokeWidth={2} />,
       href: '/',
+      isActive: pathname === '/',
       onClick: () => {
-        setMenuDrawerOpen(false);
+        closeDrawers();
         setTimeout(() => router.push('/'), 150);
       },
     },
-    {
-      title: 'Wiadomości',
-      icon: <MessagesSquare className="size-5" strokeWidth={2.25} />,
-      href: isAuthenticated ? '/wiadomosci' : '/wybor-typu-konta',
-      onClick: () => {
-        setMenuDrawerOpen(false);
-        setTimeout(() => {
-          router.push(isAuthenticated ? '/wiadomosci' : '/wybor-typu-konta');
-        }, 150);
-      },
-    },
+    canCreateContest ? createContestDockItem : messagesDockItem,
     {
       title: 'Szukaj',
-      icon: <Search className="size-5" strokeWidth={2.25} />,
+      icon: <Search className={ICON_SIZE} strokeWidth={2} />,
+      isActive: searchDrawerOpen,
       onClick: () => {
         setTimeout(() => openSearch(), 150);
       },
     },
     {
       title: 'Menu',
-      icon: <Menu className="size-5" strokeWidth={2.25} />,
+      icon: <Menu className={ICON_SIZE} strokeWidth={2} />,
+      isActive: menuDrawerOpen,
       onClick: () => setMenuDrawerOpen(true),
     },
   ];
@@ -175,33 +251,38 @@ export function MobileMenuDock() {
   const compactDockItems: FloatingDockItem[] = [
     {
       title: isMapExpanded ? 'Lista' : 'Mapa',
-      icon: <Map className="size-5" strokeWidth={2.25} />,
+      icon: <Map className={ICON_SIZE} strokeWidth={2} />,
+      isActive: isMapExpanded,
       onClick: () => setIsMapExpanded(!isMapExpanded),
     },
     {
       title: 'Filtry',
-      icon: <SlidersHorizontal className="size-5" strokeWidth={2.25} />,
+      icon: <SlidersHorizontal className={ICON_SIZE} strokeWidth={2} />,
+      isActive: filtersDrawerOpen,
       onClick: () => setFiltersDrawerOpen(true),
     },
     {
       title: 'Szukaj',
-      icon: <Search className="size-5" strokeWidth={2.25} />,
+      icon: <Search className={ICON_SIZE} strokeWidth={2} />,
+      isActive: searchDrawerOpen,
       onClick: openSearch,
     },
     {
       title: 'Menu',
-      icon: <Menu className="size-5" strokeWidth={2.25} />,
+      icon: <Menu className={ICON_SIZE} strokeWidth={2} />,
+      isActive: menuDrawerOpen,
       onClick: () => setMenuDrawerOpen(true),
     },
   ];
 
   const searchDrawer = (
     <Drawer open={searchDrawerOpen} onOpenChange={setSearchDrawerOpen}>
-      <DrawerContent className="max-h-[50vh]">
-        <DrawerHeader>
-          <DrawerTitle>Szukaj ogłoszeń</DrawerTitle>
+      <DrawerContent className="max-h-[55vh] rounded-t-2xl">
+        <DrawerHeader className="border-b border-border/60 pb-4 text-left">
+          <DrawerTitle className="text-base font-semibold text-brand-navy">Szukaj ogłoszeń</DrawerTitle>
+          <p className="text-sm text-muted-foreground">Wpisz frazę, lokalizację lub kategorię usługi</p>
         </DrawerHeader>
-        <div className="p-4 pb-8">
+        <div className="px-4 pb-8 pt-2">
           <HeaderJobSearch className="w-full max-w-none" />
         </div>
       </DrawerContent>
@@ -210,13 +291,31 @@ export function MobileMenuDock() {
 
   const menuDrawer = (
     <Drawer open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
-      <DrawerContent className="mt-6 max-h-[92vh]">
+      <DrawerContent className="mt-4 max-h-[92vh] overflow-hidden rounded-t-2xl p-0">
         <DrawerHeader className="sr-only">
           <DrawerTitle>Menu nawigacji</DrawerTitle>
         </DrawerHeader>
-        <div className="max-h-[calc(92vh-2rem)] overflow-y-auto">
+        <div className="max-h-[calc(92vh-1.5rem)] overflow-y-auto">
           <MobileNavMenuPanel
-            items={navMenuPanelItems}
+            user={menuUser}
+            sections={menuSections}
+            onSearchClick={openSearch}
+            onLoginClick={
+              !isAuthenticated
+                ? () => {
+                    closeDrawers();
+                    router.push('/logowanie');
+                  }
+                : undefined
+            }
+            onRegisterClick={
+              !isAuthenticated
+                ? () => {
+                    closeDrawers();
+                    router.push('/rejestracja');
+                  }
+                : undefined
+            }
             isItemActive={(item) => {
               const path = getPathForLabel(item.label);
               return path ? isActive(path) : false;
@@ -237,7 +336,7 @@ export function MobileMenuDock() {
         {searchDrawer}
 
         <Drawer open={filtersDrawerOpen} onOpenChange={setFiltersDrawerOpen}>
-          <DrawerContent className="flex max-h-[85vh] flex-col overflow-hidden">
+          <DrawerContent className="flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl">
             <DrawerHeader className="sr-only">
               <DrawerTitle>Filtry</DrawerTitle>
             </DrawerHeader>
@@ -276,4 +375,15 @@ export function MobileMenuDock() {
       )}
     </>
   );
+}
+
+function toMenuItem(config: NavMenuItemConfig): MobileNavMenuItem {
+  return {
+    label: config.title,
+    icon: config.icon,
+    href: config.href,
+    description: config.description,
+    emphasis: config.emphasis,
+    onClick: config.onClick,
+  };
 }

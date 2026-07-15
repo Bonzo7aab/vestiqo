@@ -59,6 +59,7 @@ export async function updateSession(request: NextRequest) {
     '/dodaj-przetarg',
     '/tworzenie-przetargu',
     '/administracja',
+    '/zapisane-zgloszenia',
   ]
 
   const isProtectedPath = protectedPaths.some(path =>

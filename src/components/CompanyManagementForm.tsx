@@ -401,7 +401,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <p className="ml-2 text-sm text-muted-foreground">
-            {managedEntitiesOnly ? 'Ładowanie wspólnot i spółdzielni...' : 'Ładowanie danych firmy...'}
+            {managedEntitiesOnly ? 'Ładowanie wspólnot...' : 'Ładowanie danych firmy...'}
           </p>
         </div>
       </div>
@@ -417,12 +417,12 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
           <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-center gap-2 mb-2">
               <Building className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-medium">Zarządzanie wspólnotami i spółdzielniami</h4>
+              <h4 className="font-medium">Zarządzanie wspólnotami</h4>
             </div>
             <div className="text-center py-6">
               <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
-                Dane firmy z rejestracji są widoczne powyżej. Wspólnoty i spółdzielnie możesz dodać po
+                Dane firmy z rejestracji są widoczne powyżej. Wspólnoty możesz dodać po
                 utworzeniu konta.
               </p>
             </div>
@@ -992,15 +992,15 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
             <div className="border rounded-lg p-4 bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <h4 className="font-medium">Zarządzanie wspólnotami i spółdzielniami</h4>
+                <h4 className="font-medium">Zarządzanie wspólnotami</h4>
               </div>
               <div className="text-center py-6">
                 <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Aby dodać wspólnoty lub spółdzielnie, najpierw uzupełnij dane firmy powyżej
+                  Aby dodać wspólnoty, najpierw uzupełnij dane firmy powyżej
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Po zapisaniu firmy możesz dodawać podmioty po numerze NIP
+                  Po zapisaniu firmy możesz dodawać wspólnoty po numerze NIP
                 </p>
               </div>
             </div>

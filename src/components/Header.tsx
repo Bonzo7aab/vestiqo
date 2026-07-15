@@ -211,9 +211,16 @@ export function Header({
   const showVerificationAttention = needsVerificationAttention(currentUser);
   const verificationAttentionLabel = verificationAttentionAriaLabel(userForVerificationUi);
   const isAdmin = currentUser?.platformRole === 'platform_admin'
+  const isAuthRoute =
+    pathname === '/logowanie' ||
+    pathname === '/rejestracja' ||
+    pathname.startsWith('/logowanie/') ||
+    pathname.startsWith('/rejestracja/')
   const showFavoritesNav =
-    !currentUser ||
-    (currentUser.userType !== 'manager' && currentUser.platformRole !== 'platform_admin')
+    userIsAuthenticated &&
+    !!currentUser &&
+    currentUser.userType !== 'manager' &&
+    currentUser.platformRole !== 'platform_admin'
 
   // Enhanced logout that redirects to login
   // We don't call router.refresh() to avoid race condition where server might still see session cookie
@@ -361,10 +368,10 @@ export function Header({
       </Avatar>
       {showLabel && currentUser ? (
         <>
-          <span className="hidden max-w-[7rem] truncate text-sm font-medium text-foreground md:inline">
+          <span className="hidden max-w-[7rem] truncate text-sm font-medium text-foreground lg:inline">
             {currentUser.firstName}
           </span>
-          <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:text-primary md:inline group-data-[state=open]:rotate-180" />
+          <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:text-primary lg:inline group-data-[state=open]:rotate-180" />
         </>
       ) : null}
       {showVerificationAttention && (
@@ -394,14 +401,14 @@ export function Header({
             />
           </div>
 
-          {/* 2. Center - Search (hidden on mobile) */}
-          <div className="hidden md:flex items-center flex-1 justify-center">
+          {/* 2. Center - Search (hidden below laptop) */}
+          <div className="hidden lg:flex items-center flex-1 justify-center">
             <HeaderJobSearch className="max-w-md lg:max-w-xl" />
           </div>
 
             {/* Add Job button - visible for unauthenticated (redirects to login) and authenticated managers.
-                Admin gets a single ADMIN button instead. */}
-            <div className="hidden md:block mr-4">
+                Admin gets a single ADMIN button instead. Hidden below laptop (see bottom menu). */}
+            <div className="hidden lg:block mr-4">
               {userIsAuthenticated && isAdmin ? (
                 <Button
                   variant="default"
@@ -425,7 +432,7 @@ export function Header({
               )}
             </div>
 
-          {/* 3. Right Side Actions - Messages (always visible), notifications, user */}
+          {/* 3. Right Side Actions - messages & saved hidden below laptop (see bottom menu) */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {!isAdmin &&
               (userIsAuthenticated ? (
@@ -433,7 +440,7 @@ export function Header({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  className="hidden lg:inline-flex h-9 w-9 text-muted-foreground hover:text-foreground"
                   onClick={handleMessagingClick}
                   aria-label="Wiadomości"
                 >
@@ -448,7 +455,7 @@ export function Header({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    className="hidden lg:inline-flex h-9 w-9 text-muted-foreground hover:text-foreground"
                     aria-label="Wiadomości"
                   >
                     <MessagesSquare className="h-5 w-5" />
@@ -461,7 +468,7 @@ export function Header({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  className="hidden lg:inline-flex h-9 w-9 text-muted-foreground hover:text-foreground"
                   onClick={handleBookmarkedJobsClick}
                   aria-label="Zapisane zgłoszenia"
                 >
@@ -476,7 +483,7 @@ export function Header({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    className="hidden lg:inline-flex h-9 w-9 text-muted-foreground hover:text-foreground"
                     aria-label="Zapisane zgłoszenia"
                   >
                     <Star className="h-5 w-5" />
@@ -504,19 +511,8 @@ export function Header({
               </div>
             ) : userIsAuthenticated ? (
               <>
-                {currentUser?.userType === 'manager' && !isAdmin ? (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleCreateContestClick}
-                    className="md:hidden h-9 shrink-0 px-2.5 text-xs font-semibold"
-                  >
-                    + Konkurs
-                  </Button>
-                ) : null}
-
-                {/* Mobile: Drawer */}
-                <div className="md:hidden">
+                {/* Mobile / tablet: Drawer */}
+                <div className="lg:hidden">
                   <Drawer>
                     <DrawerTrigger asChild>{renderAvatarTrigger()}</DrawerTrigger>
                     <DrawerContent className="mt-6 max-h-[92vh]">
@@ -530,8 +526,8 @@ export function Header({
                   </Drawer>
                 </div>
 
-                {/* Desktop: DropdownMenu */}
-                <div className="hidden md:block">
+                {/* Laptop+: DropdownMenu */}
+                <div className="hidden lg:block">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>{renderAvatarTrigger(undefined, true)}</DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -545,24 +541,23 @@ export function Header({
                 </div>
               </>
             ) : (
-              <>
-                <div className="md:hidden flex items-center space-x-2">
-                  <Button variant="default" size="sm" onClick={handleCreateContestClick} className="shrink-0">
-                    Utwórz konkurs
-                  </Button>
-                  <GuestAuthDropdown
-                    onLogin={handleLoginClick}
-                    onRegister={handleRegisterClick}
-                  />
-                </div>
+              !isAuthRoute ? (
+                <>
+                  <div className="lg:hidden">
+                    <GuestAuthDropdown
+                      onLogin={handleLoginClick}
+                      onRegister={handleRegisterClick}
+                    />
+                  </div>
 
-                <div className="hidden md:block">
-                  <GuestAuthDropdown
-                    onLogin={handleLoginClick}
-                    onRegister={handleRegisterClick}
-                  />
-                </div>
-              </>
+                  <div className="hidden lg:block">
+                    <GuestAuthDropdown
+                      onLogin={handleLoginClick}
+                      onRegister={handleRegisterClick}
+                    />
+                  </div>
+                </>
+              ) : null
             )}
             
           </div>

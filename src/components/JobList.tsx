@@ -35,6 +35,7 @@ interface JobListProps {
   isMapVisible?: boolean;
   isLoadingJobs?: boolean;
   onApplyClick?: (jobId: string, jobData?: Job) => void;
+  onVisibleCountChange?: (count: number) => void;
 }
 
 export default function JobList({
@@ -46,6 +47,7 @@ export default function JobList({
   isMapVisible = false,
   isLoadingJobs = false,
   onApplyClick,
+  onVisibleCountChange,
 }: JobListProps) {
   const { user } = useUserProfile();
   const isManager = user?.userType === 'manager';
@@ -225,8 +227,19 @@ export default function JobList({
     [sortBy, sortedJobs],
   );
 
+  useEffect(() => {
+    onVisibleCountChange?.(sortedJobs.length);
+  }, [sortedJobs.length, onVisibleCountChange]);
+
+  const isCompactList = !isLoadingJobs && sortedJobs.length <= 4;
+
   return (
-    <div className="flex-1 p-2 sm:p-3 lg:px-2 lg:py-3 max-w-full overflow-x-hidden">
+    <div
+      className={cn(
+        'flex-1 p-2 sm:p-3 lg:px-2 lg:py-3 max-w-full overflow-x-hidden',
+        isCompactList && 'pb-6',
+      )}
+    >
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 md:flex-nowrap md:justify-between">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <h2 className="shrink-0 text-base font-bold whitespace-nowrap sm:text-lg">

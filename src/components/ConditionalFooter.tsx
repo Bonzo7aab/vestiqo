@@ -26,13 +26,15 @@ interface LayoutProviderProps {
 export function LayoutProvider({ children }: LayoutProviderProps) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const pathname = usePathname();
+  const isOnHomepage = pathname === '/';
+  const effectiveMapExpanded = isOnHomepage && isMapExpanded;
   const hideFooter =
     pathname.startsWith('/dodaj-konkurs') || pathname.startsWith('/dodaj-zlecenie');
 
   return (
-    <LayoutContext.Provider value={{ isMapExpanded, setIsMapExpanded }}>
+    <LayoutContext.Provider value={{ isMapExpanded: effectiveMapExpanded, setIsMapExpanded }}>
       {children}
-      {!isMapExpanded && !hideFooter && (
+      {!effectiveMapExpanded && !hideFooter && (
         <div className="pb-20 lg:pb-0">
           <Footer />
         </div>
