@@ -11,6 +11,8 @@ export interface FloatingDockItem {
   href?: string;
   onClick?: () => void;
   isActive?: boolean;
+  /** Highlights item as a primary action (e.g. create contest). */
+  emphasis?: boolean;
 }
 
 interface FloatingDockProps {
@@ -63,6 +65,84 @@ function FloatingDockDesktop({
   );
 }
 
+function MobileDockTab({
+  item,
+}: {
+  item: FloatingDockItem;
+}) {
+  const { title, icon, href, onClick, isActive, emphasis } = item;
+
+  const content = (
+    <>
+      <span
+        className={cn(
+          "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
+          isActive
+            ? "bg-primary/12 text-primary"
+            : emphasis
+              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+              : "text-muted-foreground",
+        )}
+      >
+        {icon}
+        {isActive ? (
+          <span
+            className="absolute -bottom-1 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-primary"
+            aria-hidden
+          />
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "max-w-full truncate text-[10px] font-medium leading-none tracking-wide",
+          isActive
+            ? "text-primary"
+            : emphasis
+              ? "text-primary"
+              : "text-muted-foreground",
+        )}
+      >
+        {title}
+      </span>
+    </>
+  );
+
+  const className = cn(
+    "flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 transition-colors duration-200",
+    "outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+    isActive && "bg-primary/[0.04]",
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={(e) => {
+          if (onClick) {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        className={className}
+        aria-current={isActive ? "page" : undefined}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(className, "cursor-pointer border-0 bg-transparent")}
+      aria-pressed={isActive}
+    >
+      {content}
+    </button>
+  );
+}
+
 function FloatingDockMobile({
   items,
   className,
@@ -74,53 +154,19 @@ function FloatingDockMobile({
     <nav
       aria-label="Nawigacja mobilna"
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 lg:hidden",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 lg:hidden",
         className
       )}
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
-      <div className="pointer-events-auto mx-auto flex max-w-md items-stretch gap-1 rounded-xl border border-border/70 bg-card p-1.5 shadow-[0_4px_20px_hsl(var(--brand-navy)/0.08)] ring-1 ring-inset ring-white/50">
-        {items.map((item, i) => {
-          const content = (
-            <div className="flex min-h-[50px] flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-transparent px-1 py-1.5 text-muted-foreground">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                {item.icon}
-              </span>
-              <span className="max-w-full truncate text-[10px] font-medium leading-none">
-                {item.title}
-              </span>
-            </div>
-          );
-
-          if (item.href) {
-            return (
-              <Link
-                key={i}
-                href={item.href}
-                onClick={(e) => {
-                  if (item.onClick) {
-                    e.preventDefault();
-                    item.onClick();
-                  }
-                }}
-                className="flex min-w-0 flex-1 outline-none focus:outline-none focus-visible:outline-none"
-              >
-                {content}
-              </Link>
-            );
-          }
-
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={item.onClick}
-              className="flex min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 outline-none focus:outline-none focus-visible:outline-none"
-            >
-              {content}
-            </button>
-          );
-        })}
+      <div
+        className="pointer-events-auto border-t border-border/70 bg-card/95 shadow-[0_-6px_28px_hsl(var(--brand-navy)/0.07)] backdrop-blur-xl supports-[backdrop-filter]:bg-card/88"
+        style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="mx-auto flex max-w-lg items-stretch justify-around gap-0.5 px-2 pt-1.5">
+          {items.map((item, i) => (
+            <MobileDockTab key={`${item.title}-${i}`} item={item} />
+          ))}
+        </div>
       </div>
     </nav>
   );

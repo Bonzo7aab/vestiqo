@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import JobFilters from '../components/JobFilters';
 import JobList from '../components/JobList';
@@ -32,6 +32,7 @@ import {
   mapTenderRowToContestDisplay,
 } from '../lib/contest/map-tender-contest-display';
 import { useContractorContestBidStatus } from '../hooks/useContractorContestBidStatus';
+import { cn } from '../components/ui/utils';
 
 // Dynamically import heavy components to reduce initial bundle size
 const EnhancedMapViewGoogleMaps = dynamic(
@@ -98,6 +99,13 @@ function HomePageContent() {
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
+  const [visibleListCount, setVisibleListCount] = useState(0);
+
+  const handleVisibleListCountChange = useCallback((count: number) => {
+    setVisibleListCount(count);
+  }, []);
+
+  const isCompactList = !isLoadingJobs && visibleListCount <= 4;
 
   // Use refs to store latest values for use in async callbacks to avoid stale closures
   const mapBoundsRef = useRef(mapBounds);
@@ -715,9 +723,14 @@ function HomePageContent() {
           {!user && <HomeHeroSection />}
           <CategoryIconBar jobs={loadedJobs} />
 
-          <div className="max-w-7xl mx-auto sm:px-4 md:px-6 lg:px-8">
+          <div className={cn('max-w-7xl mx-auto sm:px-4 md:px-6 lg:px-8', isCompactList && 'pb-10 lg:pb-12')}>
             <div className="flex flex-col lg:flex-row lg:items-start min-h-0 lg:gap-4">
-              <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
+              <div
+                className={cn(
+                  'hidden lg:block lg:w-80 xl:w-96 flex-shrink-0 lg:sticky lg:top-20 lg:self-start',
+                  isCompactList && 'pb-6',
+                )}
+              >
                 <JobFilters
                   onFilterChange={setFilters}
                   initialFilters={filters}
@@ -737,6 +750,7 @@ function HomePageContent() {
                   isMapVisible={isMapExpanded}
                   isLoadingJobs={isLoadingJobs}
                   onApplyClick={handleApplyClick}
+                  onVisibleCountChange={handleVisibleListCountChange}
                 />
               </div>
             </div>

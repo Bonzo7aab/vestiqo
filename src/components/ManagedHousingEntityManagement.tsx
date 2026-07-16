@@ -38,13 +38,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import { createClient } from '../lib/supabase/client';
 import {
   createManagedHousingEntity,
@@ -59,12 +52,8 @@ import type { CompanyLookupResult } from '../lib/gus/types';
 import type {
   ManagedHousingEntity,
   ManagedHousingEntityFormData,
-  ManagedHousingEntityType,
 } from '../types/managed-housing-entity';
-import {
-  formatManagedHousingEntityType,
-  MANAGED_HOUSING_ENTITY_TYPE_OPTIONS,
-} from '../types/managed-housing-entity';
+import { formatManagedHousingEntityType } from '../types/managed-housing-entity';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import {
   Table,
@@ -146,8 +135,8 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         const message = formatPostgrestError(fetchError);
         setError(
           fetchError.code === 'PGRST205'
-            ? 'Funkcja wymaga aktualizacji bazy danych (brak tabeli wspólnot i spółdzielni). Skontaktuj się z administratorem.'
-            : 'Nie udało się załadować wspólnot i spółdzielni',
+            ? 'Funkcja wymaga aktualizacji bazy danych (brak tabeli wspólnot). Skontaktuj się z administratorem.'
+            : 'Nie udało się załadować wspólnot',
         );
         console.error('fetchManagerHousingEntities:', message, fetchError);
       } else {
@@ -223,7 +212,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      setError('Wyszukaj NIP w rejestrze GUS, aby pobrać dane podmiotu');
+      setError('Wyszukaj NIP w rejestrze GUS, aby pobrać dane wspólnoty');
       return;
     }
 
@@ -231,18 +220,23 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
     setError('');
     setSuccess('');
 
+    const payload: ManagedHousingEntityFormData = {
+      ...formData,
+      entity_type: editingEntity?.entity_type ?? 'wspólnota',
+    };
+
     try {
       const supabase = createClient();
       const result = editingEntity
-        ? await updateManagedHousingEntity(supabase, editingEntity.id, companyId, formData)
-        : await createManagedHousingEntity(supabase, companyId, formData);
+        ? await updateManagedHousingEntity(supabase, editingEntity.id, companyId, payload)
+        : await createManagedHousingEntity(supabase, companyId, payload);
 
       if (result.error) {
-        setError(result.error.message || 'Nie udało się zapisać podmiotu');
+        setError(result.error.message || 'Nie udało się zapisać wspólnoty');
         return;
       }
 
-      setSuccess(editingEntity ? 'Zaktualizowano podmiot' : 'Dodano podmiot');
+      setSuccess(editingEntity ? 'Zaktualizowano wspólnotę' : 'Dodano wspólnotę');
       closeDialog();
       await loadEntities();
     } catch {
@@ -264,10 +258,10 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         companyId,
       );
       if (deleteError || !deleted) {
-        setError(deleteError?.message || 'Nie udało się usunąć podmiotu');
+        setError(deleteError?.message || 'Nie udało się usunąć wspólnoty');
         return;
       }
-      setSuccess('Usunięto podmiot');
+      setSuccess('Usunięto wspólnotę');
       setIsDeleteDialogOpen(false);
       setDeletingEntity(null);
       await loadEntities();
@@ -302,11 +296,11 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-muted-foreground" />
-          <h4 className="font-medium">Zarządzanie wspólnotami i spółdzielniami</h4>
+          <h4 className="font-medium">Zarządzanie wspólnotami</h4>
           {entities.length > 0 && (
             <Badge variant="secondary">
               {entities.length}{' '}
-              {entities.length === 1 ? 'podmiot' : 'podmiotów'}
+              {entities.length === 1 ? 'wspólnota' : 'wspólnot'}
             </Badge>
           )}
         </div>
@@ -326,7 +320,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
           </ToggleGroup>
           <Button size="sm" onClick={openAddDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Dodaj podmiot
+            Dodaj wspólnotę
           </Button>
         </div>
       </div>
@@ -354,12 +348,12 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         <div className="text-center py-10">
           <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-sm text-muted-foreground mb-4">
-            Nie masz jeszcze dodanych wspólnot ani spółdzielni. Dodaj podmiot po numerze NIP —
+            Nie masz jeszcze dodanych wspólnot. Dodaj wspólnotę po numerze NIP —
             dane zostaną pobrane z rejestru GUS.
           </p>
           <Button onClick={openAddDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Dodaj pierwszy podmiot
+            Dodaj wspólnotę
           </Button>
         </div>
       ) : viewMode === 'gallery' ? (
@@ -454,37 +448,16 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingEntity ? 'Edytuj podmiot' : 'Dodaj wspólnotę lub spółdzielnię'}
+              {editingEntity ? 'Edytuj wspólnotę' : 'Dodaj wspólnotę'}
             </DialogTitle>
             <DialogDescription>
-              Wybierz typ podmiotu i podaj NIP — dane zostaną pobrane z rejestru GUS.
+              Podaj NIP wspólnoty mieszkaniowej — dane zostaną pobrane z rejestru GUS.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Typ podmiotu *</Label>
-              <Select
-                value={formData.entity_type}
-                onValueChange={(v) =>
-                  setFormData((prev) => ({ ...prev, entity_type: v as ManagedHousingEntityType }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MANAGED_HOUSING_ENTITY_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="entity-nip">NIP *</Label>
+              <Label htmlFor="entity-nip">NIP wspólnoty mieszkaniowej *</Label>
               <div className="relative">
                 <Input
                   id="entity-nip"
@@ -565,7 +538,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Usunąć podmiot?</AlertDialogTitle>
+            <AlertDialogTitle>Usunąć wspólnotę?</AlertDialogTitle>
             <AlertDialogDescription>
               {deletingEntity
                 ? `Czy na pewno chcesz usunąć „${deletingEntity.name}" z listy? Ta operacja jest nieodwracalna.`
