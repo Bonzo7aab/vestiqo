@@ -280,7 +280,7 @@ export function generateMobileDrawerContent(jobData: Job): string {
 /** Binds Szczegóły button inside the open Google Maps info window. */
 export function bindMapInfoWindowDetailsButton(
   listingId: string,
-  onOpenDetails: (id: string) => void,
+  onOpenDetails: (listingId: string, href?: string) => void,
 ): void {
   const infoWindowRoot = document.querySelector(".gm-style-iw-d");
   const card = infoWindowRoot?.querySelector(`[data-listing-id="${listingId}"]`);
@@ -297,12 +297,8 @@ export function bindMapInfoWindowDetailsButton(
       event.preventDefault();
       event.stopPropagation();
 
-      const href = button.getAttribute("data-listing-href");
-      const id =
-        card?.getAttribute("data-listing-id") ||
-        (href ? href.split("/").pop() ?? listingId : listingId);
-
-      onOpenDetails(id);
+      const href = button.getAttribute("data-listing-href") ?? undefined;
+      onOpenDetails(listingId, href);
     },
     { once: true },
   );

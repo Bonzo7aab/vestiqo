@@ -214,6 +214,13 @@ CREATE POLICY "Contest owners can update offer status" ON contest_offers
         )
     );
 
+-- Contractors can delete their own draft offers (abandon draft)
+CREATE POLICY "Contractors can delete their own draft offers" ON contest_offers
+    FOR DELETE USING (
+        contractor_id = auth.uid()
+        AND status = 'draft'
+    );
+
 -- =============================================
 -- CERTIFICATES POLICIES
 -- =============================================

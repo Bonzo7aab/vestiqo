@@ -18,6 +18,7 @@ import PortfolioProjectForm from '../../../components/PortfolioProjectForm';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import type { PlatformProject } from '../../../lib/database/contractors';
+import { routes } from '../../../lib/routes';
 
 interface PortfolioProject {
   id: string;
@@ -188,7 +189,7 @@ export function ProjectsContent({ platformProjects: initialPlatformProjects, por
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/konkurs/${project.jobId}`)}
+                            onClick={() => router.push(routes.konkurs(project.jobId, project.title))}
                           >
                             Zobacz szczegóły
                           </Button>

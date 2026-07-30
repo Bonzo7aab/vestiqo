@@ -7,6 +7,7 @@ import { useUserProfile } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../lib/database/notifications';
 import { createClient } from '../lib/supabase/client';
 import { KONTO_TABS, kontoHref } from '../lib/konto-tabs';
+import { routes } from '../lib/routes';
 import type { Database } from '../types/database';
 import type {
   ApplicationNotification,
@@ -535,7 +536,7 @@ export const UnifiedNotifications: React.FC<UnifiedNotificationsProps> = ({
         } else if (onTenderSelect && contestNotif.contestId) {
           onTenderSelect(contestNotif.contestId);
         } else if (contestNotif.contestId) {
-          router.push(`/konkurs/${contestNotif.contestId}`);
+          router.push(routes.konkurs(contestNotif.contestId, contestNotif.contestTitle));
         }
         break;
       }

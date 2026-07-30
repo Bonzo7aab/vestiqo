@@ -15,10 +15,13 @@ import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOffe
 import { cn } from '../ui/utils';
 
 export const contestOfferUploadedFileRowClass =
-  'flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-white px-3 py-2.5 text-sm shadow-sm dark:bg-card';
+  'flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm dark:bg-primary/10';
 
 export const contestOfferStagedFileRowClass =
-  'flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-white px-3 py-2.5 text-sm text-muted-foreground shadow-sm dark:bg-card';
+  'flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm dark:bg-primary/10';
+
+export const contestOfferFileIconWrapClass =
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary';
 
 export const contestOfferSectionCardClass =
   'rounded-lg border border-border/60 bg-white p-4 shadow-sm dark:bg-card';
@@ -100,6 +103,51 @@ export function ContestOfferFormalDocBlock({
           </div>
         ) : null}
 
+        {isAttached ? (
+          <ul className="mb-3 space-y-2">
+            <li className={isStaged ? contestOfferStagedFileRowClass : contestOfferUploadedFileRowClass}>
+              <span className="flex min-w-0 items-center gap-3">
+                <span className={contestOfferFileIconWrapClass} aria-hidden>
+                  {isStaged ? (
+                    <Upload className="h-4 w-4" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-foreground">{displayName}</span>
+                  {isStaged ? (
+                    <span className="text-xs text-muted-foreground">Nowy plik — zostanie wysłany przy zapisie</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Dołączony do oferty</span>
+                  )}
+                </span>
+                {previewUrl ? (
+                  <Link
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Podgląd
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ) : null}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label={`Usuń ${displayName}`}
+                onClick={onRemove}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </li>
+          </ul>
+        ) : null}
+
         <Dropzone
           accept={FILE_ACCEPT}
           maxFiles={1}
@@ -107,52 +155,22 @@ export function ContestOfferFormalDocBlock({
             const file = files[0];
             if (file) onUpload(file);
           }}
-          className={cn('min-h-[140px] border-dashed', fieldError && 'border-destructive')}
+          className={cn(
+            'min-h-[100px] border-dashed p-5',
+            isAttached && 'min-h-[72px]',
+            fieldError && 'border-destructive',
+          )}
         >
           <DropzoneEmptyState>
-            <p className="text-sm font-medium">Przeciągnij plik tutaj lub kliknij, aby wybrać</p>
+            <p className="text-sm font-medium">
+              {isAttached ? 'Zastąp plik — przeciągnij lub kliknij' : 'Przeciągnij plik tutaj lub kliknij, aby wybrać'}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX lub obrazy</p>
           </DropzoneEmptyState>
           <DropzoneContent />
         </Dropzone>
         <ContestOfferFieldError message={fieldError} />
       </div>
-
-      {isAttached ? (
-        <ul className="space-y-2">
-          <li className={isStaged ? contestOfferStagedFileRowClass : contestOfferUploadedFileRowClass}>
-            <span className="flex min-w-0 items-center gap-2">
-              {isStaged ? (
-                <Upload className="h-4 w-4 shrink-0" />
-              ) : (
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-              )}
-              <span className="truncate">{displayName}</span>
-              {previewUrl ? (
-                <Link
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  Podgląd
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              ) : null}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              aria-label={`Usuń ${displayName}`}
-              onClick={onRemove}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </li>
-        </ul>
-      ) : null}
     </div>
   );
 }

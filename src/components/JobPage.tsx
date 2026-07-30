@@ -35,6 +35,8 @@ import {
 } from '../utils/bookmarkCountOverrides';
 import { toast } from 'sonner';
 import { kontoCompanyDataHref } from '../lib/konto-tabs';
+import { routes } from '../lib/routes';
+import { isCanonicalKonkursPath } from '../lib/listing/konkurs-slug';
 import { getJobById, getTenderById } from '../lib/data';
 import { incrementJobViews, incrementTenderViews, createJobApplication, createTenderBid, type JobWithCompany, type TenderWithCompany } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
@@ -705,6 +707,15 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
     };
   }, [jobData?.id, jobData?.postType, jobData?.contestInfo]);
 
+  // OPD-162: canonicalize /konkurs/{uuid} → /konkurs/{slug}-{hexId}
+  useEffect(() => {
+    if (!jobData?.id || !jobData.title) return;
+    const pathname = window.location.pathname;
+    if (isCanonicalKonkursPath(pathname, jobData.id, jobData.title)) return;
+    const search = window.location.search;
+    router.replace(`${routes.konkurs(jobData.id, jobData.title)}${search}`, { scroll: false });
+  }, [jobData?.id, jobData?.title, router]);
+
   // Check tender bid state (submitted vs draft) for this tender
   useEffect(() => {
     const checkBidState = async () => {
@@ -794,7 +805,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
     if (isCheckingBid) return;
 
     if (!hasDraftBid) {
-      router.replace(`/konkurs/${jobId}`, { scroll: false });
+      router.replace(routes.konkurs(jobId, jobData.title), { scroll: false });
       return;
     }
 
@@ -837,7 +848,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
       }
 
       setShowContestOfferForm(true);
-      router.replace(`/konkurs/${jobId}`, { scroll: false });
+      router.replace(routes.konkurs(jobId, jobData.title), { scroll: false });
     };
 
     void openDraftOffer();
@@ -1942,6 +1953,11 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
           contractorId={user.id}
           onSubmitted={() => {
             void refreshBidState();
+            setJobData((prev) => {
+              if (!prev) return prev;
+              const next = (prev.applications ?? 0) + 1;
+              return { ...prev, applications: next };
+            });
           }}
           onDraftSaved={() => {
             void refreshBidState();

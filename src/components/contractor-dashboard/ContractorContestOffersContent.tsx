@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FilePen, Loader2, MessagesSquare, MoreVertical, Star } from 'lucide-react';
@@ -23,21 +23,25 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
-import { createClient } from '../../lib/supabase/client';
 import type { ContractorContestOfferRow } from '../../lib/database/contractor-contest-offers';
 import {
   canAbandonContestOfferDraft,
   canMessageManagerOnContestOffer,
   canRateCooperationOnContestOffer,
   canWithdrawContestOffer,
+  deriveContractorContestOfferStatus,
 } from '../../lib/contest-offer/contractor-contest-offer-status';
 import { CONTEST_STATUS_FILTER_OPTIONS } from '../../lib/tender-workflow-status';
-import { abandonTenderBidDraftAction } from '../../lib/database/contest-offers-actions';
+import {
+  abandonTenderBidDraftAction,
+  withdrawTenderBidAction,
+} from '../../lib/database/contest-offers-actions';
 import { getTenderById } from '../../lib/data';
 import {
   isContestTender,
   mapTenderRowToContestDisplay,
 } from '../../lib/contest/map-tender-contest-display';
+import { routes } from '../../lib/routes';
 import { ContestOfferSubmissionDialog } from '../contest-offer/ContestOfferSubmissionDialog';
 import { useUserProfile } from '../../contexts/AuthContext';
 import type { ContestInfo } from '../../types/job';
@@ -62,7 +66,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
-
+import { createClient } from '../../lib/supabase/client';
+import { notifyContestBidStatusChanged } from '../../utils/contestBidStatusEvents';
 interface ContractorContestOffersContentProps {
   offers: ContractorContestOfferRow[];
   companyId: string;
@@ -88,10 +93,11 @@ function formatMoneyPl(price: number): string {
 
 export function ContractorContestOffersContent({
   offers,
-  companyId,
+  companyId: _companyId,
 }: ContractorContestOffersContentProps) {
   const router = useRouter();
   const { user } = useUserProfile();
+  const [rows, setRows] = useState(offers);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [abandonTarget, setAbandonTarget] = useState<ContractorContestOfferRow | null>(null);
@@ -105,8 +111,12 @@ export function ContractorContestOffersContent({
     useState<ContractorContestOfferRow | null>(null);
   const [reviewedTenderIds, setReviewedTenderIds] = useState<Set<string>>(() => new Set());
 
+  useEffect(() => {
+    setRows(offers);
+  }, [offers]);
+
   const filteredOffers = useMemo(() => {
-    return offers.filter((row) => {
+    return rows.filter((row) => {
       if (statusFilter !== 'all' && row.tenderStatus !== statusFilter) {
         return false;
       }
@@ -121,34 +131,41 @@ export function ContractorContestOffersContent({
       }
       return true;
     });
-  }, [offers, statusFilter, search]);
+  }, [rows, statusFilter, search]);
 
   const handleWithdraw = async (): Promise<void> => {
     if (!withdrawTarget) return;
 
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user || !companyId) {
-      toast.error('Musisz być zalogowany aby wycofać ofertę');
-      return;
-    }
-
     setIsWithdrawing(true);
     try {
-      const { cancelTenderBid } = await import('../../lib/database/jobs');
-      const result = await cancelTenderBid(supabase, withdrawTarget.id, user.id);
+      const result = await withdrawTenderBidAction({
+        bidId: withdrawTarget.id,
+        tenderId: withdrawTarget.tenderId,
+      });
 
-      if (result.error) {
-        const err = result.error;
-        const errorMessage =
-          err instanceof Error ? err.message : 'Wystąpił błąd podczas wycofywania oferty';
-        toast.error(errorMessage);
+      if (!result.success) {
+        toast.error(result.error ?? 'Wystąpił błąd podczas wycofywania oferty');
         return;
       }
 
+      const withdrawnId = withdrawTarget.id;
+      const withdrawnTenderId = withdrawTarget.tenderId;
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.id !== withdrawnId) return row;
+          const bidStatus = 'cancelled';
+          return {
+            ...row,
+            bidStatus,
+            derivedStatus: deriveContractorContestOfferStatus({
+              bidStatus,
+              tenderStatus: row.tenderStatus,
+              submissionDeadlineIso: row.submissionDeadline,
+            }),
+          };
+        }),
+      );
+      notifyContestBidStatusChanged({ tenderId: withdrawnTenderId, status: 'none' });
       toast.success('Oferta została wycofana');
       setWithdrawTarget(null);
       router.refresh();
@@ -273,6 +290,8 @@ export function ContractorContestOffersContent({
       }
 
       toast.success('Szkic oferty został odrzucony');
+      setRows((prev) => prev.filter((row) => row.id !== abandonTarget.id));
+      notifyContestBidStatusChanged({ tenderId: abandonTarget.tenderId, status: 'none' });
       setAbandonTarget(null);
       router.refresh();
     } finally {
@@ -389,7 +408,7 @@ export function ContractorContestOffersContent({
                 Brak ofert w tej kategorii
               </h3>
               <p className="text-sm text-muted-foreground">
-                {offers.length === 0
+                {rows.length === 0
                   ? 'Nie masz jeszcze ofert w konkursach. Przeglądaj konkursy i składaj oferty — zapisane szkice też pojawią się tutaj.'
                   : 'Zmień filtr lub wyszukiwanie, aby zobaczyć inne oferty.'}
               </p>
@@ -428,7 +447,7 @@ export function ContractorContestOffersContent({
                       <TableCell className="max-w-[300px]">
                         <div className="min-w-0">
                           <Link
-                            href={`/konkurs/${row.tenderId}`}
+                            href={routes.konkurs(row.tenderId, row.contestTitle)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-medium truncate leading-snug hover:underline block max-w-full text-foreground hover:text-primary"

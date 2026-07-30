@@ -62,7 +62,7 @@ export function ContestOfferStepSchedule({
                 type="date"
                 value={form.proposedCompletionDate}
                 onChange={(e) => onPatch({ proposedCompletionDate: e.target.value })}
-                className="h-10 w-full max-w-[13rem] border-border/60 bg-white dark:bg-card"
+                className="h-10 w-fit max-w-full border-border/60 bg-white pe-2 dark:bg-card [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:ms-1"
                 aria-invalid={Boolean(fieldErrors.proposedCompletionDate)}
               />
             </div>

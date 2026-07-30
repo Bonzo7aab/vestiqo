@@ -3,6 +3,7 @@ import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import { ContractorProfile, ServicePricing } from '../../types/contractor';
 import { ilikePattern } from './escape-postgrest-filter';
+import { buildKonkursPath } from '../listing/konkurs-slug';
 
 // Re-export ContractorProfile for convenience
 export type { ContractorProfile, ServicePricing };
@@ -1816,7 +1817,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-green-500',
             icon: 'CheckCircle',
-            linkUrl: jobId ? `/konkurs/${jobId}` : undefined
+            linkUrl: jobId ? buildKonkursPath(jobId, jobTitle) : undefined
           };
         } else if (app.status === 'rejected') {
           activity = {
@@ -1827,7 +1828,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-red-500',
             icon: 'XCircle',
-            linkUrl: jobId ? `/konkurs/${jobId}` : undefined
+            linkUrl: jobId ? buildKonkursPath(jobId, jobTitle) : undefined
           };
         } else if (app.status === 'under_review' || app.status === 'shortlisted') {
           activity = {
@@ -1838,7 +1839,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-blue-500',
             icon: 'Clock',
-            linkUrl: jobId ? `/konkurs/${jobId}` : undefined
+            linkUrl: jobId ? buildKonkursPath(jobId, jobTitle) : undefined
           };
         }
 
@@ -1895,7 +1896,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-green-500',
             icon: 'CheckCircle',
-            linkUrl: tenderId ? `/konkurs/${tenderId}` : undefined
+            linkUrl: tenderId ? buildKonkursPath(tenderId, tenderTitle) : undefined
           };
         } else if (bid.status === 'rejected') {
           activity = {
@@ -1906,7 +1907,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-red-500',
             icon: 'XCircle',
-            linkUrl: tenderId ? `/konkurs/${tenderId}` : undefined
+            linkUrl: tenderId ? buildKonkursPath(tenderId, tenderTitle) : undefined
           };
         } else if (bid.status === 'under_review' || bid.status === 'shortlisted') {
           activity = {
@@ -1917,7 +1918,7 @@ export async function fetchContractorRecentActivities(
             timestamp: new Date(timestamp),
             color: 'bg-blue-500',
             icon: 'Clock',
-            linkUrl: tenderId ? `/konkurs/${tenderId}` : undefined
+            linkUrl: tenderId ? buildKonkursPath(tenderId, tenderTitle) : undefined
           };
         }
 

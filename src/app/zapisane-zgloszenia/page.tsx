@@ -2,6 +2,7 @@
 
 import { BookmarkedJobsPage } from '../../components/BookmarkedJobsPage';
 import { useRouter } from 'next/navigation';
+import { routes } from '../../lib/routes';
 
 export default function BookmarkedJobs() {
   const router = useRouter();
@@ -9,7 +10,7 @@ export default function BookmarkedJobs() {
   return (
     <BookmarkedJobsPage 
       onBack={() => router.push('/')}
-      onJobSelect={(jobId: string) => router.push(`/konkurs/${jobId}`)}
+      onJobSelect={(jobId: string) => router.push(routes.konkurs(jobId))}
     />
   );
 }

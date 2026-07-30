@@ -1,6 +1,13 @@
 import type { ContestOfferFormData, FormalRequirementKey } from '../../types/contest-offer';
 import { uploadBidAttachment } from '../storage/bid-attachments';
 
+function newAttachmentId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function uploadContestOfferStagedFiles(
   userId: string,
   tenderId: string,
@@ -23,7 +30,7 @@ export async function uploadContestOfferStagedFiles(
         next.extraAttachments = [
           ...next.extraAttachments,
           {
-            id: `${Date.now()}-${key}-${i}`,
+            id: newAttachmentId(`${key}-${i}`),
             name: file.name,
             path: data.path,
             url: data.url,
@@ -44,10 +51,11 @@ export async function uploadContestOfferStagedFiles(
     }
 
     if (key === 'deposit') {
+      // Replace any existing deposit file instead of appending duplicates.
       next.extraAttachments = [
-        ...next.extraAttachments,
+        ...next.extraAttachments.filter((a) => a.requirementKey !== 'deposit'),
         {
-          id: `${Date.now()}-${key}`,
+          id: newAttachmentId(key),
           name: file.name,
           path: data.path,
           url: data.url,
@@ -60,7 +68,7 @@ export async function uploadContestOfferStagedFiles(
     } else {
       const formalKey = key as FormalRequirementKey;
       next.formalAttachments[formalKey] = {
-        id: `${Date.now()}-${key}`,
+        id: newAttachmentId(key),
         name: file.name,
         path: data.path,
         url: data.url,

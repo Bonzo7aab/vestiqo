@@ -31,8 +31,15 @@ import {
   isContestTender,
   mapTenderRowToContestDisplay,
 } from '../lib/contest/map-tender-contest-display';
+import { mapJobsWithIncrementedOfferCount } from '../lib/contest/increment-offer-count';
 import { useContractorContestBidStatus } from '../hooks/useContractorContestBidStatus';
 import { cn } from '../components/ui/utils';
+import { routes } from '../lib/routes';
+import {
+  CONTEST_BID_STATUS_CHANGED_EVENT,
+  type ContestBidStatusChange,
+} from '../utils/contestBidStatusEvents';
+import { clearInfoWindowCache } from '../lib/google-maps/infoWindowContent';
 
 // Dynamically import heavy components to reduce initial bundle size
 const EnhancedMapViewGoogleMaps = dynamic(
@@ -191,9 +198,15 @@ function HomePageContent() {
   };
 
   // Load jobs from database function - fetch all jobs within bounds
-  const loadJobsFromDatabase = async (bounds?: { north: number; south: number; east: number; west: number } | null, updateLoadedJobs = true) => {
+  const loadJobsFromDatabase = async (
+    bounds?: { north: number; south: number; east: number; west: number } | null,
+    updateLoadedJobs = true,
+    options?: { silent?: boolean },
+  ) => {
     try {
-      setIsLoadingJobs(true);
+      if (!options?.silent) {
+        setIsLoadingJobs(true);
+      }
       
       // Check cache first if bounds are provided
       if (bounds) {
@@ -204,7 +217,9 @@ function HomePageContent() {
             setLoadedJobs(cachedData);
           }
           setJobs(cachedData);
-          setIsLoadingJobs(false);
+          if (!options?.silent) {
+            setIsLoadingJobs(false);
+          }
           return;
         }
       }
@@ -269,13 +284,48 @@ function HomePageContent() {
       setJobs([]);
       setContextJobs([]);
     } finally {
-      setIsLoadingJobs(false);
+      if (!options?.silent) {
+        setIsLoadingJobs(false);
+      }
     }
   };
 
   // Load initial jobs from database (without bounds initially)
   useEffect(() => {
     loadJobsFromDatabase(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applySubmittedOfferCount = (tenderId: string): void => {
+    boundsCacheRef.current.clear();
+    clearInfoWindowCache();
+
+    setJobs((prev) => {
+      const next = mapJobsWithIncrementedOfferCount(prev, tenderId);
+      setContextJobs(next);
+      return next;
+    });
+    setLoadedJobs((prev) => {
+      const next = mapJobsWithIncrementedOfferCount(prev, tenderId);
+      setContextLoadedJobs(next);
+      return next;
+    });
+
+    const bounds = isMapExpandedRef.current ? mapBoundsRef.current : null;
+    void loadJobsFromDatabase(bounds, true, { silent: true });
+  };
+
+  useEffect(() => {
+    const handleBidStatusChanged = (event: Event): void => {
+      const detail = (event as CustomEvent<ContestBidStatusChange>).detail;
+      if (!detail || detail.status !== 'submitted') return;
+      applySubmittedOfferCount(detail.tenderId);
+    };
+
+    window.addEventListener(CONTEST_BID_STATUS_CHANGED_EVENT, handleBidStatusChanged);
+    return () => {
+      window.removeEventListener(CONTEST_BID_STATUS_CHANGED_EVENT, handleBidStatusChanged);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -333,7 +383,7 @@ function HomePageContent() {
 
   const handleJobSelect = (jobId: string) => {
     setSelectedJobId(jobId);
-    router.push(`/konkurs/${jobId}`);
+    router.push(routes.konkurs(jobId));
   };
 
   const handleMessagingClose = () => {
@@ -503,6 +553,7 @@ function HomePageContent() {
 
         console.log('Tender bid submitted successfully:', data);
         toast.success('Oferta w przetargu została złożona pomyślnie!');
+        applySubmittedOfferCount(selectedApplicationJobId);
       } else {
         // Handle regular job application submission
         const { data, error } = await createJobApplication(
@@ -653,6 +704,7 @@ function HomePageContent() {
           onSubmitted={() => {
             setContestOfferModalOpen(false);
             setContestOfferContext(null);
+            // Offer count refresh: CONTEST_BID_STATUS_CHANGED_EVENT listener above
           }}
         />
       )}

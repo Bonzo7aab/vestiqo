@@ -1,22 +1,29 @@
 'use client';
 
 import JobPage from '../../../components/JobPage';
-import { useParams, useRouter } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { useAuthAwareBack } from '../../../hooks/useAuthAwareBack';
+import { parseKonkursPathParam } from '../../../lib/listing/konkurs-slug';
+import { routes } from '../../../lib/routes';
 
 export default function JobDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const rawParam = params.id as string;
+  const id = parseKonkursPathParam(rawParam);
   const handleBack = useAuthAwareBack();
 
+  if (!id) {
+    notFound();
+  }
+
   const handleJobSelect = (jobId: string) => {
-    router.push(`/konkurs/${jobId}`);
+    router.push(routes.konkurs(jobId));
   };
 
   return (
-    <JobPage 
-      jobId={id} 
+    <JobPage
+      jobId={id}
       onBack={handleBack}
       onJobSelect={handleJobSelect}
     />

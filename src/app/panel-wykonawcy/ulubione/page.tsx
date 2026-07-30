@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { BookmarkedJobsPage } from '../../../components/BookmarkedJobsPage';
+import { routes } from '../../../lib/routes';
 
 export default function ContractorFavoritesPage(): React.ReactElement {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function ContractorFavoritesPage(): React.ReactElement {
       <BookmarkedJobsPage
         embedded
         onBack={() => router.push('/')}
-        onJobSelect={(jobId) => router.push(`/konkurs/${jobId}`)}
+        onJobSelect={(jobId) => router.push(routes.konkurs(jobId))}
       />
     </div>
   );
