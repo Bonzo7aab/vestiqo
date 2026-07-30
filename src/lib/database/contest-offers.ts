@@ -532,16 +532,25 @@ export async function deleteTenderBidDraft(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: deleteError } = await (supabase as any)
+    const { data: deletedRows, error: deleteError } = await (supabase as any)
       .from('contest_offers')
       .delete()
       .eq('id', draft.id)
       .eq('contractor_id', contractorId)
       .eq('company_id', access.companyId)
-      .eq('status', 'draft');
+      .eq('status', 'draft')
+      .select('id');
 
     if (deleteError) {
       return { success: false, error: deleteError as PostgrestError };
+    }
+
+    // RLS can silently match 0 rows with no error — treat that as failure.
+    if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
+      return {
+        success: false,
+        error: new Error('Nie udało się usunąć szkicu oferty.') as PostgrestError,
+      };
     }
 
     return { success: true, error: null };
@@ -638,60 +647,103 @@ export async function submitTenderBid(
   }
 }
 
+/**
+ * Rebuild wizard form from a draft/submitted bid.
+ * Prefer `offer_details` attachment slots; only fall back to the flat `attachments`
+ * column when details have none. Merging both duplicated extras (same React keys).
+ */
 export function hydrateContestOfferFormFromBid(bid: TenderBidRowLite | null): ContestOfferFormData {
   if (!bid?.offer_details) {
-    return offerDetailsToFormData(null);
+    const form = offerDetailsToFormData(null);
+    if (bid?.experience_summary) {
+      form.referencesText = bid.experience_summary;
+    }
+    mergeFlatAttachmentsIntoForm(form, bid?.attachments);
+    return migrateLegacyOfferAttachments(form);
   }
+
   const form = offerDetailsToFormData(bid.offer_details as ContestOfferDetails);
   if (bid.experience_summary && !form.referencesText) {
     form.referencesText = bid.experience_summary;
   }
-  if (bid.attachments && Array.isArray(bid.attachments)) {
-    for (const att of bid.attachments as Array<{
-      requirementKey?: string;
-      source?: string;
-      name: string;
-      path: string;
-      url?: string;
-      type: string;
-      id: string;
-      size?: number;
-    }>) {
-      if (
-        att.requirementKey &&
-        att.requirementKey !== 'deposit' &&
-        att.requirementKey !== 'other' &&
-        att.requirementKey !== 'offerDocumentation'
-      ) {
-        form.formalAttachments[att.requirementKey as FormalRequirementKey] = {
-          id: att.id,
-          name: att.name,
-          path: att.path,
-          url: att.url,
-          type: att.type === 'image' ? 'image' : 'document',
-          source: att.source === 'profile' ? 'profile' : 'override',
-          requirementKey: att.requirementKey as FormalRequirementKey,
-          size: att.size,
-        };
-      } else {
-        form.extraAttachments.push({
-          id: att.id,
-          name: att.name,
-          path: att.path,
-          url: att.url,
-          type: att.type === 'image' ? 'image' : 'document',
-          source: 'extra',
-          requirementKey: att.requirementKey as
-            | 'deposit'
-            | 'offerDocumentation'
-            | 'other'
-            | undefined,
-          size: att.size,
-        });
-      }
+
+  const hasDetailsAttachments =
+    Object.keys(form.formalAttachments).length > 0 || form.extraAttachments.length > 0;
+  if (!hasDetailsAttachments) {
+    mergeFlatAttachmentsIntoForm(form, bid.attachments);
+  }
+
+  form.extraAttachments = dedupeExtraAttachments(form.extraAttachments);
+  return migrateLegacyOfferAttachments(form);
+}
+
+function dedupeExtraAttachments(
+  extras: ContestOfferFormData['extraAttachments'],
+): ContestOfferFormData['extraAttachments'] {
+  const seen = new Set<string>();
+  const result: ContestOfferFormData['extraAttachments'] = [];
+  for (const att of extras) {
+    const key = att.path ? `path:${att.path}` : `id:${att.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(att);
+  }
+  return result;
+}
+
+function mergeFlatAttachmentsIntoForm(
+  form: ContestOfferFormData,
+  attachments: unknown,
+): void {
+  if (!attachments || !Array.isArray(attachments)) return;
+
+  for (const att of attachments as Array<{
+    requirementKey?: string;
+    source?: string;
+    name: string;
+    path: string;
+    url?: string;
+    type: string;
+    id: string;
+    size?: number;
+  }>) {
+    if (
+      att.requirementKey &&
+      att.requirementKey !== 'deposit' &&
+      att.requirementKey !== 'other' &&
+      att.requirementKey !== 'offerDocumentation'
+    ) {
+      form.formalAttachments[att.requirementKey as FormalRequirementKey] = {
+        id: att.id,
+        name: att.name,
+        path: att.path,
+        url: att.url,
+        type: att.type === 'image' ? 'image' : 'document',
+        source: att.source === 'profile' ? 'profile' : 'override',
+        requirementKey: att.requirementKey as FormalRequirementKey,
+        size: att.size,
+      };
+    } else {
+      const alreadyPresent = form.extraAttachments.some(
+        (existing) => existing.id === att.id || (att.path && existing.path === att.path),
+      );
+      if (alreadyPresent) continue;
+      form.extraAttachments.push({
+        id: att.id,
+        name: att.name,
+        path: att.path,
+        url: att.url,
+        type: att.type === 'image' ? 'image' : 'document',
+        source: 'extra',
+        requirementKey: att.requirementKey as
+          | 'deposit'
+          | 'offerDocumentation'
+          | 'other'
+          | undefined,
+        size: att.size,
+      });
     }
   }
-  return migrateLegacyOfferAttachments(form);
 }
 
 export function contestCountdownLabel(deadlineIso: string): string {

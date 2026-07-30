@@ -35,6 +35,7 @@ import { getJobById, getTenderById } from '../lib/data';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from './ui/use-mobile';
 import { cn } from './ui/utils';
+import { routes } from '../lib/routes';
 
 function formatJobCompanyLabel(
   company: string | { name?: string } | null | undefined
@@ -1005,7 +1006,14 @@ export const MessagingSystem: React.FC<MessagingSystemProps> = ({
                             variant="outline"
                             size="sm"
                             className="w-full shrink-0 sm:w-auto"
-                            onClick={() => router.push(`/konkurs/${currentConversation.jobId}`)}
+                            onClick={() =>
+                              router.push(
+                                routes.konkurs(
+                                  currentConversation.jobId!,
+                                  jobData?.title || currentConversation.jobTitle,
+                                ),
+                              )
+                            }
                           >
                             <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                             Zobacz zgłoszenie

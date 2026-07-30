@@ -257,9 +257,19 @@ const MapComponent: React.FC<{
   const isMobile = useIsMobile();
   const paletteVersion = usePaletteVersion();
 
-  const openListingDetails = useCallback((listingId: string) => {
-    router.push(getListingDetailHref({ id: listingId }));
-  }, [router]);
+  const openListingDetails = useCallback((listingId: string, href?: string) => {
+    if (href) {
+      router.push(href);
+      return;
+    }
+    const marker = markers.find((m) => m.id === listingId);
+    router.push(
+      getListingDetailHref({
+        id: listingId,
+        title: marker?.jobData?.title ?? marker?.title,
+      }),
+    );
+  }, [router, markers]);
 
   const bindInfoWindowInteractions = useCallback(
     (listingId: string) => {
@@ -815,7 +825,10 @@ const MapComponent: React.FC<{
                   <button
                     type="button"
                     onClick={() => {
-                      openListingDetails(selectedJobForMobile.id);
+                      openListingDetails(
+                        selectedJobForMobile.id,
+                        getListingDetailHref(selectedJobForMobile),
+                      );
                       setSelectedJobForMobile(null);
                     }}
                     className="flex-1 py-4 px-6 bg-card text-primary border border-primary rounded-lg font-semibold text-base hover:bg-primary/5 transition-colors"

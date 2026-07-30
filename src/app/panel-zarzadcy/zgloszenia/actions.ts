@@ -61,7 +61,7 @@ export async function updateJobWorkflowStatusAction(
 
   revalidatePath('/panel-zarzadcy/zgloszenia');
   revalidatePath('/panel-zarzadcy/konkursy');
-  revalidatePath(`/konkurs/${jobId.trim()}`);
+  revalidatePath('/konkurs', 'layout');
 
   return { success: true };
 }

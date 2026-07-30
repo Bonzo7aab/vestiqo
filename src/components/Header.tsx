@@ -46,6 +46,7 @@ import { BRAND } from '../lib/brand';
 import { cn } from './ui/utils';
 import { AccountMenuPanel } from './account/AccountMenuPanel';
 import { buildAccountMenuSections } from '../lib/account-menu-sections';
+import { routes } from '../lib/routes';
 
 function GuestAuthDropdown({
   onLogin,
@@ -287,7 +288,7 @@ export function Header({
   }
 
   const handleJobSelect = (jobId: string) => {
-    router.push(`/konkurs/${jobId}`)
+    router.push(routes.konkurs(jobId))
   }
 
 

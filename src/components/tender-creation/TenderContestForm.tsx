@@ -567,45 +567,23 @@ export function TenderContestForm({
 
           <div id="contest-documents">
             <Label className="text-base font-medium">Dokumentacja konkursowa *</Label>
-            <Dropzone
-              accept={{
-                'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
-                'application/pdf': ['.pdf'],
-                'application/msword': ['.doc'],
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-                'application/vnd.ms-excel': ['.xls'],
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-              }}
-              maxFiles={20}
-              maxSize={10 * 1024 * 1024}
-              onDrop={handleFileUpload}
-              src={pendingFiles}
-              disabled={isSubmitting}
-              className={cn(
-                'mt-2',
-                displayedErrors.documents && 'border-destructive bg-destructive/5',
-              )}
-            >
-              <DropzoneEmptyState>
-                <div className="flex flex-col items-center py-10">
-                  <Upload className="h-12 w-12 text-muted-foreground mb-3" />
-                  <span className="text-lg font-semibold text-primary">Dodaj pliki</span>
-                  <p className="text-sm text-muted-foreground text-center max-w-md mt-2">
-                    PDF, DOC, DOCX, XLS, XLSX, obrazy — min. 1 plik, max 10&nbsp;MB każdy.
-                  </p>
-                </div>
-              </DropzoneEmptyState>
-              <DropzoneContent />
-            </Dropzone>
 
-            {keptDocuments.length > 0 && (
-              <ul className="mt-3 space-y-2">
+            {(keptDocuments.length > 0 || pendingFiles.length > 0) && (
+              <ul className="mt-2 mb-3 space-y-2">
                 {keptDocuments.map((doc) => (
                   <li
                     key={doc.id}
-                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm"
                   >
-                    <span className="truncate">📄 {doc.name}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+                        <File className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-foreground">{doc.name}</span>
+                        <span className="text-xs text-muted-foreground">Zapisany w szkicu</span>
+                      </span>
+                    </span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -621,19 +599,21 @@ export function TenderContestForm({
                     </Button>
                   </li>
                 ))}
-              </ul>
-            )}
-
-            {pendingFiles.length > 0 && (
-              <ul className="mt-3 space-y-2">
                 {pendingFiles.map((file, i) => (
                   <li
                     key={`${file.name}-${i}`}
-                    className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm"
                   >
-                    <span className="flex items-center gap-2 truncate">
-                      <File className="h-4 w-4 shrink-0" />
-                      {file.name}
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+                        <Upload className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-foreground">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Nowy plik — zostanie wysłany przy zapisie
+                        </span>
+                      </span>
                     </span>
                     <Button
                       type="button"
@@ -652,6 +632,51 @@ export function TenderContestForm({
                 ))}
               </ul>
             )}
+
+            <Dropzone
+              accept={{
+                'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+                'application/pdf': ['.pdf'],
+                'application/msword': ['.doc'],
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                'application/vnd.ms-excel': ['.xls'],
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+              }}
+              maxFiles={20}
+              maxSize={10 * 1024 * 1024}
+              onDrop={handleFileUpload}
+              disabled={isSubmitting}
+              className={cn(
+                'mt-2',
+                (keptDocuments.length > 0 || pendingFiles.length > 0) && 'py-6',
+                displayedErrors.documents && 'border-destructive bg-destructive/5',
+              )}
+            >
+              <DropzoneEmptyState>
+                <div
+                  className={cn(
+                    'flex flex-col items-center',
+                    keptDocuments.length > 0 || pendingFiles.length > 0 ? 'py-2' : 'py-10',
+                  )}
+                >
+                  <Upload
+                    className={cn(
+                      'text-muted-foreground mb-3',
+                      keptDocuments.length > 0 || pendingFiles.length > 0 ? 'h-8 w-8' : 'h-12 w-12',
+                    )}
+                  />
+                  <span className="text-lg font-semibold text-primary">
+                    {keptDocuments.length > 0 || pendingFiles.length > 0
+                      ? 'Dodaj kolejne pliki'
+                      : 'Dodaj pliki'}
+                  </span>
+                  <p className="text-sm text-muted-foreground text-center max-w-md mt-2">
+                    PDF, DOC, DOCX, XLS, XLSX, obrazy — min. 1 plik, max 10&nbsp;MB każdy.
+                  </p>
+                </div>
+              </DropzoneEmptyState>
+              <DropzoneContent />
+            </Dropzone>
             <ContestOfferFieldError message={displayedErrors.documents} />
           </div>
       </ContestFormSection>
@@ -662,7 +687,10 @@ export function TenderContestForm({
             <Input
               id="submission-deadline"
               type="datetime-local"
-              className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.submissionDeadline)))}
+              className={cn(
+                'mt-1 w-fit max-w-full pe-2 [&::-webkit-calendar-picker-indicator]:ms-1',
+                fieldErrorInputClass(Boolean(displayedErrors.submissionDeadline)),
+              )}
               aria-invalid={Boolean(displayedErrors.submissionDeadline)}
               value={toDatetimeLocalValue(form.submissionDeadline)}
               onChange={(e) => handleSubmissionDeadlineChange(e.target.value)}
@@ -675,7 +703,10 @@ export function TenderContestForm({
             <Input
               id="evaluation-deadline"
               type="date"
-              className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.evaluationDeadline)))}
+              className={cn(
+                'mt-1 w-fit max-w-full pe-2 [&::-webkit-calendar-picker-indicator]:ms-1',
+                fieldErrorInputClass(Boolean(displayedErrors.evaluationDeadline)),
+              )}
               aria-invalid={Boolean(displayedErrors.evaluationDeadline)}
               disabled={!hasValidSubmissionDeadline}
               min={evaluationMinDate}
@@ -702,7 +733,10 @@ export function TenderContestForm({
             <Input
               id="completion-date"
               type="date"
-              className={cn('mt-1', fieldErrorInputClass(Boolean(displayedErrors.completionDate)))}
+              className={cn(
+                'mt-1 w-fit max-w-full pe-2 [&::-webkit-calendar-picker-indicator]:ms-1',
+                fieldErrorInputClass(Boolean(displayedErrors.completionDate)),
+              )}
               aria-invalid={Boolean(displayedErrors.completionDate)}
               disabled={!hasValidEvaluationDeadline}
               min={completionMinDate}

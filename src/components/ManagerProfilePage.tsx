@@ -13,6 +13,7 @@ import { mockManagerDetailsMap } from '../mocks';
 import { getCategoryLabel } from './contractor-dashboard/shared/utils';
 import { createClient } from '../lib/supabase/client';
 import { formatBudget, budgetFromDatabase } from '../types/budget';
+import { routes } from '../lib/routes';
 
 interface ManagerProfilePageProps {
   managerId: string;
@@ -620,7 +621,7 @@ export default function ManagerProfilePage({ managerId, onBack }: ManagerProfile
                               <Button 
                                 className="w-full" 
                                 size="sm"
-                                onClick={() => router.push(`/konkurs/${job.id}`)}
+                                onClick={() => router.push(routes.konkurs(job.id, job.title))}
                               >
                                 Przejdź do zgłoszenia
                               </Button>

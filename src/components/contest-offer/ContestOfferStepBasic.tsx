@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOfferFieldError';
 import {
+  contestOfferFileIconWrapClass,
   contestOfferStagedFileRowClass,
   contestOfferUploadedFileRowClass,
 } from './ContestOfferFormalDocBlock';
@@ -41,6 +42,66 @@ export function ContestOfferStepBasic({
         <p className="mb-3 mt-1 text-sm text-muted-foreground">
           Dodaj pliki oferty — kosztorys, opis techniczny, załączniki wymagane w konkursie.
         </p>
+
+        {hasFiles ? (
+          <ul className="mb-3 space-y-2">
+            {offerDocs.map((att, index) => (
+              <li
+                key={att.path ? `path-${att.path}` : `${att.id}-${index}`}
+                className={contestOfferUploadedFileRowClass}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={contestOfferFileIconWrapClass} aria-hidden>
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-foreground">{att.name}</span>
+                    <span className="text-xs text-muted-foreground">Dołączony do oferty</span>
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Usuń ${att.name}`}
+                  onClick={() => onRemoveExtra(att.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+            {stagedFiles.map((file, index) => (
+              <li
+                key={`${file.name}-${file.size}-${index}`}
+                className={contestOfferStagedFileRowClass}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={contestOfferFileIconWrapClass} aria-hidden>
+                    <Upload className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-foreground">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Nowy plik — zostanie wysłany przy zapisie
+                    </span>
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Usuń ${file.name}`}
+                  onClick={() => onRemoveStaged(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <Dropzone
           accept={{
             'application/pdf': ['.pdf'],
@@ -52,10 +113,18 @@ export function ContestOfferStepBasic({
           onDrop={(files) => {
             if (files.length > 0) onStageFiles(files);
           }}
-          className={cn('min-h-[180px] border-dashed', hasError && 'border-destructive')}
+          className={cn(
+            'min-h-[140px] border-dashed p-5',
+            hasFiles && 'min-h-[88px]',
+            hasError && 'border-destructive',
+          )}
         >
           <DropzoneEmptyState>
-            <p className="text-sm font-medium">Przeciągnij pliki tutaj lub kliknij, aby wybrać</p>
+            <p className="text-sm font-medium">
+              {hasFiles
+                ? 'Dodaj kolejne pliki — przeciągnij lub kliknij'
+                : 'Przeciągnij pliki tutaj lub kliknij, aby wybrać'}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
             </p>
@@ -64,53 +133,6 @@ export function ContestOfferStepBasic({
         </Dropzone>
         <ContestOfferFieldError message={fieldErrors?.offerDocumentation} />
       </div>
-
-      {hasFiles ? (
-        <ul className="space-y-2">
-          {offerDocs.map((att) => (
-            <li
-              key={att.id}
-              className={contestOfferUploadedFileRowClass}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{att.name}</span>
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                aria-label={`Usuń ${att.name}`}
-                onClick={() => onRemoveExtra(att.id)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
-          {stagedFiles.map((file, index) => (
-            <li
-              key={`${file.name}-${file.size}-${index}`}
-              className={contestOfferStagedFileRowClass}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <Upload className="h-4 w-4 shrink-0" />
-                <span className="truncate">{file.name}</span>
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                aria-label={`Usuń ${file.name}`}
-                onClick={() => onRemoveStaged(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
       <input
         ref={fileInputRef}

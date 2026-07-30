@@ -57,6 +57,7 @@ import PortfolioProjectForm from './PortfolioProjectForm';
 import ServicePricingManager from './ServicePricingManager';
 import { toast } from 'sonner';
 import { kontoCompanyDataHref } from '../lib/konto-tabs';
+import { routes } from '../lib/routes';
 import Image from 'next/image';
 
 interface ContractorPageProps {
@@ -467,7 +468,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
   };
 
   const handleJobView = (jobId: string) => {
-    router.push(`/konkurs/${jobId}`);
+    router.push(routes.konkurs(jobId));
   };
 
   const handleStartConversation = async (applicationId: string) => {
@@ -1230,7 +1231,7 @@ export default function ContractorPage({ onBack: _onBack, onBrowseJobs }: Contra
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => router.push(`/konkurs/${project.jobId}`)}
+                              onClick={() => router.push(routes.konkurs(project.jobId, project.title))}
                             >
                               Zobacz szczegóły
                             </Button>

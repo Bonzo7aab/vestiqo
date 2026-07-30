@@ -8,6 +8,7 @@ import {
   createOpd41Notification,
   truncateQuestionPreview,
 } from '../../lib/notifications/opd41-server';
+import { buildKonkursPath } from '../../lib/listing/konkurs-slug';
 
 export async function notifyManagerContestQuestionAction(params: {
   questionId: string;
@@ -116,7 +117,7 @@ export async function notifyContestQuestionAskerAction(
   }
 
   const isFirstAnswer = (count ?? 0) === 1;
-  const actionUrl = `/konkurs/${question.contest_id}?tab=contest-qa`;
+  const actionUrl = `${buildKonkursPath(question.contest_id, tenderTitle)}?tab=contest-qa`;
 
   if (isFirstAnswer) {
     await createOpd41Notification({

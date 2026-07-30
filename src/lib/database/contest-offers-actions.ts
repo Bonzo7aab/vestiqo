@@ -6,6 +6,7 @@ import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { instrumentServerAction } from '../sentry/instrument-server-action';
+import { cancelTenderBid } from './jobs';
 import {
   deleteTenderBidDraft as deleteTenderBidDraftWithClient,
   submitTenderBid as submitTenderBidWithClient,
@@ -14,6 +15,18 @@ import {
   type TenderBidRowLite,
 } from './contest-offers';
 
+function revalidateContractorOffersPaths(tenderId?: string): void {
+  revalidatePath('/panel-wykonawcy/aplikacje');
+  revalidatePath('/panel-wykonawcy');
+  revalidatePath('/');
+  revalidatePath('/panel-zarzadcy/konkursy');
+  revalidatePath('/panel-zarzadcy/zgloszenia');
+  if (tenderId) {
+    revalidatePath('/konkurs', 'layout');
+    revalidatePath(`/konkurs/${tenderId}`);
+  }
+}
+
 async function submitTenderBidImpl(
   tenderId: string,
   contractorId: string,
@@ -21,7 +34,13 @@ async function submitTenderBidImpl(
   contestInfo: ContestInfo,
 ): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
   const supabase = await createClient();
-  return submitTenderBidWithClient(supabase, tenderId, contractorId, form, contestInfo);
+  const result = await submitTenderBidWithClient(supabase, tenderId, contractorId, form, contestInfo);
+
+  if (!result.error) {
+    revalidateContractorOffersPaths(tenderId);
+  }
+
+  return result;
 }
 
 async function upsertTenderBidDraftImpl(
@@ -60,14 +79,36 @@ async function abandonTenderBidDraftActionImpl(input: {
     };
   }
 
-  const revalidateTargets = ['/panel-wykonawcy/aplikacje', '/panel-wykonawcy'];
-  if (input.tenderId) {
-    revalidateTargets.push(`/konkurs/${input.tenderId}`);
-  }
-  for (const path of revalidateTargets) {
-    revalidatePath(path);
+  revalidateContractorOffersPaths(input.tenderId);
+  return { success: true };
+}
+
+async function withdrawTenderBidActionImpl(input: {
+  bidId: string;
+  tenderId?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Wymagane logowanie' };
   }
 
+  const result = await cancelTenderBid(supabase, input.bidId, user.id);
+
+  if (result.error) {
+    return {
+      success: false,
+      error:
+        result.error instanceof Error
+          ? result.error.message
+          : 'Nie udało się wycofać oferty',
+    };
+  }
+
+  revalidateContractorOffersPaths(input.tenderId);
   return { success: true };
 }
 
@@ -79,4 +120,8 @@ export const upsertTenderBidDraft = instrumentServerAction(
 export const abandonTenderBidDraftAction = instrumentServerAction(
   'abandonTenderBidDraftAction',
   abandonTenderBidDraftActionImpl,
+);
+export const withdrawTenderBidAction = instrumentServerAction(
+  'withdrawTenderBidAction',
+  withdrawTenderBidActionImpl,
 );

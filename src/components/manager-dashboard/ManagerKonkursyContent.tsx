@@ -38,6 +38,7 @@ import { ManagerContestWinnerDialog } from './ManagerContestWinnerDialog';
 import { CooperationReviewDialog } from '../reviews/CooperationReviewDialog';
 import { ContestStatusBadge } from './ContestStatusBadge';
 import { cn } from '../ui/utils';
+import { routes } from '../../lib/routes';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
@@ -446,7 +447,7 @@ export function ManagerKonkursyContent({
           )}
         >
           <Link
-            href={`/konkurs/${row.id}`}
+            href={routes.konkurs(row.id, row.title)}
             target="_blank"
             rel="noopener noreferrer"
             title={row.title}
@@ -498,7 +499,7 @@ export function ManagerKonkursyContent({
             </div>
           ) : (
             <Button variant="outline" size="sm" className="h-8 shrink-0" asChild>
-              <Link href={`/konkurs/${row.id}`} target="_blank" rel="noopener noreferrer">
+              <Link href={routes.konkurs(row.id, row.title)} target="_blank" rel="noopener noreferrer">
                 <Eye className="h-4 w-4 mr-1.5" />
                 Podgląd
               </Link>

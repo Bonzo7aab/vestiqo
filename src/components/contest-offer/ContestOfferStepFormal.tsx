@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import { cn } from '../ui/utils';
 import {
+  contestOfferFileIconWrapClass,
   contestOfferStagedFileRowClass,
   contestOfferUploadedFileRowClass,
   ContestOfferFormalDocBlock,
@@ -96,35 +97,22 @@ export function ContestOfferStepFormal({
         <p className="mb-3 mt-1 text-sm text-muted-foreground">
           Dodatkowe pliki, które chcesz dołączyć do oferty.
         </p>
-        <Dropzone
-          accept={{
-            'application/pdf': ['.pdf'],
-            'application/msword': ['.doc'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-            'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
-          }}
-          maxFiles={10}
-          onDrop={(files) => {
-            if (files.length > 0) onStageOtherFiles(files);
-          }}
-          className="min-h-[140px] border-dashed"
-        >
-          <DropzoneEmptyState>
-            <p className="text-sm font-medium">Przeciągnij pliki tutaj lub kliknij, aby wybrać</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
-            </p>
-          </DropzoneEmptyState>
-          <DropzoneContent />
-        </Dropzone>
 
         {hasExtraFiles ? (
-          <ul className="mt-3 space-y-2">
-            {extraDocs.map((att) => (
-              <li key={att.id} className={contestOfferUploadedFileRowClass}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{att.name}</span>
+          <ul className="mb-3 space-y-2">
+            {extraDocs.map((att, index) => (
+              <li
+                key={att.path ? `path-${att.path}` : `${att.id}-${index}`}
+                className={contestOfferUploadedFileRowClass}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={contestOfferFileIconWrapClass} aria-hidden>
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-foreground">{att.name}</span>
+                    <span className="text-xs text-muted-foreground">Dołączony do oferty</span>
+                  </span>
                 </span>
                 <Button
                   type="button"
@@ -140,9 +128,16 @@ export function ContestOfferStepFormal({
             ))}
             {stagedOther.map((file, index) => (
               <li key={`${file.name}-${file.size}-${index}`} className={contestOfferStagedFileRowClass}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{file.name}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={contestOfferFileIconWrapClass} aria-hidden>
+                    <Upload className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-foreground">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Nowy plik — zostanie wysłany przy zapisie
+                    </span>
+                  </span>
                 </span>
                 <Button
                   type="button"
@@ -158,6 +153,32 @@ export function ContestOfferStepFormal({
             ))}
           </ul>
         ) : null}
+
+        <Dropzone
+          accept={{
+            'application/pdf': ['.pdf'],
+            'application/msword': ['.doc'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+          }}
+          maxFiles={10}
+          onDrop={(files) => {
+            if (files.length > 0) onStageOtherFiles(files);
+          }}
+          className={cn('min-h-[140px] border-dashed p-5', hasExtraFiles && 'min-h-[88px]')}
+        >
+          <DropzoneEmptyState>
+            <p className="text-sm font-medium">
+              {hasExtraFiles
+                ? 'Dodaj kolejne pliki — przeciągnij lub kliknij'
+                : 'Przeciągnij pliki tutaj lub kliknij, aby wybrać'}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
+            </p>
+          </DropzoneEmptyState>
+          <DropzoneContent />
+        </Dropzone>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
  * Canonical Polish URL paths for the application.
  */
 import { KONTO_DOKUMENTY_PATH } from './konto-tabs';
+import { buildKonkursPath } from './listing/konkurs-slug';
 
 export const routes = {
   home: '/',
@@ -14,7 +15,8 @@ export const routes = {
   zapisaneZgloszenia: '/zapisane-zgloszenia',
   wykonawcy: '/wykonawcy',
   zarzadcy: '/zarzadcy',
-  konkurs: (id: string) => `/konkurs/${id}` as const,
+  /** Public listing URL. Pass title for Allegro-style slug (OPD-162). */
+  konkurs: (id: string, title?: string | null) => buildKonkursPath(id, title),
   wykonawca: (id: string) => `/wykonawcy/${id}` as const,
   zarzadca: (id: string) => `/zarzadcy/${id}` as const,
   dodajKonkurs: '/dodaj-konkurs',

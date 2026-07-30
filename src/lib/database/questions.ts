@@ -5,6 +5,7 @@ import { createNotification } from './messaging';
 import { isContestTender } from '../contest/map-tender-contest-display';
 import { isContestQuestionsDeadlinePassed } from '../contest-questions/format-contest-question-label';
 import { formatPostgrestError } from './postgrest-error';
+import { buildKonkursPath } from '../listing/konkurs-slug';
 
 export { formatPostgrestError };
 
@@ -711,7 +712,7 @@ export async function submitQuestion(
     if (meta.managerId && authenticatedUserId !== meta.managerId) {
       const actionUrl = isContestQa
         ? `/panel-zarzadcy/konkursy?contestId=${jobId}&tab=questions`
-        : `/konkurs/${jobId}`;
+        : buildKonkursPath(jobId, meta.title);
 
       const notificationType = isContestQa ? 'contest_question' : 'new_message';
       const notificationTitle = isContestQa
