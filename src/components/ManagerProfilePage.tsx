@@ -621,7 +621,11 @@ export default function ManagerProfilePage({ managerId, onBack }: ManagerProfile
                               <Button 
                                 className="w-full" 
                                 size="sm"
-                                onClick={() => router.push(routes.konkurs(job.id, job.title))}
+                                onClick={() =>
+                                  router.push(
+                                    routes.konkurs(String(job.id), String(job.title ?? '')),
+                                  )
+                                }
                               >
                                 Przejdź do zgłoszenia
                               </Button>

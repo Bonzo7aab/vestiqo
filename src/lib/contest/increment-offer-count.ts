@@ -1,4 +1,4 @@
-import type { Job } from '../types/job';
+import type { Job } from '../../types/job';
 
 /** Increment displayed offer count after a successful contest offer submit. */
 export function withIncrementedOfferCount(job: Job, tenderId: string): Job {
