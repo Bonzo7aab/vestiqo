@@ -73,6 +73,25 @@ async function deleteUserProfileDependencies(
     return { ok: false, error: questionsError.message };
   }
 
+  // NO ACTION FKs: null before profile delete (CASCADE on participants alone is not enough).
+  const { error: conversationSenderError } = await admin
+    .from('conversations')
+    .update({ last_message_sender_id: null })
+    .eq('last_message_sender_id', userId);
+
+  if (conversationSenderError) {
+    return { ok: false, error: conversationSenderError.message };
+  }
+
+  const { error: tenderDocumentsError } = await admin
+    .from('tender_documents')
+    .update({ uploaded_by: null })
+    .eq('uploaded_by', userId);
+
+  if (tenderDocumentsError) {
+    return { ok: false, error: tenderDocumentsError.message };
+  }
+
   return { ok: true };
 }
 
