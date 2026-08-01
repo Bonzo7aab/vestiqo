@@ -7,7 +7,6 @@ import { Button } from './ui/button'
 import { Separator } from './ui/separator'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -29,8 +28,17 @@ export function DeleteAccountSection() {
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
 
-  const handleDeleteAccount = async (e: React.MouseEvent) => {
-    e.preventDefault()
+  const handleOpenChange = (nextOpen: boolean): void => {
+    if (isLoading && !nextOpen) {
+      return
+    }
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setError('')
+    }
+  }
+
+  const handleDeleteAccount = async (): Promise<void> => {
     setError('')
     setIsLoading(true)
 
@@ -85,7 +93,7 @@ export function DeleteAccountSection() {
           </div>
 
           <div className="shrink-0 sm:pt-0.5">
-            <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialog open={open} onOpenChange={handleOpenChange}>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
@@ -131,10 +139,13 @@ export function DeleteAccountSection() {
                   <AlertDialogCancel disabled={isLoading}>
                     Anuluj
                   </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAccount}
+                  <Button
+                    type="button"
+                    variant="destructive"
                     disabled={isLoading}
-                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={() => {
+                      void handleDeleteAccount()
+                    }}
                   >
                     {isLoading ? (
                       <>
@@ -147,7 +158,7 @@ export function DeleteAccountSection() {
                         Tak, usuń konto
                       </>
                     )}
-                  </AlertDialogAction>
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

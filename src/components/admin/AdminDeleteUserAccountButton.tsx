@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -42,8 +41,17 @@ export function AdminDeleteUserAccountButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleOpenChange = (nextOpen: boolean): void => {
+    if (busy && !nextOpen) {
+      return;
+    }
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setError('');
+    }
+  };
+
+  const handleDelete = async (): Promise<void> => {
     setError('');
     setBusy(true);
 
@@ -61,13 +69,16 @@ export function AdminDeleteUserAccountButton({
       setBusy(false);
       router.replace(redirectTo);
     } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : String(err)) || 'Wystąpił błąd podczas usuwania konta.');
+      setError(
+        (err instanceof Error ? err.message : String(err)) ||
+          'Wystąpił błąd podczas usuwania konta.',
+      );
       setBusy(false);
     }
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
         <Button
           type="button"
@@ -109,13 +120,16 @@ export function AdminDeleteUserAccountButton({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Anuluj</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
+          <Button
+            type="button"
+            variant="destructive"
             disabled={busy}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            onClick={() => {
+              void handleDelete();
+            }}
           >
             {busy ? 'Usuwanie…' : 'Tak, usuń konto'}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
