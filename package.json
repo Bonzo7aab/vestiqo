@@ -20,6 +20,7 @@
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset",
     "supabase:migrate-local": "bash scripts/migrate-local-db.sh",
+    "seed:test": "npx tsx scripts/seed-test-environment.ts",
     "supabase:studio": "open http://localhost:54323 || echo 'Studio is available at: http://localhost:54323 (make sure Supabase is running with: npm run supabase:start)'",
     "storage:migrate-to-r2": "npx tsx scripts/migrate-supabase-storage-to-r2.ts",
     "storage:migrate-to-r2:dry-run": "npx tsx scripts/migrate-supabase-storage-to-r2.ts --dry-run",

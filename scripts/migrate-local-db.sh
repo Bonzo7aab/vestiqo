@@ -1,11 +1,19 @@
 #!/bin/bash
 
 # Migration script for local Supabase database
-# Applies all SQL migrations from database/ directory to local Supabase
+# Applies legacy SQL from database/ directory to local Supabase.
+#
+# Preferred for schema parity with cloud test/prod:
+#   npm run supabase:reset
+# which applies supabase/migrations/ (canonical). Use this script only when you
+# explicitly need the older database/*.sql path (may drift from cloud).
+#
+# See docs/environments.md
 
 set -e
 
-echo "🔄 Applying migrations to local Supabase database..."
+echo "🔄 Applying legacy database/*.sql migrations to local Supabase..."
+echo "   Tip: prefer 'npm run supabase:reset' for supabase/migrations/ parity."
 
 # Navigate to project root
 cd "$(dirname "$0")/.."

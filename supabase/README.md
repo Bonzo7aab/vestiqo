@@ -27,12 +27,15 @@ npm run supabase:setup
 #   - anon key (for NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
 #   - service_role key (for SUPABASE_SERVICE_ROLE_KEY)
 
-# 3. Apply database migrations
-npm run supabase:migrate-local
+# 3. Apply schema (canonical)
+npm run supabase:reset
+# Legacy: npm run supabase:migrate-local
 
 # 4. Run tests
 npm run test:e2e
 ```
+
+For cloud test + Vercel Preview, see [docs/environments.md](../docs/environments.md).
 
 ### Daily Usage
 
@@ -55,8 +58,9 @@ npm run test:e2e:local
 | `npm run supabase:start` | Start local Supabase instance |
 | `npm run supabase:stop` | Stop local Supabase instance |
 | `npm run supabase:status` | Show connection details and status |
-| `npm run supabase:reset` | Reset database (applies all migrations fresh) |
-| `npm run supabase:migrate-local` | Apply migrations from `database/` directory |
+| `npm run supabase:reset` | Reset DB + apply `supabase/migrations/` (preferred) |
+| `npm run supabase:migrate-local` | Legacy migrations from `database/` (may drift) |
+| `npm run seed:test` | Seed/repair **vestiqo-test** (not production) |
 | `npm run supabase:studio` | Open Supabase Studio (web UI) |
 | `npm run test:e2e:local` | Start Supabase and run tests |
 

@@ -22,12 +22,15 @@ npm run supabase:setup
 #   anon key: eyJ...
 #   service_role key: eyJ...
 
-# 5. Apply database migrations
-npm run supabase:migrate-local
+# 5. Apply schema (prefer canonical migrations)
+npm run supabase:reset
+# Legacy alternative (may drift from cloud): npm run supabase:migrate-local
 
 # 6. Run tests
 npm run test:e2e:local
 ```
+
+Cloud test / Preview setup: [docs/environments.md](docs/environments.md).
 
 ## 📋 Daily Usage
 
@@ -53,8 +56,9 @@ npm run supabase:stop
 | `npm run supabase:start` | Start local Supabase |
 | `npm run supabase:stop` | Stop local Supabase |
 | `npm run supabase:status` | Show connection details |
-| `npm run supabase:reset` | Reset database (fresh start) |
-| `npm run supabase:migrate-local` | Apply migrations |
+| `npm run supabase:reset` | Reset DB + apply `supabase/migrations/` (preferred) |
+| `npm run supabase:migrate-local` | Legacy `database/*.sql` path (may drift) |
+| `npm run seed:test` | Repair cloud **vestiqo-test** seed users/data |
 | `npm run supabase:studio` | Open Supabase Studio in browser (http://localhost:54323) |
 | `npm run test:e2e:local` | Start Supabase + run tests |
 

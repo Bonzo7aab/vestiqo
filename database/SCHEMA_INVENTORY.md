@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-20. Cross-reference of SQL schema vs `src/` Supabase queries (`.from('…')`).
 
-For migration order see [README.md](./README.md). **New prod-pending SQL:** [`pending-prod/`](./pending-prod/) (queue empty). For production safety see [`.cursor/rules/supabase-production-safety.mdc`](../.cursor/rules/supabase-production-safety.mdc).
+For migration order see [README.md](./README.md). **New prod-pending SQL:** [`pending-prod/`](./pending-prod/). Environments: [`docs/environments.md`](../docs/environments.md). For production safety see [`.cursor/rules/supabase-production-safety.mdc`](../.cursor/rules/supabase-production-safety.mdc).
 
 ---
 
@@ -11,7 +11,7 @@ For migration order see [README.md](./README.md). **New prod-pending SQL:** [`pe
 | Category | Count |
 |----------|-------|
 | Active tables | 30 |
-| Pending prod migrations | 0 (queue empty as of 2026-06-20) |
+| Pending prod migrations | 1 (`contest_offers_one_per_company`, applied on test 2026-07-17) |
 
 ---
 
