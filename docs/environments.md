@@ -74,11 +74,27 @@ npm run supabase:reset   # applies supabase/migrations/ (canonical)
 
 ## Storage / side effects (R2, email, analytics)
 
-Preview and local `.env.local` may still share **production** R2 buckets, Resend, PostHog, and Flagship. Database is isolated; uploads/emails/analytics are not fully isolated yet.
+### R2 (file storage) — isolated for test
 
-**Recommended next step for R2:** create buckets such as `job-attachments-test` and `building-images-test`, then set Preview (and local test) `NEXT_PUBLIC_R2_PUBLIC_URL_*` to those public URLs only. Keep Production on the live buckets.
+| Environment | Buckets |
+|-------------|---------|
+| **Production** | `job-attachments`, `building-images`, `bid-attachments`, `verification-documents` |
+| **Preview / local test** | same names + `-test` suffix via `R2_BUCKET_SUFFIX=-test` |
 
-Until then: avoid uploading real customer documents or sending bulk email while pointed at test DB with shared R2/Resend.
+Buckets `*-test` exist in Cloudflare. Wire them as follows:
+
+1. **Vercel Preview (+ Development):** `R2_BUCKET_SUFFIX=-test` (same R2 API keys as prod are OK if scoped to the account).
+2. **Local `.env.local` (pointed at vestiqo-test):** same `R2_BUCKET_SUFFIX=-test`.
+3. **Public URLs:** enable *Public Development URL* on `building-images-test` (and `job-attachments-test` if you use that public base), then set Preview / local:
+   - `NEXT_PUBLIC_R2_PUBLIC_URL_BUILDING_IMAGES=https://pub-….r2.dev`
+   - optionally `NEXT_PUBLIC_R2_PUBLIC_URL_JOB_ATTACHMENTS=…`
+4. **Production:** leave `R2_BUCKET_SUFFIX` unset; keep prod public URLs.
+
+Optional overrides (instead of suffix): `R2_BUCKET_JOB_ATTACHMENTS`, `R2_BUCKET_BUILDING_IMAGES`, `R2_BUCKET_BID_ATTACHMENTS`, `R2_BUCKET_VERIFICATION_DOCUMENTS`.
+
+### Email / analytics
+
+Resend, PostHog, and Flagship may still be shared with prod. Avoid bulk mail from Preview; filter analytics by `VERCEL_ENV=preview` if needed.
 
 ## Quick recipes
 

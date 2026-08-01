@@ -1,10 +1,15 @@
 import {
   PUBLIC_STORAGE_BUCKETS,
+  STORAGE_BUCKET_DEFAULTS,
   STORAGE_BUCKETS,
   type StorageBucket,
 } from './buckets';
 
-const ALL_BUCKETS = new Set<string>(Object.values(STORAGE_BUCKETS));
+/** Resolved + default names so URL parsing works across prod and *-test. */
+const ALL_BUCKETS = new Set<string>([
+  ...Object.values(STORAGE_BUCKETS),
+  ...Object.values(STORAGE_BUCKET_DEFAULTS),
+]);
 
 export function isStorageObjectNotFound(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
