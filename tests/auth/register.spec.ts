@@ -296,9 +296,9 @@ test.describe('Registration Page', () => {
 
     await expect(page.locator('#managementNip')).not.toBeVisible();
 
-    await page.getByLabel('Zarządca nieruchomości (powierzony)').click();
+    await page.locator('#wspolnota-role-property_manager').click();
     await expect(page.locator('#managementNip')).toBeVisible();
-    await expect(page.getByText('NIP Firmy Zarządzającej')).toBeVisible();
+    await expect(page.getByText('NIP Administracji Wspólnoty')).toBeVisible();
   });
 
   test('should navigate to login page', async ({ page }) => {

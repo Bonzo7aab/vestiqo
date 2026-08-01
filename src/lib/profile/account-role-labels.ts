@@ -93,7 +93,7 @@ export function getProfileSectionLabels(input: ResolveAccountRoleInput): Profile
 /** Short role label for header / account chrome (OPD-128/129). */
 export const ACCOUNT_ROLE_DISPLAY_LABELS: Record<AccountRole, string> = {
   [ACCOUNT_ROLES.CONDO_BOARD]: 'Zarząd Wspólnoty',
-  [ACCOUNT_ROLES.PROPERTY_MANAGER]: 'Zarządca nieruchomości',
+  [ACCOUNT_ROLES.PROPERTY_MANAGER]: 'Administracja Wspólnoty',
   [ACCOUNT_ROLES.COOPERATIVE_BOARD]: 'Zarząd Spółdzielni',
   [ACCOUNT_ROLES.COOPERATIVE_ADMIN]: 'Administracja Spółdzielni',
   [ACCOUNT_ROLES.CONTRACTOR]: 'Wykonawca',
@@ -142,9 +142,12 @@ export const REGISTRATION_ENTITY_LABELS: Record<RegistrationEntityType, string> 
 };
 
 export const WSPOLNOTA_SUB_ROLE_OPTIONS: Array<{ value: WspolnotaSubRole; label: string }> = [
-  { value: WSPOLNOTA_SUB_ROLES.CONDO_BOARD, label: 'Zarząd Wspólnoty (właścicielski)' },
-  { value: WSPOLNOTA_SUB_ROLES.PROPERTY_MANAGER, label: 'Zarządca nieruchomości (powierzony)' },
+  { value: WSPOLNOTA_SUB_ROLES.CONDO_BOARD, label: 'Zarząd Wspólnoty' },
+  { value: WSPOLNOTA_SUB_ROLES.PROPERTY_MANAGER, label: 'Administracja Wspólnoty' },
 ];
+
+/** Extra NIP field when registering as Administracja Wspólnoty. */
+export const REGISTRATION_MANAGEMENT_NIP_LABEL = 'NIP Administracji Wspólnoty';
 
 export const SPOLDZIELNIA_SUB_ROLE_OPTIONS: Array<{ value: SpoldzielniaSubRole; label: string }> = [
   { value: SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD, label: 'Zarząd Spółdzielni' },

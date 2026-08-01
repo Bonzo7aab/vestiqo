@@ -47,6 +47,7 @@ import {
   ACCOUNT_ROLES,
   REGISTRATION_ENTITY_LABELS,
   REGISTRATION_ENTITY_TYPES,
+  REGISTRATION_MANAGEMENT_NIP_LABEL,
   REGISTRATION_NIP_LABELS,
   REGISTRATION_ROLE_HEADINGS,
   SPOLDZIELNIA_SUB_ROLE_OPTIONS,
@@ -388,7 +389,7 @@ function NipLookupField({
 const PASSWORD_MISMATCH_MESSAGE = 'Hasła nie są identyczne';
 
 const ENTITY_TILE_DESCRIPTIONS: Record<RegistrationEntityType, string> = {
-  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Zarząd wspólnoty lub powierzony zarządca',
+  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Zarząd wspólnoty lub administracja wspólnoty',
   [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'Zarząd lub administracja spółdzielni',
   [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'Firma wykonawcza szukająca zleceń',
 };
@@ -893,7 +894,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
           {isPropertyManager ? (
             <NipLookupField
               id="managementNip"
-              label="NIP Firmy Zarządzającej"
+              label={REGISTRATION_MANAGEMENT_NIP_LABEL}
               nip={managementNipLookup.nip}
               companyName={managementNipLookup.companyName}
               lookupStatus={managementNipLookup.lookupStatus}

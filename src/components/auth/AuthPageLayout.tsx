@@ -55,34 +55,32 @@ function AuthSidePanel({
   trustNote?: string;
 }) {
   return (
-    <aside className="relative hidden lg:flex lg:flex-col">
-      <div className="relative flex flex-1 flex-col justify-between px-10 py-12 xl:px-14">
-        <div>
+    <aside className="relative hidden lg:flex lg:flex-col lg:self-stretch">
+      <div className="relative flex flex-1 flex-col justify-center gap-7 px-10 py-10 xl:gap-8 xl:px-14 xl:py-12">
+        <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Platforma konkursów ofert
           </span>
 
-          <h2 className="mt-6 text-2xl font-bold leading-tight tracking-tight text-foreground xl:text-3xl">
+          <h2 className="text-2xl font-bold leading-snug tracking-tight text-foreground xl:text-[1.75rem]">
             {side.heading}
           </h2>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-            {side.body}
-          </p>
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{side.body}</p>
         </div>
 
-        <ul className="my-10 space-y-6">
+        <ul className="space-y-4">
           {side.features.map((feature) => {
             const Icon = feature.icon;
             return (
-              <li key={feature.title} className="flex items-start gap-4">
-                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" strokeWidth={2} />
+              <li key={feature.title} className="flex items-start gap-3.5">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" strokeWidth={2} />
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{feature.title}</p>
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-sm font-semibold leading-snug text-foreground">{feature.title}</p>
                   {feature.description ? (
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-sm leading-snug text-muted-foreground">
                       {feature.description}
                     </p>
                   ) : null}
@@ -115,8 +113,11 @@ export function AuthPageLayout({
   showMobileLogo = true,
   side,
 }: AuthPageLayoutProps) {
+  // Fill space between site header and footer (root main is ~100vh - 12rem), not the full viewport.
+  const authMinHeightClass = 'min-h-[calc(100vh-12rem)]';
+
   return (
-    <div className="relative min-h-screen overflow-hidden" data-testid={testId}>
+    <div className={cn('relative overflow-x-hidden', authMinHeightClass)} data-testid={testId}>
       {/* Full-page background */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-accent/60 via-background to-background" />
@@ -125,10 +126,10 @@ export function AuthPageLayout({
         <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      <div className="relative lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className={cn('relative lg:grid lg:grid-cols-2', authMinHeightClass)}>
         <AuthSidePanel side={side} trustNote={trustNote} />
 
-        <main className="flex min-h-screen flex-col justify-center px-4 py-10 sm:px-8 lg:min-h-0 lg:px-10 xl:px-14">
+        <div className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-14">
           <div
             className={cn(
               'mx-auto w-full',
@@ -162,7 +163,7 @@ export function AuthPageLayout({
               <div className="mt-6 text-center text-sm text-muted-foreground">{footer}</div>
             ) : null}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
