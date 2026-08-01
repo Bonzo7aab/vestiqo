@@ -6,7 +6,7 @@ export const companyLegal = {
   nip: '[Wpisz NIP]',
   regon: '[Wpisz REGON]',
   krs: '[Wpisz KRS]',
-  siteUrl: '[Adres URL]',
+  siteUrl: 'https://www.vestiqo.pl',
   emails: {
     contact: 'kontakt@vestiqo.pl',
     noreply: 'noreply@vestiqo.pl',
