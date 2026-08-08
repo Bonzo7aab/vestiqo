@@ -80,7 +80,7 @@ export async function createManagedHousingEntity(
     if (duplicate) {
       return {
         data: null,
-        error: new Error('Ta wspólnota jest już na liście') as PostgrestError,
+        error: new Error('Ta nieruchomość jest już na liście') as PostgrestError,
       };
     }
 
@@ -145,7 +145,7 @@ export async function updateManagedHousingEntity(
     if (duplicate) {
       return {
         data: null,
-        error: new Error('Ta wspólnota jest już na liście') as PostgrestError,
+        error: new Error('Ta nieruchomość jest już na liście') as PostgrestError,
       };
     }
 

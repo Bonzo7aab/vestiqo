@@ -4,9 +4,11 @@ export const KONTO_TABS = {
   twojeDane: 'twoje-dane',
   dokumenty: 'dokumenty',
   uslugi: 'uslugi',
+  nieruchomosci: 'nieruchomosci',
   bezpieczenstwo: 'bezpieczenstwo',
   powiadomienia: 'powiadomienia',
 } as const;
+
 
 export type KontoTab = (typeof KONTO_TABS)[keyof typeof KONTO_TABS];
 
@@ -56,6 +58,10 @@ export function resolveKontoTabFromUrl(
   }
 
   if (normalized === KONTO_TABS.dokumenty && userType === 'manager') {
+    return KONTO_TABS.profil;
+  }
+
+  if (normalized === KONTO_TABS.nieruchomosci && userType !== 'manager') {
     return KONTO_TABS.profil;
   }
 

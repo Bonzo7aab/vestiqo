@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ArrowLeft,
   Building2,
   Plus,
-  Edit2,
   Trash2,
   MapPin,
   Loader2,
@@ -38,6 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { createClient } from '../lib/supabase/client';
 import {
   createManagedHousingEntity,
@@ -45,6 +46,10 @@ import {
   fetchManagerHousingEntities,
   updateManagedHousingEntity,
 } from '../lib/database/managed-housing-entities';
+import {
+  createManagedBuilding,
+  fetchManagedBuildingsForEntity,
+} from '../lib/database/managed-buildings';
 import { formatPostgrestError } from '../lib/database/postgrest-error';
 import { GusNipStatusHint } from './gus/GusNipStatusHint';
 import { useGusNipLookup } from '../lib/gus/use-gus-nip-lookup';
@@ -53,7 +58,8 @@ import type {
   ManagedHousingEntity,
   ManagedHousingEntityFormData,
 } from '../types/managed-housing-entity';
-import { formatManagedHousingEntityType } from '../types/managed-housing-entity';
+import type { ManagedBuilding } from '../types/managed-building';
+import { EMPTY_MANAGED_BUILDING_FORM } from '../types/managed-building';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import {
   Table,
@@ -63,6 +69,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
+import { ManagedBuildingEditor } from './ManagedBuildingEditor';
 
 interface ManagedHousingEntityManagementProps {
   companyId: string;
@@ -96,7 +103,9 @@ function entityToForm(entity: ManagedHousingEntity): ManagedHousingEntityFormDat
   };
 }
 
-export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEntityManagementProps) {
+export function ManagedHousingEntityManagement({
+  companyId,
+}: ManagedHousingEntityManagementProps) {
   const [entities, setEntities] = useState<ManagedHousingEntity[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('gallery');
   const [nameFilter, setNameFilter] = useState('');
@@ -104,13 +113,18 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingEntity, setEditingEntity] = useState<ManagedHousingEntity | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<ManagedHousingEntity | null>(null);
   const [deletingEntity, setDeletingEntity] = useState<ManagedHousingEntity | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ManagedHousingEntityFormData>(EMPTY_FORM);
-  const [initialLookedUpNip, setInitialLookedUpNip] = useState<string | null>(null);
+  const [basicsForm, setBasicsForm] = useState<ManagedHousingEntityFormData>(EMPTY_FORM);
+  const [buildings, setBuildings] = useState<ManagedBuilding[]>([]);
+  const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<ManagedBuilding | null>(null);
+  const [isAddBuildingOpen, setIsAddBuildingOpen] = useState(false);
+  const [newBuildingName, setNewBuildingName] = useState('');
 
   const filteredEntities = useMemo(() => {
     const nameQuery = nameFilter.trim().toLowerCase();
@@ -119,8 +133,8 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
       const matchesName =
         !nameQuery ||
         entity.name.toLowerCase().includes(nameQuery) ||
-        (entity.city?.toLowerCase().includes(nameQuery) ?? false);
-      const matchesNip = !nipQuery || entity.nip.includes(nipQuery);
+        (entity.city ?? '').toLowerCase().includes(nameQuery);
+      const matchesNip = !nipQuery || entity.nip.toLowerCase().includes(nipQuery);
       return matchesName && matchesNip;
     });
   }, [entities, nameFilter, nipFilter]);
@@ -128,39 +142,52 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
   const loadEntities = useCallback(async () => {
     setIsLoading(true);
     setError('');
-    try {
-      const supabase = createClient();
-      const { data, error: fetchError } = await fetchManagerHousingEntities(supabase, companyId);
-      if (fetchError) {
-        const message = formatPostgrestError(fetchError);
-        setError(
-          fetchError.code === 'PGRST205'
-            ? 'Funkcja wymaga aktualizacji bazy danych (brak tabeli wspólnot). Skontaktuj się z administratorem.'
-            : 'Nie udało się załadować wspólnot',
-        );
-        console.error('fetchManagerHousingEntities:', message, fetchError);
-      } else {
-        setEntities(data || []);
-      }
-    } catch {
-      setError('Wystąpił błąd podczas ładowania listy');
-    } finally {
-      setIsLoading(false);
+    const supabase = createClient();
+    const { data, error: fetchError } = await fetchManagerHousingEntities(supabase, companyId);
+    if (fetchError) {
+      setError(formatPostgrestError(fetchError) || 'Nie udało się wczytać nieruchomości');
+      setEntities([]);
+    } else {
+      setEntities(data ?? []);
     }
+    setIsLoading(false);
   }, [companyId]);
 
   useEffect(() => {
     void loadEntities();
   }, [loadEntities]);
 
-  const applyGusData = useCallback((data: CompanyLookupResult) => {
+  const loadBuildings = useCallback(async (entityId: string) => {
+    setIsLoadingBuildings(true);
+    const supabase = createClient();
+    const { data, error: fetchError } = await fetchManagedBuildingsForEntity(supabase, entityId);
+    if (fetchError) {
+      setError(fetchError.message || 'Nie udało się wczytać budynków');
+      setBuildings([]);
+    } else {
+      setBuildings(data ?? []);
+    }
+    setIsLoadingBuildings(false);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedEntity) {
+      setBuildings([]);
+      setSelectedBuilding(null);
+      return;
+    }
+    setBasicsForm(entityToForm(selectedEntity));
+    void loadBuildings(selectedEntity.id);
+  }, [selectedEntity, loadBuildings]);
+
+  const applyGusToForm = useCallback((data: CompanyLookupResult) => {
     setFormData((prev) => ({
       ...prev,
       name: data.name,
-      regon: data.regon,
-      address: data.address ?? prev.address,
-      city: data.city ?? prev.city,
-      postal_code: data.postalCode ?? prev.postal_code,
+      regon: data.regon ?? '',
+      address: data.address ?? '',
+      city: data.city ?? '',
+      postal_code: data.postalCode ?? '',
       bank_account_iban: data.bankAccountIban ?? prev.bank_account_iban,
       vat_status: data.vatStatus ?? prev.vat_status,
     }));
@@ -180,39 +207,27 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
   }, []);
 
   const gusLookup = useGusNipLookup({
-    enabled: isDialogOpen,
+    enabled: isAddDialogOpen,
     nip: formData.nip,
-    onApply: applyGusData,
+    onApply: applyGusToForm,
     onClearDerived: clearGusDerived,
     trigger: 'debounce',
     debounceMs: 0,
-    initialLookedUpNip,
   });
 
   const openAddDialog = () => {
-    setEditingEntity(null);
     setFormData(EMPTY_FORM);
-    setInitialLookedUpNip(null);
-    setIsDialogOpen(true);
+    setIsAddDialogOpen(true);
   };
 
-  const openEditDialog = (entity: ManagedHousingEntity) => {
-    setEditingEntity(entity);
-    setFormData(entityToForm(entity));
-    setInitialLookedUpNip(entity.nip);
-    setIsDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setEditingEntity(null);
+  const closeAddDialog = () => {
+    setIsAddDialogOpen(false);
     setFormData(EMPTY_FORM);
-    setInitialLookedUpNip(null);
   };
 
-  const handleSubmit = async () => {
+  const handleCreate = async () => {
     if (!formData.name.trim()) {
-      setError('Wyszukaj NIP w rejestrze GUS, aby pobrać dane wspólnoty');
+      setError('Wyszukaj NIP w rejestrze GUS, aby pobrać dane nieruchomości');
       return;
     }
 
@@ -220,25 +235,65 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
     setError('');
     setSuccess('');
 
-    const payload: ManagedHousingEntityFormData = {
-      ...formData,
-      entity_type: editingEntity?.entity_type ?? 'wspólnota',
-    };
-
     try {
       const supabase = createClient();
-      const result = editingEntity
-        ? await updateManagedHousingEntity(supabase, editingEntity.id, companyId, payload)
-        : await createManagedHousingEntity(supabase, companyId, payload);
+      const result = await createManagedHousingEntity(supabase, companyId, {
+        ...formData,
+        entity_type: 'wspólnota',
+      });
 
       if (result.error) {
-        setError(result.error.message || 'Nie udało się zapisać wspólnoty');
+        setError(result.error.message || 'Nie udało się dodać nieruchomości');
         return;
       }
 
-      setSuccess(editingEntity ? 'Zaktualizowano wspólnotę' : 'Dodano wspólnotę');
-      closeDialog();
+      setSuccess('Dodano nieruchomość');
+      closeAddDialog();
       await loadEntities();
+      if (result.data) {
+        setSelectedEntity(result.data);
+      }
+    } catch {
+      setError('Wystąpił błąd podczas zapisywania');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveBasics = async () => {
+    if (!selectedEntity) return;
+    if (!basicsForm.name.trim()) {
+      setError('Nazwa jest wymagana');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const supabase = createClient();
+      const result = await updateManagedHousingEntity(
+        supabase,
+        selectedEntity.id,
+        companyId,
+        {
+          ...basicsForm,
+          entity_type: selectedEntity.entity_type || 'wspólnota',
+          nip: selectedEntity.nip,
+        },
+      );
+
+      if (result.error || !result.data) {
+        setError(result.error?.message || 'Nie udało się zapisać danych');
+        return;
+      }
+
+      setSelectedEntity(result.data);
+      setEntities((prev) =>
+        prev.map((item) => (item.id === result.data!.id ? result.data! : item)),
+      );
+      setSuccess('Zapisano dane podstawowe');
     } catch {
       setError('Wystąpił błąd podczas zapisywania');
     } finally {
@@ -258,11 +313,14 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         companyId,
       );
       if (deleteError || !deleted) {
-        setError(deleteError?.message || 'Nie udało się usunąć wspólnoty');
+        setError(deleteError?.message || 'Nie udało się usunąć nieruchomości');
         return;
       }
-      setSuccess('Usunięto wspólnotę');
+      setSuccess('Usunięto nieruchomość');
       setIsDeleteDialogOpen(false);
+      if (selectedEntity?.id === deletingEntity.id) {
+        setSelectedEntity(null);
+      }
       setDeletingEntity(null);
       await loadEntities();
     } catch {
@@ -270,6 +328,39 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCreateBuilding = async () => {
+    if (!selectedEntity) return;
+    if (!newBuildingName.trim()) {
+      setError('Podaj nazwę / identyfikator budynku');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    const supabase = createClient();
+    const { data, error: createError } = await createManagedBuilding(
+      supabase,
+      selectedEntity.id,
+      {
+        ...EMPTY_MANAGED_BUILDING_FORM,
+        name: newBuildingName.trim(),
+      },
+    );
+
+    if (createError || !data) {
+      setError(createError?.message || 'Nie udało się dodać budynku');
+      setIsSubmitting(false);
+      return;
+    }
+
+    setBuildings((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, 'pl')));
+    setIsAddBuildingOpen(false);
+    setNewBuildingName('');
+    setSelectedBuilding(data);
+    setSuccess('Dodano budynek');
+    setIsSubmitting(false);
   };
 
   const previewFields = [
@@ -280,29 +371,307 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
     { label: 'Kod pocztowy', value: formData.postal_code },
   ];
 
+  if (selectedEntity && selectedBuilding) {
+    return (
+      <div className="space-y-4" id="nieruchomosci">
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {success ? (
+          <Alert>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        ) : null}
+        <ManagedBuildingEditor
+          building={selectedBuilding}
+          onUpdated={(updated) => {
+            setSelectedBuilding(updated);
+            setBuildings((prev) =>
+              prev.map((item) => (item.id === updated.id ? updated : item)),
+            );
+          }}
+          onDeleted={(buildingId) => {
+            setBuildings((prev) => prev.filter((item) => item.id !== buildingId));
+            setSelectedBuilding(null);
+            setSuccess('Usunięto budynek');
+          }}
+          onClose={() => setSelectedBuilding(null)}
+        />
+      </div>
+    );
+  }
+
+  if (selectedEntity) {
+    return (
+      <div className="space-y-4" id="nieruchomosci">
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {success ? (
+          <Alert>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-2 w-fit"
+              onClick={() => {
+                setSelectedEntity(null);
+                setSuccess('');
+                setError('');
+              }}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Lista nieruchomości
+            </Button>
+            <h2 className="text-xl font-semibold tracking-tight">{selectedEntity.name}</h2>
+            <p className="text-sm text-muted-foreground">NIP {selectedEntity.nip}</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setDeletingEntity(selectedEntity);
+              setIsDeleteDialogOpen(true);
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Usuń nieruchomość
+          </Button>
+        </div>
+
+        <Tabs defaultValue="basics" className="space-y-4">
+          <TabsList className="grid h-auto w-full grid-cols-2 sm:w-auto sm:inline-flex">
+            <TabsTrigger value="basics">Dane Podstawowe</TabsTrigger>
+            <TabsTrigger value="buildings">Budynki ({buildings.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basics" className="space-y-4">
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <p className="text-sm text-muted-foreground">
+                  Pola pobrane z NIP (GUS). Numer NIP jest stały po dodaniu nieruchomości.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>NIP</Label>
+                    <Input value={basicsForm.nip} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>REGON</Label>
+                    <Input
+                      value={basicsForm.regon}
+                      onChange={(e) =>
+                        setBasicsForm((prev) => ({ ...prev, regon: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Nazwa</Label>
+                    <Input
+                      value={basicsForm.name}
+                      onChange={(e) =>
+                        setBasicsForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Adres</Label>
+                    <Input
+                      value={basicsForm.address}
+                      onChange={(e) =>
+                        setBasicsForm((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Miasto</Label>
+                    <Input
+                      value={basicsForm.city}
+                      onChange={(e) =>
+                        setBasicsForm((prev) => ({ ...prev, city: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Kod pocztowy</Label>
+                    <Input
+                      value={basicsForm.postal_code}
+                      onChange={(e) =>
+                        setBasicsForm((prev) => ({ ...prev, postal_code: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => void handleSaveBasics()}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Zapisz dane podstawowe
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="buildings" className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Dodaj budynki należące do tej nieruchomości i uzupełnij dane techniczne oraz
+                kalendarz przeglądów.
+              </p>
+              <Button type="button" size="sm" onClick={() => setIsAddBuildingOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Dodaj budynek
+              </Button>
+            </div>
+
+            {isLoadingBuildings ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : buildings.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  Brak budynków. Dodaj pierwszy budynek, aby uzupełnić dane techniczne.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {buildings.map((building) => (
+                  <button
+                    key={building.id}
+                    type="button"
+                    onClick={() => setSelectedBuilding(building)}
+                    className="rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{building.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Otwórz dane techniczne i przeglądy
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <Dialog open={isAddBuildingOpen} onOpenChange={setIsAddBuildingOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dodaj budynek</DialogTitle>
+              <DialogDescription>
+                Podaj nazwę lub identyfikator budynku. Szczegóły uzupełnisz w kolejnym kroku.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="new-building-name">Nazwa / Identyfikator budynku</Label>
+              <Input
+                id="new-building-name"
+                value={newBuildingName}
+                onChange={(e) => setNewBuildingName(e.target.value)}
+                placeholder='Np. „Budynek A”'
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddBuildingOpen(false)}
+                disabled={isSubmitting}
+              >
+                Anuluj
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleCreateBuilding()}
+                disabled={isSubmitting || !newBuildingName.trim()}
+              >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Dodaj
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Usunąć nieruchomość?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deletingEntity
+                  ? `Czy na pewno chcesz usunąć „${deletingEntity.name}" wraz z budynkami i przeglądami? Ta operacja jest nieodwracalna.`
+                  : ''}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmitting}>Anuluj</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  void handleDelete();
+                }}
+                disabled={isSubmitting}
+                className={cn(
+                  'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                )}
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Usuń'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
   return (
-    <div className="border rounded-lg p-4 bg-card space-y-4" id="wspolnoty-spoldzielnie">
-      {error && (
+    <div className="space-y-4" id="nieruchomosci">
+      {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
-      {success && (
+      ) : null}
+      {success ? (
         <Alert>
           <AlertDescription>{success}</AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <h4 className="font-medium">Zarządzanie wspólnotami</h4>
-          {entities.length > 0 && (
-            <Badge variant="secondary">
-              {entities.length}{' '}
-              {entities.length === 1 ? 'wspólnota' : 'wspólnot'}
-            </Badge>
-          )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold tracking-tight">
+              Zarządzanie nieruchomościami
+            </h2>
+            {entities.length > 0 ? (
+              <Badge variant="secondary">
+                {entities.length}{' '}
+                {entities.length === 1 ? 'nieruchomość' : 'nieruchomości'}
+              </Badge>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Dodawaj wspólnoty po NIP, a następnie budynki z danymi technicznymi i przeglądami.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ToggleGroup
@@ -319,14 +688,14 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
             </ToggleGroupItem>
           </ToggleGroup>
           <Button size="sm" onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Dodaj wspólnotę
+            <Plus className="mr-2 h-4 w-4" />
+            Dodaj nieruchomość
           </Button>
         </div>
       </div>
 
-      {entities.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {entities.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input
             placeholder="Filtruj po nazwie lub mieście..."
             value={nameFilter}
@@ -338,58 +707,57 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
             onChange={(e) => setNipFilter(e.target.value)}
           />
         </div>
-      )}
+      ) : null}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : entities.length === 0 ? (
-        <div className="text-center py-10">
-          <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-sm text-muted-foreground mb-4">
-            Nie masz jeszcze dodanych wspólnot. Dodaj wspólnotę po numerze NIP —
+        <div className="rounded-lg border border-dashed py-10 text-center">
+          <Building2 className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <p className="mb-4 text-sm text-muted-foreground">
+            Nie masz jeszcze dodanych nieruchomości. Dodaj nieruchomość po numerze NIP —
             dane zostaną pobrane z rejestru GUS.
           </p>
           <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Dodaj wspólnotę
+            <Plus className="mr-2 h-4 w-4" />
+            Dodaj nieruchomość
           </Button>
         </div>
       ) : viewMode === 'gallery' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {filteredEntities.map((entity) => (
-            <Card key={entity.id}>
-              <CardContent className="p-4 space-y-3">
+            <Card
+              key={entity.id}
+              className="cursor-pointer transition-colors hover:border-primary/40"
+              onClick={() => setSelectedEntity(entity)}
+            >
+              <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1 min-w-0">
-                    <Badge variant="outline" className="mb-1">
-                      {formatManagedHousingEntityType(entity.entity_type)}
-                    </Badge>
-                    <p className="font-medium truncate">{entity.name}</p>
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate font-medium">{entity.name}</p>
                     <p className="text-xs text-muted-foreground">NIP {entity.nip}</p>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(entity)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setDeletingEntity(entity);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingEntity(entity);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
                 {(entity.address || entity.city) && (
                   <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
-                      {[entity.address, entity.postal_code, entity.city].filter(Boolean).join(', ')}
+                      {[entity.address, entity.postal_code, entity.city]
+                        .filter(Boolean)
+                        .join(', ')}
                     </span>
                   </div>
                 )}
@@ -401,7 +769,6 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Typ</TableHead>
               <TableHead>Nazwa</TableHead>
               <TableHead>NIP</TableHead>
               <TableHead>Adres</TableHead>
@@ -410,33 +777,28 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
           </TableHeader>
           <TableBody>
             {filteredEntities.map((entity) => (
-              <TableRow key={entity.id}>
-                <TableCell>
-                  <Badge variant="outline">
-                    {formatManagedHousingEntityType(entity.entity_type)}
-                  </Badge>
-                </TableCell>
+              <TableRow
+                key={entity.id}
+                className="cursor-pointer"
+                onClick={() => setSelectedEntity(entity)}
+              >
                 <TableCell className="font-medium">{entity.name}</TableCell>
                 <TableCell>{entity.nip}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
+                <TableCell className="text-sm text-muted-foreground">
                   {[entity.address, entity.city].filter(Boolean).join(', ') || '—'}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(entity)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setDeletingEntity(entity);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingEntity(entity);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -444,12 +806,10 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
         </Table>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => !open && closeAddDialog()}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingEntity ? 'Edytuj wspólnotę' : 'Dodaj wspólnotę'}
-            </DialogTitle>
+            <DialogTitle>Dodaj nieruchomość</DialogTitle>
             <DialogDescription>
               Podaj NIP wspólnoty mieszkaniowej — dane zostaną pobrane z rejestru GUS.
             </DialogDescription>
@@ -463,9 +823,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
                   id="entity-nip"
                   value={formData.nip}
                   onChange={(e) => {
-                    if (gusLookup.isLoading) {
-                      return;
-                    }
+                    if (gusLookup.isLoading) return;
                     gusLookup.handleNipChange(e.target.value, (next) =>
                       setFormData((prev) => ({ ...prev, nip: next })),
                     );
@@ -491,7 +849,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
             </div>
 
             {gusLookup.isLoading ? (
-              <div className="rounded-md border bg-muted/40 p-3 space-y-3" aria-hidden>
+              <div className="space-y-3 rounded-md border bg-muted/40 p-3" aria-hidden>
                 <div className="h-3 w-28 animate-pulse rounded bg-muted" />
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div key={index} className="grid grid-cols-3 gap-2">
@@ -501,8 +859,8 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
                 ))}
               </div>
             ) : formData.name ? (
-              <div className="rounded-md border bg-muted/40 p-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div className="space-y-2 rounded-md border bg-muted/40 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Dane z rejestru
                 </p>
                 {previewFields.map((field) => (
@@ -516,20 +874,22 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog} disabled={isSubmitting}>
-              <X className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={closeAddDialog} disabled={isSubmitting}>
+              <X className="mr-2 h-4 w-4" />
               Anuluj
             </Button>
             <Button
-              onClick={() => void handleSubmit()}
-              disabled={isSubmitting || gusLookup.status === 'loading' || !formData.name.trim()}
+              onClick={() => void handleCreate()}
+              disabled={
+                isSubmitting || gusLookup.status === 'loading' || !formData.name.trim()
+              }
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
               )}
-              {editingEntity ? 'Zapisz' : 'Dodaj'}
+              Dodaj
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -538,7 +898,7 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Usunąć wspólnotę?</AlertDialogTitle>
+            <AlertDialogTitle>Usunąć nieruchomość?</AlertDialogTitle>
             <AlertDialogDescription>
               {deletingEntity
                 ? `Czy na pewno chcesz usunąć „${deletingEntity.name}" z listy? Ta operacja jest nieodwracalna.`
@@ -553,7 +913,9 @@ export function ManagedHousingEntityManagement({ companyId }: ManagedHousingEnti
                 void handleDelete();
               }}
               disabled={isSubmitting}
-              className={cn('bg-destructive text-destructive-foreground hover:bg-destructive/90')}
+              className={cn(
+                'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+              )}
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Usuń'}
             </AlertDialogAction>

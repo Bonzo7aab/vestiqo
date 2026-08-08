@@ -581,7 +581,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
               </div>
 
               <div>
-                <Label>Wspólnota / Spółdzielnia *</Label>
+                <Label>Nieruchomość *</Label>
                 {managedEntities.length === 0 ? (
                   <p className="text-sm text-muted-foreground mt-1">
                     Brak zapisanych wspólnot lub spółdzielni. Do czasu dodania używany będzie adres siedziby firmy z profilu.

@@ -42,7 +42,7 @@ export function formatManagedHousingEntityType(type: ManagedHousingEntityType): 
 
 export function formatManagedHousingEntitySelectLabel(entity: Pick<
   ManagedHousingEntity,
-  'name' | 'entity_type' | 'nip'
+  'name' | 'nip'
 >): string {
-  return `${entity.name} · ${formatManagedHousingEntityType(entity.entity_type)} · NIP ${entity.nip}`;
+  return `${entity.name} · NIP ${entity.nip}`;
 }

@@ -222,17 +222,32 @@ export function UserAccountPageClient({
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => handleTabChange(KONTO_TABS.profil)}
-                className={cn(
-                  "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                  activeTab === KONTO_TABS.profil
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
-                )}
-              >
-                Twoje dane
-              </button>
+              <>
+                <button
+                  onClick={() => handleTabChange(KONTO_TABS.profil)}
+                  className={cn(
+                    "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
+                    activeTab === KONTO_TABS.profil
+                      ? "border-primary text-primary"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                  )}
+                >
+                  Twoje dane
+                </button>
+                {showManagedHousingEntities ? (
+                  <button
+                    onClick={() => handleTabChange(KONTO_TABS.nieruchomosci)}
+                    className={cn(
+                      "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
+                      activeTab === KONTO_TABS.nieruchomosci
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                    )}
+                  >
+                    Nieruchomości
+                  </button>
+                ) : null}
+              </>
             )}
             <button
               onClick={() => handleTabChange(KONTO_TABS.bezpieczenstwo)}
@@ -266,10 +281,13 @@ export function UserAccountPageClient({
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
-            {user.userType === 'manager' && showManagedHousingEntities && (
-              <CompanyManagementForm user={user} managedEntitiesOnly />
-            )}
           </TabsContent>
+
+          {showManagedHousingEntities ? (
+            <TabsContent value={KONTO_TABS.nieruchomosci} className="space-y-6">
+              <CompanyManagementForm user={user} managedEntitiesOnly />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value={KONTO_TABS.twojeDane} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />

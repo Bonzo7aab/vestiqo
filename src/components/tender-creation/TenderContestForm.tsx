@@ -481,7 +481,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label>Wspólnota / Spółdzielnia *</Label>
+            <Label>Nieruchomość *</Label>
             {isLoadingMeta ? (
               <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
             ) : managedEntities.length === 0 ? (

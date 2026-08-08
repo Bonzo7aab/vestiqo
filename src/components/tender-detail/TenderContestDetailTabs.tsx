@@ -94,7 +94,7 @@ export function TenderContestDetailTabs({
                 />
               ) : null}
               {contestInfo.entityName ? (
-                <ContestDetailField label="Wspólnota / Spółdzielnia" value={contestInfo.entityName} />
+                <ContestDetailField label="Nieruchomość" value={contestInfo.entityName} />
               ) : null}
               {contestInfo.entityAddress ? (
                 <ContestDetailField label="Adres obiektu" value={contestInfo.entityAddress} />

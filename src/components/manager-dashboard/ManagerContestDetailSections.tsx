@@ -59,7 +59,7 @@ export function ManagerContestDetailSections({
           <DetailRow label="Kategoria" value={categoryName} />
           {subcategoryName ? <DetailRow label="Podkategoria" value={subcategoryName} /> : null}
           {contestInfo.entityName ? (
-            <DetailRow label="Wspólnota / Spółdzielnia" value={contestInfo.entityName} />
+            <DetailRow label="Nieruchomość" value={contestInfo.entityName} />
           ) : null}
           {contestInfo.entityAddress ? (
             <DetailRow label="Adres" value={contestInfo.entityAddress} />
