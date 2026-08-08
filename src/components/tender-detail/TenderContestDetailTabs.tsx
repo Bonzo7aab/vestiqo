@@ -111,12 +111,14 @@ export function TenderContestDetailTabs({
               <ContestDetailDocumentList>
                 {contestInfo.documents.map((doc) => (
                   <ContestDetailDocumentItem key={doc.id}>
-                    <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <StorageDocumentLink
                       name={doc.name}
                       path={doc.path}
                       url={doc.url}
-                      className="min-w-0 flex-1 text-sm font-medium"
+                      className="w-full flex-1"
+                      leadingIcon={
+                        <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      }
                     />
                   </ContestDetailDocumentItem>
                 ))}

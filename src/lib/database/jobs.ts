@@ -1316,34 +1316,9 @@ export async function fetchTenders(
       return { data: null, error };
     }
 
-    // Calculate offers_count dynamically if not already accurate
-    if (data && data.length > 0) {
-      const tenderIds = (data || []).map((tender: TenderWithCompany) => tender.id);
-      
-      // Fetch counts for all tenders at once
-      const contestIdField = contestIdColumn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: countsData, error: countsError } = await (supabase as any)
-        .from(contestOffersTable())
-        .select(contestIdField)
-        .in(contestIdField, tenderIds)
-        .neq('status', 'draft')
-        .neq('status', 'cancelled') as { data: TenderBidRow[] | null; error: PostgrestError | null };
-
-      if (!countsError && countsData) {
-        // Count bids per tender
-        const countsMap: { [key: string]: number } = {};
-        countsData?.forEach((bid: TenderBidRow) => {
-          const parentId = bid[contestIdField as keyof TenderBidRow] as string;
-          countsMap[parentId] = (countsMap[parentId] || 0) + 1;
-        });
-
-        // Update offers_count for each tender
-        data.forEach((tender: TenderWithCompany) => {
-          (tender as TenderWithCompany & { offers_count: number }).offers_count = countsMap[tender.id] || 0;
-        });
-      }
-    }
+    // Prefer denormalized contests.offers_count (DB trigger). Recounting via
+    // contest_offers under the caller session is incorrect for public readers
+    // because RLS only exposes the caller's own offers.
 
     return { data: normalizeContestRows(data as Record<string, unknown>[]) as unknown as TenderWithCompany[], error };
   } catch (err) {
@@ -1623,18 +1598,9 @@ export async function fetchTenderById(
       return { data: null, error: null };
     }
 
-    // Calculate offers_count dynamically if tender exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { count, error: countsError } = await (supabase as any)
-      .from(contestOffersTable())
-      .select('*', { count: 'exact', head: true })
-      .eq(contestIdColumn(), id)
-      .neq('status', 'draft')
-      .neq('status', 'cancelled');
-
-    if (!countsError && count !== null && result.data) {
-      (result.data as unknown as { offers_count?: number }).offers_count = count;
-    }
+    // Use denormalized contests.offers_count (maintained by DB trigger).
+    // Do not recount from contest_offers here — RLS hides other contractors'
+    // offers and would overwrite the public count with 0/1.
 
     return {
       data: normalizeContestRow(result.data as Record<string, unknown>) as unknown as TenderWithCompany,

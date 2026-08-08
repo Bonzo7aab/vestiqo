@@ -86,8 +86,13 @@ export function ManagerContestDetailSections({
                 key={doc.id}
                 className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm"
               >
-                <FileText className="h-4 w-4 shrink-0" />
-                <StorageDocumentLink name={doc.name} path={doc.path} url={doc.url} />
+                <StorageDocumentLink
+                  name={doc.name}
+                  path={doc.path}
+                  url={doc.url}
+                  className="w-full flex-1"
+                  leadingIcon={<FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />}
+                />
               </li>
             ))}
           </ul>
