@@ -31,6 +31,7 @@ export const footerColumns: FooterColumn[] = [
     title: 'Wsparcie',
     links: [
       { label: 'Najczęściej zadawane pytania', href: routes.faq },
+      { label: 'Co nowego', href: routes.coNowego },
       { label: 'Pomoc dla Zarządców', href: routes.pomocDlaZarzadcow },
       { label: 'Pomoc dla Wykonawców', href: routes.pomocDlaWykonawcow },
     ],

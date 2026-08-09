@@ -5,6 +5,7 @@ import { getAbsoluteUrl } from '../lib/seo'
 const PUBLIC_ROUTES = [
   '/',
   '/aktualnosci',
+  '/co-nowego',
   '/faq',
   '/kontakt',
   '/o-nas',

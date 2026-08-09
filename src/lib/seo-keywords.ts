@@ -57,6 +57,12 @@ export const newsKeywords = [
   'przetargi i konkursy ofert',
 ] as const
 
+export const changelogKeywords = [
+  'co nowego vestiqo',
+  'historia zmian platformy',
+  'nowości dla zarządców i wykonawców',
+] as const
+
 export const managerHelpKeywords = [
   'jak dodać konkurs ofert',
   'pomoc dla zarządców nieruchomości',

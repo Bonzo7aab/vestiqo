@@ -38,6 +38,7 @@ export const routes = {
   oNas: '/o-nas',
   kontakt: '/kontakt',
   aktualnosci: '/aktualnosci',
+  coNowego: '/co-nowego',
   faq: '/faq',
   kategorieUslug: '/kategorie-uslug',
   pomocDlaZarzadcow: '/pomoc-dla-zarzadcow',
