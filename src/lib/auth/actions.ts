@@ -9,14 +9,17 @@ import { registrationClosedMessage } from '../registration-settings-shared'
 import { sanitizeRedirectPath } from './redirectPath'
 import { assertNotImpersonating, IMPERSONATION_READ_ONLY_ERROR } from './guard-impersonation'
 import { isRedirectForbiddenForContractor } from './manager-contest-routes'
-import { translateAuthErrorMessage, translateRegistrationErrorMessage, REGISTRATION_ERRORS } from './errorMessages'
+import { translateAuthErrorMessage, translateRegistrationErrorMessage, translateRegistrationInsertError, nipAlreadyRegisteredMessage, REGISTRATION_ERRORS } from './errorMessages'
 import {
   isValidPolishPhone,
   normalizePolishPhone,
   POLISH_PHONE_INVALID_MESSAGE,
 } from '../phone/polish-phone'
 import { isValidNip, normalizeNip } from '../gus/nip'
-import { isEmailAlreadyRegistered, isNipAlreadyRegistered } from './registration-checks'
+import {
+  checkEmailRegistrationStatus,
+  checkNipRegistrationStatus,
+} from './registration-checks'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
 import { findAuthUserByEmail } from './find-user-by-email'
@@ -310,12 +313,43 @@ async function registerActionImpl(
   const { createAdminClient } = await import('../supabase/admin')
   const admin = createAdminClient()
 
-  if (await isNipAlreadyRegistered(admin, normalizedNip)) {
-    return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+  const emailStatus = await checkEmailRegistrationStatus(admin, email)
+  if (emailStatus === 'taken') {
+    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
+  }
+  if (emailStatus === 'unavailable') {
+    return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
   }
 
-  if (await isEmailAlreadyRegistered(admin, email)) {
-    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
+  const companyNipRole =
+    accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER ? 'management' : 'company'
+
+  const nipStatus = await checkNipRegistrationStatus(admin, normalizedNip)
+  if (nipStatus === 'taken') {
+    return { error: nipAlreadyRegisteredMessage(normalizedNip, companyNipRole) }
+  }
+  if (nipStatus === 'unavailable') {
+    return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+  }
+
+  const normalizedManagedEntityNipForCheck =
+    accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER && managedEntityNip
+      ? normalizeNip(managedEntityNip)
+      : null
+
+  if (normalizedManagedEntityNipForCheck) {
+    const communityNipStatus = await checkNipRegistrationStatus(
+      admin,
+      normalizedManagedEntityNipForCheck,
+    )
+    if (communityNipStatus === 'taken') {
+      return {
+        error: nipAlreadyRegisteredMessage(normalizedManagedEntityNipForCheck, 'community'),
+      }
+    }
+    if (communityNipStatus === 'unavailable') {
+      return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+    }
   }
 
   const origin = getPublicAppOrigin();
@@ -369,7 +403,12 @@ async function registerActionImpl(
 
   if (profileError) {
     await admin.auth.admin.deleteUser(userId)
-    return { error: translateRegistrationErrorMessage(profileError.message) }
+    return {
+      error: translateRegistrationInsertError(profileError.message, {
+        nip: normalizedNip,
+        role: companyNipRole,
+      }),
+    }
   }
 
   const companyType = resolveRegistrationCompanyType(accountRole)
@@ -398,14 +437,12 @@ async function registerActionImpl(
 
   if (companyError) {
     await admin.auth.admin.deleteUser(userId)
-    const companyErrorMessage = companyError.message.toLowerCase()
-    if (
-      companyErrorMessage.includes('duplicate') ||
-      companyErrorMessage.includes('unique')
-    ) {
-      return { error: REGISTRATION_ERRORS.nipAlreadyRegistered }
+    return {
+      error: translateRegistrationInsertError(companyError.message, {
+        nip: normalizedNip,
+        role: companyNipRole,
+      }),
     }
-    return { error: translateRegistrationErrorMessage(companyError.message) }
   }
 
   if (!companyRow?.id) {
@@ -443,10 +480,20 @@ async function registerActionImpl(
 
     if (managedEntityError) {
       await admin.auth.admin.deleteUser(userId)
+      const managedMessage = managedEntityError.message || 'Nie udało się zapisać danych wspólnoty'
+      if (
+        managedMessage.toLowerCase().includes('już na liście') ||
+        managedMessage.toLowerCase().includes('nip')
+      ) {
+        return {
+          error: nipAlreadyRegisteredMessage(
+            normalizeNip(managedEntityNip),
+            'community',
+          ),
+        }
+      }
       return {
-        error: translateRegistrationErrorMessage(
-          managedEntityError.message || 'Nie udało się zapisać danych wspólnoty',
-        ),
+        error: translateRegistrationErrorMessage(managedMessage),
       }
     }
   }
