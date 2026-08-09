@@ -36,9 +36,15 @@ import {
   type VerificationUserSegment,
 } from '../../lib/admin/verification-user-segment';
 import {
+  hasUsersOutsideCurrentFilter,
+  resolveInitialVerificationFilters,
+  resolveStatusForSegment,
+} from '../../lib/admin/verification-queue-initial-filters';
+import {
   ACCOUNT_ROLES,
   getAccountRoleDisplayLabel,
 } from '../../lib/profile/account-role-labels';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface QueueRow extends VerificationQueueRowBase {
   emailConfirmed: boolean;
@@ -88,6 +94,8 @@ interface VerificationQueueTabsProps {
   pending: PendingRow[];
   rejected: RejectedRow[];
   approved: ApprovedRow[];
+  /** False when SUPABASE_SECRET_KEY / SERVICE_ROLE is missing — email status cannot be resolved. */
+  emailLookupAvailable?: boolean;
 }
 
 type RoleFilter = VerificationUserSegment;
@@ -525,6 +533,7 @@ function VerificationQueuePanel({
   rejected,
   approved,
   onNavigate,
+  emptyHint,
 }: {
   role: RoleFilter;
   status: StatusFilter;
@@ -534,6 +543,7 @@ function VerificationQueuePanel({
   rejected: RejectedRow[];
   approved: ApprovedRow[];
   onNavigate: (userId: string) => void;
+  emptyHint?: string;
 }) {
   const counts = {
     pending: pending.length,
@@ -549,6 +559,12 @@ function VerificationQueuePanel({
       : role === 'cooperative'
         ? 'spółdzielni'
         : 'zarządców';
+
+  const activeRowsEmpty =
+    (status === 'email' && emailUnconfirmed.length === 0) ||
+    (status === 'pending' && pending.length === 0) ||
+    (status === 'rejected' && rejected.length === 0) ||
+    (status === 'approved' && approved.length === 0);
 
   return (
     <div className="space-y-3">
@@ -579,21 +595,34 @@ function VerificationQueuePanel({
           </>
         }
       >
-        {status === 'email' && (
-          <EmailUnconfirmedTable rows={emailUnconfirmed} onNavigate={onNavigate} />
+        {activeRowsEmpty && emptyHint ? (
+          <AdminEmptyState message={emptyHint} />
+        ) : (
+          <>
+            {status === 'email' && (
+              <EmailUnconfirmedTable rows={emailUnconfirmed} onNavigate={onNavigate} />
+            )}
+            {status === 'pending' && <PendingTable rows={pending} onNavigate={onNavigate} />}
+            {status === 'rejected' && <RejectedTable rows={rejected} onNavigate={onNavigate} />}
+            {status === 'approved' && <ApprovedTable rows={approved} onNavigate={onNavigate} />}
+          </>
         )}
-        {status === 'pending' && <PendingTable rows={pending} onNavigate={onNavigate} />}
-        {status === 'rejected' && <RejectedTable rows={rejected} onNavigate={onNavigate} />}
-        {status === 'approved' && <ApprovedTable rows={approved} onNavigate={onNavigate} />}
       </AdminPanelCard>
     </div>
   );
 }
 
-export function VerificationQueueTabs({ pending, rejected, approved }: VerificationQueueTabsProps) {
+export function VerificationQueueTabs({
+  pending,
+  rejected,
+  approved,
+  emailLookupAvailable = true,
+}: VerificationQueueTabsProps) {
   const router = useRouter();
-  const [role, setRole] = useState<RoleFilter>('contractor');
-  const [status, setStatus] = useState<StatusFilter>('pending');
+  const [queueFilters, setQueueFilters] = useState(() =>
+    resolveInitialVerificationFilters(pending, rejected, approved),
+  );
+  const { role, status } = queueFilters;
 
   const contractorPending = useMemo(() => filterByRole(pending, 'contractor'), [pending]);
   const contractorRejected = useMemo(() => filterByRole(rejected, 'contractor'), [rejected]);
@@ -606,6 +635,17 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
   const cooperativePending = useMemo(() => filterByRole(pending, 'cooperative'), [pending]);
   const cooperativeRejected = useMemo(() => filterByRole(rejected, 'cooperative'), [rejected]);
   const cooperativeApproved = useMemo(() => filterByRole(approved, 'cooperative'), [approved]);
+
+  const selectRole = (nextRole: RoleFilter) => {
+    setQueueFilters({
+      role: nextRole,
+      status: resolveStatusForSegment(nextRole, status, pending, rejected, approved),
+    });
+  };
+
+  const selectStatus = (nextStatus: StatusFilter) => {
+    setQueueFilters((prev) => ({ ...prev, status: nextStatus }));
+  };
 
   const contractorPartitioned = useMemo(() => {
     const pendingSplit = partitionByEmailConfirmation(contractorPending);
@@ -684,41 +724,65 @@ export function VerificationQueueTabs({ pending, rejected, approved }: Verificat
     router.push(`/administracja/weryfikacja/${userId}`);
   };
 
+  const usersExistElsewhere = hasUsersOutsideCurrentFilter(
+    role,
+    status,
+    pending,
+    rejected,
+    approved,
+  );
+
   return (
     <div className="space-y-3">
+      {!emailLookupAvailable ? (
+        <Alert>
+          <AlertTitle>Status email niedostępny</AlertTitle>
+          <AlertDescription>
+            Brak klucza administracyjnego Supabase — nie da się sprawdzić potwierdzenia email.
+            Użytkownicy są pokazani w statusach weryfikacji (W toku / Odrzucone / Zaakceptowane),
+            bez osobnej zakładki Email.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-1">
         <AdminFilterChip
           label="Wykonawcy"
           count={contractorTotal}
           icon={HardHat}
           active={role === 'contractor'}
-          onClick={() => setRole('contractor')}
+          onClick={() => selectRole('contractor')}
         />
         <AdminFilterChip
           label="Zarządcy"
           count={managerTotal}
           icon={Building2}
           active={role === 'manager'}
-          onClick={() => setRole('manager')}
+          onClick={() => selectRole('manager')}
         />
         <AdminFilterChip
           label="Spółdzielnie"
           count={cooperativeTotal}
           icon={Landmark}
           active={role === 'cooperative'}
-          onClick={() => setRole('cooperative')}
+          onClick={() => selectRole('cooperative')}
         />
       </div>
 
       <VerificationQueuePanel
         role={role}
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={selectStatus}
         emailUnconfirmed={activePartition.emailUnconfirmed}
         pending={activePartition.pending}
         rejected={activePartition.rejected}
         approved={activePartition.approved}
         onNavigate={navigateToUser}
+        emptyHint={
+          usersExistElsewhere
+            ? 'W tej zakładce nic nie ma, ale są użytkownicy w innych filtrach (np. Zarządcy → Zaakceptowane lub Email). Sprawdź liczniki na przyciskach powyżej.'
+            : undefined
+        }
       />
     </div>
   );
