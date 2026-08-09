@@ -359,7 +359,7 @@ export async function resolveJobFormCategoryIds(
     'Utrzymanie Czystości i Zieleni': 'Sprzątanie',
     'Roboty Remontowo-Budowlane': 'Budowlanka',
     'Instalacje i systemy': 'Instalacje',
-    'Utrzymanie techniczne i konserwacja': 'Przeglądy i Serwis',
+    'Utrzymanie techniczne i konserwacja': 'Przeglądy',
     'Specjalistyczne usługi': 'Inżynieria',
     Inne: 'Inżynieria',
   };

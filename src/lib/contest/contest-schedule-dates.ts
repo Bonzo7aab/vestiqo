@@ -37,3 +37,22 @@ export function evaluationDateFromSubmissionOffset(submission: Date, offsetDays:
 export function completionDateFromEvaluationOffset(evaluation: Date, offsetDays: number): Date {
   return addCalendarDays(evaluation, offsetDays);
 }
+
+/** Returns the offset option that matches `target` relative to `base`, or null if none. */
+export function matchingScheduleOffsetDays(
+  base: Date | null | undefined,
+  target: Date | null | undefined,
+  offsets: readonly number[],
+): number | null {
+  if (!base || !target || Number.isNaN(base.getTime()) || Number.isNaN(target.getTime())) {
+    return null;
+  }
+
+  const targetStart = startOfCalendarDay(target).getTime();
+  for (const days of offsets) {
+    if (startOfCalendarDay(addCalendarDays(base, days)).getTime() === targetStart) {
+      return days;
+    }
+  }
+  return null;
+}

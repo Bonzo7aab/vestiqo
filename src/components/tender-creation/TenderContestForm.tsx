@@ -17,8 +17,10 @@ import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { fetchAllCategoriesWithSubcategories } from '../../lib/database/categories';
 import type { CategoryWithSubcategories } from '../../lib/database/categories';
 import { fetchManagerHousingEntities } from '../../lib/database/managed-housing-entities';
+import { fetchManagedBuildingsForEntity } from '../../lib/database/managed-buildings';
 import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
 import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housing-entity';
+import type { ManagedBuilding } from '../../types/managed-building';
 import type {
   SelectionCriterionItem,
   TenderContestDocumentMeta,
@@ -37,6 +39,13 @@ import {
   type TenderContestFormFieldErrors,
 } from '../../lib/contest/contest-form-validation';
 import {
+  applyTechParamsToDescription,
+  buildPrzegladyTechParamsBlock,
+  isPrzegladyCategory,
+  resolvePrzegladySubcategorySlug,
+  stripTechParamsFromDescription,
+} from '../../lib/contest/przeglady-tech-params';
+import {
   ContestOfferFieldError,
   fieldErrorInputClass,
 } from '../contest-offer/ContestOfferFieldError';
@@ -49,6 +58,7 @@ import {
   completionDateFromEvaluationOffset,
   evaluationDateFromSubmissionOffset,
   isDateOnOrBefore,
+  matchingScheduleOffsetDays,
   minCompletionDateAfterEvaluation,
   minEvaluationDateAfterSubmission,
 } from '../../lib/contest/contest-schedule-dates';
@@ -182,6 +192,12 @@ export function TenderContestForm({
   );
   const [fieldErrors, setFieldErrors] = useState<TenderContestFormFieldErrors>({});
   const [showFieldErrors, setShowFieldErrors] = useState(false);
+  const [entityBuildings, setEntityBuildings] = useState<ManagedBuilding[]>([]);
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
+  const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+
+  const showPrzegladyBuildings =
+    isPrzegladyCategory(form.category) && Boolean(form.managedEntityId);
 
   const sortedManagedEntities = useMemo(
     () =>
@@ -227,6 +243,26 @@ export function TenderContestForm({
     hasValidSubmissionDeadline,
   ]);
 
+  const selectedEvaluationOffsetDays = useMemo(
+    () =>
+      matchingScheduleOffsetDays(
+        form.submissionDeadline,
+        form.evaluationDeadline,
+        EVALUATION_DAY_OFFSET_OPTIONS,
+      ),
+    [form.submissionDeadline, form.evaluationDeadline],
+  );
+
+  const selectedCompletionOffsetDays = useMemo(
+    () =>
+      matchingScheduleOffsetDays(
+        form.evaluationDeadline,
+        form.completionDate,
+        COMPLETION_DAY_OFFSET_OPTIONS,
+      ),
+    [form.evaluationDeadline, form.completionDate],
+  );
+
   useEffect(() => {
     if (!initialForm) return;
     setForm({
@@ -267,7 +303,88 @@ export function TenderContestForm({
     void load();
   }, [user?.id, supabase]);
 
+  useEffect(() => {
+    const entityId = form.managedEntityId;
+    if (!isPrzegladyCategory(form.category) || !entityId) {
+      setEntityBuildings([]);
+      setSelectedBuildingIds([]);
+      setIsLoadingBuildings(false);
+      return;
+    }
+
+    let cancelled = false;
+    const loadBuildings = async (): Promise<void> => {
+      setIsLoadingBuildings(true);
+      const { data } = await fetchManagedBuildingsForEntity(supabase, entityId);
+      if (cancelled) return;
+      const buildings = data ?? [];
+      setEntityBuildings(buildings);
+      setSelectedBuildingIds(buildings.map((building) => building.id));
+      setIsLoadingBuildings(false);
+    };
+    void loadBuildings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.managedEntityId, form.category, supabase]);
+
+  useEffect(() => {
+    if (!isPrzegladyCategory(form.category)) {
+      setForm((prev) => {
+        const nextDescription = stripTechParamsFromDescription(prev.description);
+        if (nextDescription === prev.description) return prev;
+        return { ...prev, description: nextDescription };
+      });
+      return;
+    }
+
+    const slug = resolvePrzegladySubcategorySlug(form.subcategory);
+    if (!slug) {
+      setForm((prev) => {
+        const nextDescription = stripTechParamsFromDescription(prev.description);
+        if (nextDescription === prev.description) return prev;
+        return { ...prev, description: nextDescription };
+      });
+      return;
+    }
+
+    // Wait until buildings for the entity finished loading so edit mode
+    // does not wipe an existing tech-params block prematurely.
+    if (form.managedEntityId && isLoadingBuildings) {
+      return;
+    }
+
+    const selectedBuildings = entityBuildings.filter((building) =>
+      selectedBuildingIds.includes(building.id),
+    );
+    const block = buildPrzegladyTechParamsBlock(form.subcategory, selectedBuildings);
+
+    setForm((prev) => {
+      const nextDescription = applyTechParamsToDescription(prev.description, block);
+      if (nextDescription === prev.description) return prev;
+      return { ...prev, description: nextDescription };
+    });
+  }, [
+    form.category,
+    form.subcategory,
+    form.managedEntityId,
+    entityBuildings,
+    selectedBuildingIds,
+    isLoadingBuildings,
+  ]);
+
   const displayedErrors = showFieldErrors ? fieldErrors : {};
+
+  const toggleBuildingSelection = (buildingId: string, checked: boolean): void => {
+    setSelectedBuildingIds((prev) => {
+      if (checked) {
+        if (prev.includes(buildingId)) return prev;
+        return [...prev, buildingId];
+      }
+      return prev.filter((id) => id !== buildingId);
+    });
+  };
 
   const patchForm = (patch: Partial<TenderContestFormData>): void => {
     if (showFieldErrors) {
@@ -565,6 +682,67 @@ export function TenderContestForm({
             </div>
           </div>
 
+          {showPrzegladyBuildings ? (
+            <div>
+              <Label>Budynki do parametrów technicznych</Label>
+              {isLoadingBuildings ? (
+                <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
+              ) : entityBuildings.length === 0 ? (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Brak budynków dla wybranej nieruchomości. Dodaj je w Konto → Nieruchomości.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2 rounded-md border border-border p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setSelectedBuildingIds(entityBuildings.map((building) => building.id))
+                      }
+                    >
+                      Zaznacz wszystkie
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedBuildingIds([])}
+                    >
+                      Odznacz
+                    </Button>
+                  </div>
+                  <ul className="space-y-2">
+                    {entityBuildings.map((building) => {
+                      const checked = selectedBuildingIds.includes(building.id);
+                      return (
+                        <li key={building.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`contest-building-${building.id}`}
+                            checked={checked}
+                            onCheckedChange={(value) =>
+                              toggleBuildingSelection(building.id, value === true)
+                            }
+                          />
+                          <Label
+                            htmlFor={`contest-building-${building.id}`}
+                            className="font-normal cursor-pointer"
+                          >
+                            {building.name}
+                          </Label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    Wybrane budynki uzupełnią sekcję „Parametry techniczne” w opisie konkursu.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div id="contest-documents">
             <Label className="text-base font-medium">Dokumentacja konkursowa *</Label>
 
@@ -716,6 +894,7 @@ export function TenderContestForm({
             <ScheduleDateOffsetChips
               offsets={EVALUATION_DAY_OFFSET_OPTIONS}
               disabled={!hasValidSubmissionDeadline || isSubmitting}
+              selectedOffsetDays={selectedEvaluationOffsetDays}
               onSelect={(days) => {
                 if (!hasValidSubmissionDeadline) return;
                 handleEvaluationDeadlineChange(
@@ -750,6 +929,7 @@ export function TenderContestForm({
             <ScheduleDateOffsetChips
               offsets={COMPLETION_DAY_OFFSET_OPTIONS}
               disabled={!hasValidEvaluationDeadline || isSubmitting}
+              selectedOffsetDays={selectedCompletionOffsetDays}
               onSelect={(days) => {
                 if (!form.evaluationDeadline) return;
                 patchForm({

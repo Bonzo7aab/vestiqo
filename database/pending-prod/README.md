@@ -19,6 +19,7 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 | `20260701120000_contest_offers_one_per_company.sql` | Unique non-cancelled offer per company per contest | applied 2026-07-17 | pending |
 | `20260725120000_contest_offers_contractor_delete_draft.sql` | RLS: contractors may DELETE own `draft` offers (Odrzuć szkic) | applied 2026-07-25 | pending |
 | `20260809120000_opd147_managed_buildings_inspections.sql` | OPD-147: `managed_buildings` + `managed_building_inspections` | applied 2026-08-09 | pending |
+| `20260809130000_opd164_przeglady_categories.sql` | OPD-164: rename Przeglądy + 6 inspection subcategories | applied 2026-08-09 | pending |
 
 ## Recently applied to production (2026-07-01)
 
