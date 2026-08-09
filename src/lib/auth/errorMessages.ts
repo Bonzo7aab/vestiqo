@@ -8,6 +8,8 @@ export const REGISTRATION_ERRORS = {
     'Osiągnięto limit wysyłki wiadomości e-mail. Odczekaj kilka minut i spróbuj ponownie. Jeśli problem się powtarza, napisz na kontakt@vestiqo.pl.',
   duplicateCheckUnavailable:
     'Nie udało się zweryfikować danych rejestracji. Spróbuj ponownie za chwilę.',
+  managementAndCommunityNipMustDiffer:
+    'NIP wspólnoty i NIP administracji muszą być różne. W pierwszym polu podaj NIP wspólnoty mieszkaniowej, a w drugim — NIP firmy zarządzającej (Administracji Wspólnoty).',
 } as const;
 
 export type NipConflictRole = 'company' | 'management' | 'community';

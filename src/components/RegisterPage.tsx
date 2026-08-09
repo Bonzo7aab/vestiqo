@@ -28,7 +28,7 @@ import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
 import { registerAction } from '../lib/auth/actions';
-import { translateRegistrationErrorMessage } from '../lib/auth/errorMessages';
+import { REGISTRATION_ERRORS, translateRegistrationErrorMessage } from '../lib/auth/errorMessages';
 import { lookupCompanyByNipAction } from '../lib/gus/actions';
 import { isValidNip, normalizeNip } from '../lib/gus/nip';
 import {
@@ -600,6 +600,12 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       }
       if (!managementNipLookup.companyName.trim()) {
         setFormError('Wpisz NIP firmy zarządzającej i poczekaj na pobranie nazwy');
+        return;
+      }
+      if (
+        entityNipLookup.normalizedNip === managementNipLookup.normalizedNip
+      ) {
+        setFormError(REGISTRATION_ERRORS.managementAndCommunityNipMustDiffer);
         return;
       }
     }
