@@ -1,18 +1,29 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import { normalizeNip } from '../gus/nip';
+import { findAuthUserByEmail } from './find-user-by-email';
 
-export async function isNipAlreadyRegistered(
+export type RegistrationDuplicateStatus = 'available' | 'taken' | 'unavailable';
+
+function matchesNormalizedNip(
+  value: string | null | undefined,
+  normalized: string,
+): boolean {
+  return value != null && normalizeNip(String(value)) === normalized;
+}
+
+/**
+ * Returns whether a NIP is already linked to a registered account.
+ * On query failure returns `unavailable` (never pretend the NIP is taken).
+ */
+export async function checkNipRegistrationStatus(
   admin: SupabaseClient<Database>,
   nipInput: string,
-): Promise<boolean> {
+): Promise<RegistrationDuplicateStatus> {
   const normalized = normalizeNip(nipInput);
   if (!normalized) {
-    return false;
+    return 'available';
   }
-
-  const matchesNip = (value: string | null | undefined): boolean =>
-    value != null && normalizeNip(String(value)) === normalized;
 
   const { data: profiles, error: profilesError } = await admin
     .from('user_profiles')
@@ -21,11 +32,11 @@ export async function isNipAlreadyRegistered(
 
   if (profilesError) {
     console.error('NIP duplicate check (profiles) failed:', profilesError.message);
-    return true;
+    return 'unavailable';
   }
 
-  if ((profiles ?? []).some(row => matchesNip(row.nip))) {
-    return true;
+  if ((profiles ?? []).some((row) => matchesNormalizedNip(row.nip, normalized))) {
+    return 'taken';
   }
 
   const { data: companies, error: companiesError } = await admin
@@ -35,11 +46,11 @@ export async function isNipAlreadyRegistered(
 
   if (companiesError) {
     console.error('NIP duplicate check (companies) failed:', companiesError.message);
-    return true;
+    return 'unavailable';
   }
 
   for (const company of companies ?? []) {
-    if (!matchesNip(company.nip)) {
+    if (!matchesNormalizedNip(company.nip, normalized)) {
       continue;
     }
 
@@ -50,34 +61,54 @@ export async function isNipAlreadyRegistered(
 
     if (linkError) {
       console.error('NIP duplicate check (company links) failed:', linkError.message);
-      return true;
+      return 'unavailable';
     }
 
     if ((count ?? 0) > 0) {
-      return true;
+      return 'taken';
     }
   }
 
-  return false;
+  return 'available';
 }
 
+/** @deprecated Prefer checkNipRegistrationStatus — boolean true on DB errors was misleading. */
+export async function isNipAlreadyRegistered(
+  admin: SupabaseClient<Database>,
+  nipInput: string,
+): Promise<boolean> {
+  return (await checkNipRegistrationStatus(admin, nipInput)) === 'taken';
+}
+
+/**
+ * Returns whether an auth user already exists for this email.
+ * Uses admin email lookup (filter + paginated fallback).
+ */
+export async function checkEmailRegistrationStatus(
+  admin: SupabaseClient<Database>,
+  email: string,
+): Promise<RegistrationDuplicateStatus> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return 'available';
+  }
+
+  try {
+    const existing = await findAuthUserByEmail(admin, normalizedEmail);
+    return existing ? 'taken' : 'available';
+  } catch (error) {
+    console.error(
+      'Email duplicate check failed:',
+      error instanceof Error ? error.message : error,
+    );
+    return 'unavailable';
+  }
+}
+
+/** @deprecated Prefer checkEmailRegistrationStatus. */
 export async function isEmailAlreadyRegistered(
   admin: SupabaseClient<Database>,
   email: string,
 ): Promise<boolean> {
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail) {
-    return false;
-  }
-
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-
-  if (error) {
-    console.error('Email duplicate check failed:', error.message);
-    return false;
-  }
-
-  return (data.users ?? []).some(
-    user => user.email?.trim().toLowerCase() === normalizedEmail,
-  );
+  return (await checkEmailRegistrationStatus(admin, email)) === 'taken';
 }
