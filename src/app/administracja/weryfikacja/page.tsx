@@ -13,13 +13,18 @@ import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 function enrichWithAuthMeta<T extends { userId: string }>(
   rows: T[],
   authMetaMap: Map<string, { email: string | null; emailConfirmed: boolean }>,
+  emailLookupAvailable: boolean,
 ): Array<T & { email: string | null; emailConfirmed: boolean }> {
   return rows.map((row) => {
     const meta = authMetaMap.get(row.userId);
+    // Without elevated auth lookup, do not force emailConfirmed=false — that hides
+    // every user in the Email tab and empties W toku / Zaakceptowane (OPD-166).
     return {
       ...row,
       email: meta?.email ?? null,
-      emailConfirmed: meta?.emailConfirmed ?? false,
+      emailConfirmed: emailLookupAvailable
+        ? (meta?.emailConfirmed ?? false)
+        : true,
     };
   });
 }
@@ -39,13 +44,14 @@ export default async function AdminVerificationQueuePage() {
   ];
 
   const elevatedClient = createAdminClientOrNull();
+  const emailLookupAvailable = Boolean(elevatedClient);
   const authMetaMap = elevatedClient
     ? await fetchAuthUserMetaByUserIds(elevatedClient, allUserIds)
     : new Map<string, { email: string | null; emailConfirmed: boolean }>();
 
-  const pending = enrichWithAuthMeta(pendingRaw, authMetaMap);
-  const rejected = enrichWithAuthMeta(rejectedRaw, authMetaMap);
-  const approved = enrichWithAuthMeta(approvedRaw, authMetaMap);
+  const pending = enrichWithAuthMeta(pendingRaw, authMetaMap, emailLookupAvailable);
+  const rejected = enrichWithAuthMeta(rejectedRaw, authMetaMap, emailLookupAvailable);
+  const approved = enrichWithAuthMeta(approvedRaw, authMetaMap, emailLookupAvailable);
 
   const totalPending = pending.length;
   const totalActionable = pending.filter(r => r.emailConfirmed).length;
@@ -55,7 +61,7 @@ export default async function AdminVerificationQueuePage() {
       <AdminPageHeader
         icon={ClipboardCheck}
         title="Weryfikacja użytkowników"
-        description="Wybierz typ konta i status, a następnie kliknij wiersz w tabeli, aby otworzyć szczegóły użytkownika."
+        description="Wybierz typ konta i status, a następnie kliknij wiersz w tabeli, aby otworzyć szczegóły użytkownika. Konta zarządców (w tym administracja WM) są auto-zweryfikowane — szukaj ich w Zarządcy → Zaakceptowane lub Email."
         aside={
           <div className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-sm">
             <span className="text-muted-foreground">Wymaga decyzji</span>
@@ -66,7 +72,12 @@ export default async function AdminVerificationQueuePage() {
           </div>
         }
       />
-      <VerificationQueueTabs pending={pending} rejected={rejected} approved={approved} />
+      <VerificationQueueTabs
+        pending={pending}
+        rejected={rejected}
+        approved={approved}
+        emailLookupAvailable={emailLookupAvailable}
+      />
     </div>
   );
 }
