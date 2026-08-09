@@ -47,11 +47,12 @@ async function findAuthUserId(
   for (;;) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw new Error(`listUsers: ${error.message}`);
-    const match = data.users.find(
+    const users = data.users as Array<{ id: string; email?: string | null }>;
+    const match = users.find(
       (u) => u.email?.toLowerCase() === email.toLowerCase(),
     );
     if (match) return match.id;
-    if (data.users.length < 200) return null;
+    if (users.length < 200) return null;
     page += 1;
   }
 }
