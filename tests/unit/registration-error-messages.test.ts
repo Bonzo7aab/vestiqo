@@ -84,4 +84,8 @@ assert.equal(
   'NIP 1111111111 wspólnoty jest już zarejestrowany na platformie. Zaloguj się na istniejące konto lub użyj innego NIP.',
 );
 
+assert.ok(
+  REGISTRATION_ERRORS.managementAndCommunityNipMustDiffer.includes('muszą być różne'),
+);
+
 console.log('registration-error-messages.test.ts: ok');

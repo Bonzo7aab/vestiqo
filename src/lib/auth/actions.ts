@@ -250,6 +250,9 @@ async function registerActionImpl(
     if (!isValidNip(normalizedManagedEntityNip)) {
       return { error: 'Podaj prawidłowy numer NIP wspólnoty' }
     }
+    if (normalizedManagedEntityNip === normalizeNip(nip)) {
+      return { error: REGISTRATION_ERRORS.managementAndCommunityNipMustDiffer }
+    }
   }
 
   if (!phone) {
@@ -338,17 +341,20 @@ async function registerActionImpl(
       : null
 
   if (normalizedManagedEntityNipForCheck) {
-    const communityNipStatus = await checkNipRegistrationStatus(
-      admin,
-      normalizedManagedEntityNipForCheck,
-    )
-    if (communityNipStatus === 'taken') {
-      return {
-        error: nipAlreadyRegisteredMessage(normalizedManagedEntityNipForCheck, 'community'),
+    // Same NIP in both fields is rejected earlier; only check community NIP when it differs.
+    if (normalizedManagedEntityNipForCheck !== normalizedNip) {
+      const communityNipStatus = await checkNipRegistrationStatus(
+        admin,
+        normalizedManagedEntityNipForCheck,
+      )
+      if (communityNipStatus === 'taken') {
+        return {
+          error: nipAlreadyRegisteredMessage(normalizedManagedEntityNipForCheck, 'community'),
+        }
       }
-    }
-    if (communityNipStatus === 'unavailable') {
-      return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+      if (communityNipStatus === 'unavailable') {
+        return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+      }
     }
   }
 
