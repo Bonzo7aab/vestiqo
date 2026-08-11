@@ -1171,6 +1171,14 @@ export async function fetchTenders(
         subcategory:job_categories!tenders_subcategory_id_fkey (
           name,
           slug
+        ),
+        managed_entity:managed_housing_entities!contests_managed_entity_id_fkey (
+          id,
+          name,
+          address,
+          city,
+          entity_type,
+          nip
         )
       `);
 

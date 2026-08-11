@@ -140,6 +140,8 @@ export interface Job {
 }
 
 export interface ContestInfo {
+  /** Managed housing entity (WM/SM) id when contest is tied to one (OPD-152). */
+  managedEntityId: string | null;
   entityName: string | null;
   entityAddress: string | null;
   documents: TenderContestDocumentMeta[];

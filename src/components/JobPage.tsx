@@ -1229,9 +1229,18 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 {job.contestInfo ? (
                   <>
                     {job.contestInfo.entityName ? (
-                      <p className="mb-2 text-xs font-medium text-gray-700 break-words sm:text-sm md:text-base">
-                        {job.contestInfo.entityName}
-                      </p>
+                      job.contestInfo.managedEntityId ? (
+                        <Link
+                          href={routes.uzytkownik(job.contestInfo.managedEntityId)}
+                          className="mb-2 block text-xs font-medium text-gray-700 break-words underline-offset-2 hover:underline sm:text-sm md:text-base"
+                        >
+                          {job.contestInfo.entityName}
+                        </Link>
+                      ) : (
+                        <p className="mb-2 text-xs font-medium text-gray-700 break-words sm:text-sm md:text-base">
+                          {job.contestInfo.entityName}
+                        </p>
+                      )
                     ) : null}
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs md:text-sm">

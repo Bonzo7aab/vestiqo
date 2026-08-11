@@ -20,6 +20,7 @@ import {
   formatContestSubmissionDeadline,
 } from '../../lib/contest-display';
 import { getContestWorkflowStatusLabel } from '../../lib/tender-workflow-status';
+import { routes } from '../../lib/routes';
 import {
   formatContestCategoryLine,
   getCategoryColor,
@@ -109,6 +110,7 @@ interface ContestMetaRowProps {
   label: string;
   value: string;
   valueClassName?: string;
+  href?: string | null;
 }
 
 function ContestMetaRow({
@@ -116,6 +118,7 @@ function ContestMetaRow({
   label,
   value,
   valueClassName,
+  href,
 }: ContestMetaRowProps): React.ReactElement {
   return (
     <div className="flex items-start gap-2.5">
@@ -126,9 +129,26 @@ function ContestMetaRow({
         <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
-        <p className={cn('mt-0.5 text-sm leading-snug text-foreground', valueClassName)} title={value}>
-          {value}
-        </p>
+        {href ? (
+          <a
+            href={href}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'mt-0.5 block text-sm leading-snug text-foreground underline-offset-2 hover:underline',
+              valueClassName,
+            )}
+            title={value}
+          >
+            {value}
+          </a>
+        ) : (
+          <p
+            className={cn('mt-0.5 text-sm leading-snug text-foreground', valueClassName)}
+            title={value}
+          >
+            {value}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -158,6 +178,12 @@ export function ContestJobCard({
 }: ContestJobCardProps): React.ReactElement {
   const cityDistrict = formatContestLocation(job.location);
   const locationLabel = job.contestInfo?.entityAddress?.trim() || cityDistrict;
+  const entityName = job.contestInfo?.entityName?.trim() || null;
+  const managedEntityId = job.contestInfo?.managedEntityId ?? null;
+  const organizerLabel = entityName || job.company;
+  const organizerHref =
+    managedEntityId && entityName ? routes.uzytkownik(managedEntityId) : null;
+  const organizerMetaLabel = entityName ? 'Wspólnota / Spółdzielnia' : 'Zarządca';
   const categorySlug = resolveCategorySlugFromJob({ category: job.category });
   const categoryColor = categorySlug ? getCategoryColor(categorySlug) : 'hsl(var(--primary))';
 
@@ -283,8 +309,9 @@ export function ContestJobCard({
             <div className="space-y-2.5 rounded-xl border border-border/50 bg-muted/20 p-3">
               <ContestMetaRow
                 icon={<Building2 className="h-4 w-4" />}
-                label="Zarządca"
-                value={job.company}
+                label={organizerMetaLabel}
+                value={organizerLabel}
+                href={organizerHref}
                 valueClassName="font-medium"
               />
               <ContestMetaRow

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   Building2,
@@ -20,6 +21,7 @@ import {
   getCategoryDisplayName,
   getSubcategoryDisplayName,
 } from '../../lib/config/categoryConfig';
+import { routes } from '../../lib/routes';
 import { ContestScheduleTimeline } from './ContestScheduleTimeline';
 import {
   ContestDetailCallout,
@@ -94,7 +96,21 @@ export function TenderContestDetailTabs({
                 />
               ) : null}
               {contestInfo.entityName ? (
-                <ContestDetailField label="Nieruchomość" value={contestInfo.entityName} />
+                <ContestDetailField
+                  label="Nieruchomość"
+                  value={
+                    contestInfo.managedEntityId ? (
+                      <Link
+                        href={routes.uzytkownik(contestInfo.managedEntityId)}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {contestInfo.entityName}
+                      </Link>
+                    ) : (
+                      contestInfo.entityName
+                    )
+                  }
+                />
               ) : null}
               {contestInfo.entityAddress ? (
                 <ContestDetailField label="Adres obiektu" value={contestInfo.entityAddress} />

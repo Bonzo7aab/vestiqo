@@ -19,6 +19,8 @@ export const routes = {
   konkurs: (id: string, title?: string | null) => buildKonkursPath(id, title),
   wykonawca: (id: string) => `/wykonawcy/${id}` as const,
   zarzadca: (id: string) => `/zarzadcy/${id}` as const,
+  /** Public WM/SM (managed housing entity) profile (OPD-152). */
+  uzytkownik: (id: string) => `/uzytkownik/${id}` as const,
   dodajKonkurs: '/dodaj-konkurs',
   dodajKonkursEdycja: (id: string) => `/dodaj-konkurs/${id}` as const,
   dodajPrzetarg: '/dodaj-przetarg',

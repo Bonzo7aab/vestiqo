@@ -35,9 +35,20 @@ function canUseLocalStorage(): boolean {
 
 function normalizeBookmark(raw: BookmarkedJob & { postType?: 'job' | 'contest' | 'tender' }): BookmarkedJob {
   const legacyPostType = raw.postType as 'job' | 'contest' | 'tender' | undefined;
-  const entityType =
+  const entityType: BookmarkEntityType =
     raw.entityType ??
     (legacyPostType === 'contest' || legacyPostType === 'tender' ? 'contest' : 'job');
+
+  if (entityType === 'managed_housing_entity') {
+    return {
+      ...raw,
+      entityType,
+      postType: 'contest',
+      title: raw.title,
+      company: raw.company ?? '',
+      location: raw.location ?? '',
+    };
+  }
 
   const normalizedPostType: 'job' | 'contest' =
     legacyPostType === 'tender' || legacyPostType === 'contest'

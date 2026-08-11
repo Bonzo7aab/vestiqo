@@ -203,3 +203,62 @@ export async function deleteManagedHousingEntity(
     return { success: false, error: err as PostgrestError };
   }
 }
+
+/**
+ * Public profile fetch for a managed housing entity (OPD-152).
+ * Relies on RLS: public when manager company is public or entity has public contests.
+ */
+export async function fetchManagedHousingEntityById(
+  supabase: SupabaseClient<Database>,
+  entityId: string,
+): Promise<{ data: ManagedHousingEntity | null; error: PostgrestError | null }> {
+  const id = entityId?.trim();
+  if (!id) {
+    return { data: null, error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('managed_housing_entities')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: (data as ManagedHousingEntity) ?? null, error: null };
+  } catch (err) {
+    console.error('Error fetching managed housing entity by id:', err);
+    return { data: null, error: err as PostgrestError };
+  }
+}
+
+/**
+ * Fetch multiple managed housing entities by id (for zapisane list).
+ */
+export async function fetchManagedHousingEntitiesByIds(
+  supabase: SupabaseClient<Database>,
+  entityIds: string[],
+): Promise<{ data: ManagedHousingEntity[]; error: PostgrestError | null }> {
+  if (!entityIds.length) {
+    return { data: [], error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('managed_housing_entities')
+      .select('*')
+      .in('id', entityIds);
+
+    if (error) {
+      return { data: [], error };
+    }
+
+    return { data: (data as ManagedHousingEntity[]) ?? [], error: null };
+  } catch (err) {
+    console.error('Error fetching managed housing entities by ids:', err);
+    return { data: [], error: err as PostgrestError };
+  }
+}

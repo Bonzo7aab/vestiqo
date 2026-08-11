@@ -1,1 +1,1 @@
-export type BookmarkEntityType = 'job' | 'contest';
+export type BookmarkEntityType = 'job' | 'contest' | 'managed_housing_entity';

@@ -3925,7 +3925,7 @@ export type Database = {
       }
     }
     Enums: {
-      bookmark_entity_type: "job" | "contest"
+      bookmark_entity_type: "job" | "contest" | "managed_housing_entity"
       notification_type:
         | "new_job"
         | "new_tender"
@@ -4092,7 +4092,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      bookmark_entity_type: ["job", "contest"],
+      bookmark_entity_type: ["job", "contest", "managed_housing_entity"],
       notification_type: [
         "new_job",
         "new_tender",

@@ -66,6 +66,7 @@ export function formatPaymentTermsLabel(payment: PaymentTerms): string {
 }
 
 export interface ContestDisplayInfo {
+  managedEntityId: string | null;
   entityName: string | null;
   entityAddress: string | null;
   documents: TenderContestDocumentMeta[];
@@ -110,6 +111,7 @@ export function mapTenderRowToContestDisplay(
       : null;
 
   return {
+    managedEntityId: tender.managed_entity_id ?? entity?.id ?? null,
     entityName: entity?.name ?? null,
     entityAddress: entity?.address ?? tender.address ?? null,
     documents,
