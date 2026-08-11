@@ -18,6 +18,8 @@ import {
   AuthPageLayout,
   authFieldClassName,
 } from './auth/AuthPageLayout';
+import { DevQuickLoginButtons } from './dev/DevQuickLoginButtons';
+import { isDevQuickLoginEnabled } from '../lib/auth/dev-quick-login';
 
 export function LoginPage() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export function LoginPage() {
   const [message, setMessage] = useState<string | null>(searchParams?.get('message') ?? null);
   const [email, setEmail] = useState('');
   const [resendPending, setResendPending] = useState(false);
+  const showDevQuickLogin = isDevQuickLoginEnabled();
 
   const redirectTo = sanitizeRedirectPath(searchParams?.get('redirectTo'), '/');
   const showResendConfirmation =
@@ -218,6 +221,10 @@ export function LoginPage() {
           </Button>
         </form>
       </AuthFormPanel>
+
+      {showDevQuickLogin ? (
+        <DevQuickLoginButtons className="mt-4 overflow-hidden rounded-xl border border-amber-200/80" />
+      ) : null}
     </AuthPageLayout>
   );
 }

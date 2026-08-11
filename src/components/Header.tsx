@@ -47,6 +47,8 @@ import { cn } from './ui/utils';
 import { AccountMenuPanel } from './account/AccountMenuPanel';
 import { buildAccountMenuSections } from '../lib/account-menu-sections';
 import { routes } from '../lib/routes';
+import { DevQuickLoginButtons } from './dev/DevQuickLoginButtons';
+import { isDevQuickLoginEnabled } from '../lib/auth/dev-quick-login';
 
 function GuestAuthDropdown({
   onLogin,
@@ -57,6 +59,8 @@ function GuestAuthDropdown({
   onRegister: () => void;
   triggerClassName?: string;
 }) {
+  const showDevQuickLogin = isDevQuickLoginEnabled();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -100,6 +104,7 @@ function GuestAuthDropdown({
             </span>
           </button>
         </div>
+        {showDevQuickLogin ? <DevQuickLoginButtons /> : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

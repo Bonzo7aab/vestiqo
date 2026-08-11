@@ -1764,13 +1764,11 @@ function ensureValidCoordinates(lat?: number | null, lng?: number | null, locati
   if (location) {
     const cityCoords = findCityCoordinates(location);
     if (cityCoords) {
-      console.warn(`Using city fallback coordinates for location: ${location}`);
       return addRandomScattering(cityCoords, jobId);
     }
   }
 
   // Default to Warsaw center with scattering if no coordinates available
-  console.warn(`No valid coordinates found for location: ${location}, using Warsaw center`);
   return addRandomScattering({ lat: 52.2297, lng: 21.0122 }, jobId);
 }
 

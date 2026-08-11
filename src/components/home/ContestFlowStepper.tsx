@@ -293,17 +293,16 @@ export function ContestFlowStepper({
                 <motion.p
                   animate={{
                     opacity: isActive ? 1 : isCompleted ? 0.65 : 0.4,
-                    color: isActive
-                      ? 'hsl(var(--brand-navy))'
-                      : 'hsl(var(--muted-foreground) / 0.7)',
                   }}
                   transition={{
                     duration: isActive ? DOT_ENTER_DURATION_S : DOT_EXIT_DURATION_S,
                     ease: SMOOTH_EASE,
                   }}
                   className={cn(
-                    'text-[11px] leading-tight sm:text-xs',
-                    isActive ? 'font-semibold' : 'font-medium',
+                    'text-[11px] leading-tight transition-colors sm:text-xs',
+                    isActive
+                      ? 'font-semibold text-brand-navy'
+                      : 'font-medium text-muted-foreground/70',
                   )}
                 >
                   {step.title}
