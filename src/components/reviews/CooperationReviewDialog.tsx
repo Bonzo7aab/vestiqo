@@ -4,6 +4,7 @@ import type { ReactElement } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
@@ -38,15 +39,21 @@ export function CooperationReviewDialog({
 }: CooperationReviewDialogProps): ReactElement {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Ocena współpracy' : 'Oceń współpracę'}</DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? `Zaktualizuj ocenę współpracy z ${counterpartyCompanyName}.`
+              : `Oceń współpracę z ${counterpartyCompanyName} po zakończeniu konkursu.`}
+          </DialogDescription>
         </DialogHeader>
         <CooperationReviewPanel
           variant={variant}
           tenderId={tenderId}
           counterpartyCompanyId={counterpartyCompanyId}
           counterpartyCompanyName={counterpartyCompanyName}
+          onCancel={() => onOpenChange(false)}
           onSubmitted={(updated) => {
             onSubmitted?.(updated);
             onOpenChange(false);

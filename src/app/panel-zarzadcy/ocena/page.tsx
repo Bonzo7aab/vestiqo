@@ -5,10 +5,11 @@ import {
   fetchContractorReviews,
 } from '../../../lib/database/contractors';
 import { fetchReviewsWrittenByUser } from '../../../lib/database/reviews';
-import { ManagerOcenaContent } from '../../../components/manager-dashboard/ManagerOcenaContent';
-import { Card, CardContent } from '../../../components/ui/card';
+import { RatingsDashboard } from '../../../components/reviews/RatingsDashboard';
+import { ReviewEmptyState } from '../../../components/reviews/ReviewEmptyState';
 import { Button } from '../../../components/ui/button';
 import Link from 'next/link';
+import { Building2 } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 export default async function OcenaPage(): Promise<ReactElement> {
@@ -30,14 +31,16 @@ export default async function OcenaPage(): Promise<ReactElement> {
   if (!company) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <Card>
-          <CardContent className="flex flex-col items-center space-y-4 pt-6 text-center">
-            <p className="text-muted-foreground">Najpierw uzupełnij dane firmy w profilu.</p>
+        <ReviewEmptyState
+          icon={Building2}
+          title="Nie znaleziono firmy"
+          description="Najpierw uzupełnij dane firmy w profilu."
+          action={
             <Button asChild>
               <Link href="/konto">Przejdź do konta</Link>
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
@@ -50,7 +53,8 @@ export default async function OcenaPage(): Promise<ReactElement> {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <ManagerOcenaContent
+      <RatingsDashboard
+        variant="manager"
         ratingSummary={ratingSummary}
         reviews={reviews}
         writtenReviews={writtenReviews}

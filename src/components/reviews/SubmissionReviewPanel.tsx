@@ -9,15 +9,16 @@ import {
   type CompanyReviewRecord,
 } from '../../lib/database/reviews';
 import { StarRatingInput } from './StarRatingInput';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Card, CardContent } from '../ui/card';
+import { ReviewCommentField } from './ReviewCommentField';
+import { ReviewFormFooter } from './ReviewFormFooter';
+import { ReviewFormSkeleton } from './ReviewSkeletons';
+import { ExistingReviewSummary } from './ExistingReviewSummary';
 
 interface SubmissionReviewPanelProps {
   jobId: string;
   managerCompanyId: string;
   managerCompanyName: string;
+  onCancel?: () => void;
   onSubmitted?: () => void;
 }
 
@@ -25,6 +26,7 @@ export function SubmissionReviewPanel({
   jobId,
   managerCompanyId,
   managerCompanyName,
+  onCancel,
   onSubmitted,
 }: SubmissionReviewPanelProps): ReactElement {
   const [rating, setRating] = useState(0);
@@ -95,58 +97,44 @@ export function SubmissionReviewPanel({
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground py-4">Ładowanie…</p>;
+    return <ReviewFormSkeleton />;
   }
 
   if (existing) {
     return (
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Opinia o konkursie <strong>{managerCompanyName}</strong> została już wystawiona.
-          </p>
-          <div className="flex items-center gap-1 text-amber-600 font-semibold">
-            {'★'.repeat(existing.rating)}
-            <span className="text-foreground font-normal ml-2">{existing.rating}/5</span>
-          </div>
-          {existing.comment && (
-            <p className="text-sm whitespace-pre-wrap">{existing.comment}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {new Date(existing.createdAt).toLocaleDateString('pl-PL')}
-          </p>
-        </CardContent>
-      </Card>
+      <ExistingReviewSummary
+        description={`Opinia o konkursie ${managerCompanyName} została już wystawiona.`}
+        rating={existing.rating}
+        comment={existing.comment}
+        createdAt={existing.createdAt}
+        onClose={onCancel}
+      />
     );
   }
 
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
-        Oceń konkurs organizatora <strong>{managerCompanyName}</strong>.
+        Oceń konkurs organizatora{' '}
+        <span className="font-medium text-foreground">{managerCompanyName}</span>.
       </p>
 
       <StarRatingInput label="Ocena konkursu" rating={rating} onRatingChange={setRating} />
 
-      <div>
-        <Label htmlFor="submission-review-comment">Komentarz *</Label>
-        <Textarea
-          id="submission-review-comment"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Opisz swoje doświadczenie z konkursem…"
-          rows={4}
-          className="mt-1 resize-none"
-        />
-      </div>
+      <ReviewCommentField
+        id="submission-review-comment"
+        value={comment}
+        onChange={setComment}
+        placeholder="Opisz swoje doświadczenie z konkursem…"
+      />
 
-      <Button
-        type="button"
-        onClick={() => void handleSubmit()}
-        disabled={submitting || rating === 0 || !comment.trim()}
-      >
-        {submitting ? 'Zapisywanie…' : 'Wyślij ocenę konkursu'}
-      </Button>
+      <ReviewFormFooter
+        onCancel={onCancel}
+        onSubmit={() => void handleSubmit()}
+        submitting={submitting}
+        disabled={rating === 0 || !comment.trim()}
+        submitLabel="Wyślij ocenę konkursu"
+      />
     </div>
   );
 }

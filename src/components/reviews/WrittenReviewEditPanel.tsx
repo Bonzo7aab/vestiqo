@@ -5,15 +5,15 @@ import { toast } from 'sonner';
 import { createClient } from '../../lib/supabase/client';
 import { updateCompanyReview } from '../../lib/database/reviews';
 import { StarRatingInput } from './StarRatingInput';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import { ReviewCommentField } from './ReviewCommentField';
+import { ReviewFormFooter } from './ReviewFormFooter';
 
 interface WrittenReviewEditPanelProps {
   reviewId: string;
   counterpartyName: string;
   initialRating: number;
   initialComment: string;
+  onCancel?: () => void;
   onSaved?: (updated: { rating: number; comment: string }) => void;
 }
 
@@ -22,6 +22,7 @@ export function WrittenReviewEditPanel({
   counterpartyName,
   initialRating,
   initialComment,
+  onCancel,
   onSaved,
 }: WrittenReviewEditPanelProps): ReactElement {
   const [rating, setRating] = useState(initialRating);
@@ -69,30 +70,23 @@ export function WrittenReviewEditPanel({
 
   return (
     <div className="space-y-5">
-      <p className="text-sm font-medium text-foreground">
-        Twoja ocena dla {counterpartyName}
-      </p>
+      <p className="text-sm font-medium text-foreground">Twoja ocena dla {counterpartyName}</p>
 
       <StarRatingInput label="Twoja ocena" rating={rating} onRatingChange={setRating} />
 
-      <div>
-        <Label htmlFor={`written-review-comment-${reviewId}`}>Komentarz *</Label>
-        <Textarea
-          id={`written-review-comment-${reviewId}`}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          rows={4}
-          className="mt-1 resize-none"
-        />
-      </div>
+      <ReviewCommentField
+        id={`written-review-comment-${reviewId}`}
+        value={comment}
+        onChange={setComment}
+      />
 
-      <Button
-        type="button"
-        onClick={() => void handleSubmit()}
-        disabled={submitting || rating === 0 || !comment.trim()}
-      >
-        {submitting ? 'Zapisywanie…' : 'Zapisz zmiany'}
-      </Button>
+      <ReviewFormFooter
+        onCancel={onCancel}
+        onSubmit={() => void handleSubmit()}
+        submitting={submitting}
+        disabled={rating === 0 || !comment.trim()}
+        submitLabel="Zapisz zmiany"
+      />
     </div>
   );
 }

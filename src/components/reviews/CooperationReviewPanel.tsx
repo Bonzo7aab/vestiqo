@@ -10,17 +10,17 @@ import {
   type CompanyReviewRecord,
 } from '../../lib/database/reviews';
 import { StarRatingInput } from './StarRatingInput';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import { ReviewCommentField } from './ReviewCommentField';
+import { ReviewFormFooter } from './ReviewFormFooter';
+import { ReviewFormSkeleton } from './ReviewSkeletons';
 
 export type CooperationReviewVariant = 'manager' | 'contractor';
 
 const COMMENT_PLACEHOLDERS: Record<CooperationReviewVariant, string> = {
   manager:
-    'Napisz krótko: Jak oceniasz jakość prac, komunikacje, terminowość odbioru i organizacje?',
+    'Napisz krótko: Jak oceniasz jakość prac, komunikację, terminowość odbioru i organizację?',
   contractor:
-    'Napisz krótko: Jak oceniasz jakość dokumentacji, komunikacje, terminowość płatności i organizacje?',
+    'Napisz krótko: Jak oceniasz jakość dokumentacji, komunikację, terminowość płatności i organizację?',
 };
 
 interface CooperationReviewPanelProps {
@@ -28,6 +28,7 @@ interface CooperationReviewPanelProps {
   tenderId: string;
   counterpartyCompanyId: string;
   counterpartyCompanyName: string;
+  onCancel?: () => void;
   onSubmitted?: (updated: { rating: number; comment: string }) => void;
 }
 
@@ -36,6 +37,7 @@ export function CooperationReviewPanel({
   tenderId,
   counterpartyCompanyId,
   counterpartyCompanyName,
+  onCancel,
   onSubmitted,
 }: CooperationReviewPanelProps): ReactElement {
   const [rating, setRating] = useState(0);
@@ -128,7 +130,7 @@ export function CooperationReviewPanel({
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground py-4">Ładowanie…</p>;
+    return <ReviewFormSkeleton />;
   }
 
   const isEditing = existing !== null;
@@ -143,25 +145,20 @@ export function CooperationReviewPanel({
 
       <StarRatingInput label="Twoja ocena" rating={rating} onRatingChange={setRating} />
 
-      <div>
-        <Label htmlFor={`cooperation-review-comment-${tenderId}`}>Komentarz *</Label>
-        <Textarea
-          id={`cooperation-review-comment-${tenderId}`}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder={COMMENT_PLACEHOLDERS[variant]}
-          rows={4}
-          className="mt-1 resize-none"
-        />
-      </div>
+      <ReviewCommentField
+        id={`cooperation-review-comment-${tenderId}`}
+        value={comment}
+        onChange={setComment}
+        placeholder={COMMENT_PLACEHOLDERS[variant]}
+      />
 
-      <Button
-        type="button"
-        onClick={() => void handleSubmit()}
-        disabled={submitting || rating === 0 || !comment.trim()}
-      >
-        {submitting ? 'Zapisywanie…' : isEditing ? 'Zapisz zmiany' : 'Wyślij ocenę'}
-      </Button>
+      <ReviewFormFooter
+        onCancel={onCancel}
+        onSubmit={() => void handleSubmit()}
+        submitting={submitting}
+        disabled={rating === 0 || !comment.trim()}
+        submitLabel={isEditing ? 'Zapisz zmiany' : 'Wyślij ocenę'}
+      />
     </div>
   );
 }
