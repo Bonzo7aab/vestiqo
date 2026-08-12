@@ -30,6 +30,8 @@ export function BrandLogo({
         onClick && 'cursor-pointer',
         className,
       )}
+      // Next.js warns unless style (not only Tailwind) sets the unset axis to auto.
+      style={variant === 'full' ? { width: 'auto' } : undefined}
       priority={variant === 'full'}
       unoptimized
     />

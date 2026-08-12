@@ -18,6 +18,7 @@ import {
 } from '../tender-workflow-status';
 import { ilikePattern } from './escape-postgrest-filter';
 import { mapTenderRowToContestDisplay } from '../contest/map-tender-contest-display';
+import { notifySavedUsersOfNewContestAction } from '../../app/panel-zarzadcy/konkursy/actions';
 import {
   contestIdColumn,
   contestOffersTable,
@@ -28,6 +29,16 @@ import {
   shouldApplyContestTendersFilter,
 } from './schema-compat';
 
+function scheduleNotifySavedUsersOfNewContest(
+  contestId: string | undefined | null,
+  status: string | undefined | null,
+  managedEntityId: string | undefined | null,
+): void {
+  if (!contestId || status !== 'active' || !managedEntityId) return;
+  void notifySavedUsersOfNewContestAction(contestId).catch((error) => {
+    console.warn('notifySavedUsersOfNewContestAction:', error);
+  });
+}
 /** Matches contest rows in DB (see opd70_remove_legacy_tenders migration). */
 export const CONTEST_TENDERS_OR_FILTER =
   'managed_entity_id.not.is.null,selection_criteria.not.is.null,formal_requirements.not.is.null';
@@ -1911,7 +1922,14 @@ export async function createTender(
       };
     }
 
-    return { data: insertedTender as unknown as TenderWithCompany, error: null };
+    const created = insertedTender as unknown as TenderWithCompany;
+    scheduleNotifySavedUsersOfNewContest(
+      created?.id,
+      tenderData.status,
+      tenderData.managedEntityId ?? created?.managed_entity_id,
+    );
+
+    return { data: created, error: null };
   } catch (err) {
     console.error('Error creating tender:', err);
     return { data: null, error: err };
@@ -1989,7 +2007,14 @@ export async function updateTender(
       return { data: null, error: updateError };
     }
 
-    return { data: updatedTender as unknown as TenderWithCompany, error: null };
+    const updated = updatedTender as unknown as TenderWithCompany;
+    scheduleNotifySavedUsersOfNewContest(
+      updated?.id ?? tenderId,
+      tenderData.status,
+      tenderData.managedEntityId ?? updated?.managed_entity_id,
+    );
+
+    return { data: updated, error: null };
   } catch (err) {
     console.error('Error updating tender:', err);
     return { data: null, error: err };

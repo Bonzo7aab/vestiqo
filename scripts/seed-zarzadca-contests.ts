@@ -148,14 +148,14 @@ async function findUser(
   for (;;) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw new Error(error.message);
-    const match = data.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    );
+    // listUsers error branch types users as `[]` (never[]); narrow via explicit type.
+    const users = data.users as Array<{ id: string; email?: string | null }>;
+    const match = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
     if (match) {
       userId = match.id;
       break;
     }
-    if (data.users.length < 200) break;
+    if (users.length < 200) break;
     page += 1;
   }
   if (!userId) throw new Error(`User not found: ${email}`);

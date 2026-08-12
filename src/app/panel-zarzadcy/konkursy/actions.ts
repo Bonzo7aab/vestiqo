@@ -7,6 +7,7 @@ import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { getPostHogClient } from '../../../lib/posthog-server';
 import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection';
 import { notifyContestCancelledToContractors, notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
+import { notifySavedUsersOfNewContest } from '../../../lib/notifications/saved-entity-new-contest';
 import { deleteManagerContestDraft } from '../../../lib/database/manager-contests';
 import { canCancelContest } from '../../../lib/tender-workflow-status';
 import { instrumentServerAction } from '../../../lib/sentry/instrument-server-action';
@@ -222,4 +223,25 @@ export const cancelContestAction = instrumentServerAction(
 export const abandonContestDraftAction = instrumentServerAction(
   'abandonContestDraftAction',
   abandonContestDraftActionImpl,
+);
+
+async function notifySavedUsersOfNewContestActionImpl(
+  contestId: string,
+): Promise<{ success: boolean }> {
+  if (!contestId?.trim()) {
+    return { success: false };
+  }
+  try {
+    await notifySavedUsersOfNewContest(contestId.trim());
+    return { success: true };
+  } catch (error) {
+    console.error('notifySavedUsersOfNewContestAction:', error);
+    return { success: false };
+  }
+}
+
+/** Fire-and-forget from contest publish (create / publish draft). */
+export const notifySavedUsersOfNewContestAction = instrumentServerAction(
+  'notifySavedUsersOfNewContestAction',
+  notifySavedUsersOfNewContestActionImpl,
 );
