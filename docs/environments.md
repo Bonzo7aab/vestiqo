@@ -36,6 +36,16 @@ Production app URLs: `https://www.vestiqo.pl`, `https://vestiqo.vercel.app` (leg
 
 `NEXT_PUBLIC_APP_URL` on Vercel Production is `https://www.vestiqo.pl`. Preview builds use `VERCEL_URL` via `getPublicAppOrigin()`.
 
+### Preview password gate
+
+Feature-branch Preview URLs are gated by `PREVIEW_PASSWORD` (middleware). Production and local `npm run dev` are not gated.
+
+1. In Vercel → Project → Settings → Environment Variables, add `PREVIEW_PASSWORD` for **Preview** only (not Production).
+2. Redeploy the preview (or push a new commit) so the build picks it up.
+3. Open the Preview URL, enter the password once. A signed httpOnly cookie remembers access in that browser for **1 year**. Changing the password invalidates existing cookies.
+
+If `PREVIEW_PASSWORD` is unset, Preview stays publicly reachable.
+
 ### Supabase Auth redirect URLs (dashboard)
 
 For **vestiqo** (prod) set Site URL to `https://www.vestiqo.pl` and include in Redirect URLs:

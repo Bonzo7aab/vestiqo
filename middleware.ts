@@ -1,3 +1,4 @@
+import { handlePreviewGate } from './src/lib/preview-gate'
 import { updateSession } from './src/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -68,6 +69,11 @@ function copyCookies(from: NextResponse, to: NextResponse): void {
 }
 
 export async function middleware(request: NextRequest) {
+  const previewGate = await handlePreviewGate(request)
+  if (previewGate) {
+    return previewGate
+  }
+
   const pathname = request.nextUrl.pathname
   const code = request.nextUrl.searchParams.get('code')
   const tokenHash = request.nextUrl.searchParams.get('token_hash')
