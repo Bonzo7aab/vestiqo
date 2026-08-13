@@ -7,7 +7,7 @@ import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { getPostHogClient } from '../../../lib/posthog-server';
 import { acceptManagerTenderOffer } from '../../../lib/database/offer-selection';
 import { notifyContestCancelledToContractors, notifyContestOfferResolution } from '../../../lib/notifications/contest-resolution';
-import { notifySavedUsersOfNewContest } from '../../../lib/notifications/saved-entity-new-contest';
+import { notifyNewContestAudience } from '../../../lib/notifications/matched-contest';
 import { deleteManagerContestDraft } from '../../../lib/database/manager-contests';
 import { canCancelContest } from '../../../lib/tender-workflow-status';
 import { instrumentServerAction } from '../../../lib/sentry/instrument-server-action';
@@ -232,7 +232,7 @@ async function notifySavedUsersOfNewContestActionImpl(
     return { success: false };
   }
   try {
-    await notifySavedUsersOfNewContest(contestId.trim());
+    await notifyNewContestAudience(contestId.trim());
     return { success: true };
   } catch (error) {
     console.error('notifySavedUsersOfNewContestAction:', error);
@@ -240,7 +240,7 @@ async function notifySavedUsersOfNewContestActionImpl(
   }
 }
 
-/** Fire-and-forget from contest publish (create / publish draft). */
+/** Fire-and-forget from contest publish: bookmark (OPD-152) + service match (OPD-148). */
 export const notifySavedUsersOfNewContestAction = instrumentServerAction(
   'notifySavedUsersOfNewContestAction',
   notifySavedUsersOfNewContestActionImpl,

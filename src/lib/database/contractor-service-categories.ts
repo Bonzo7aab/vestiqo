@@ -51,7 +51,10 @@ export async function updateContractorServiceSubcategories(
   companyId: string,
   slugs: string[],
 ): Promise<{ data: boolean; error: Error | null }> {
-  const uniqueSlugs = [...new Set(slugs)];
+    const uniqueSlugs = [...new Set(slugs)];
+  if (uniqueSlugs.length === 0) {
+    return { data: false, error: new Error('Wybierz przynajmniej jedną usługę') };
+  }
   const invalidSlug = uniqueSlugs.find((slug) => !isValidSubcategorySlug(slug));
   if (invalidSlug) {
     return { data: false, error: new Error(`Nieprawidłowa podkategoria: ${invalidSlug}`) };
@@ -99,6 +102,19 @@ export async function updateContractorServiceSubcategories(
     if (updateError) {
       console.error('Error updating contractor service subcategories:', updateError);
       return { data: false, error: new Error('Nie udało się zapisać usług') };
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { error: flagError } = await supabase
+        .from('user_profiles')
+        .update({ contractor_services_completed: uniqueSlugs.length > 0 })
+        .eq('id', user.id);
+      if (flagError) {
+        console.error('Error updating contractor_services_completed:', flagError);
+      }
     }
 
     return { data: true, error: null };

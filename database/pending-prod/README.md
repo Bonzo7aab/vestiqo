@@ -2,7 +2,7 @@
 
 Queue for SQL that is **not yet** in production Supabase migration history (`vestiqo`, `fabbgaqxsetnsppxegnx`).
 
-**Status (2026-08-10):** Five files pending prod. Duplicates that already live under [`supabase/migrations/`](../../supabase/migrations/) were removed from this folder.
+**Status (2026-08-13):** Six files pending prod. Duplicates that already live under [`supabase/migrations/`](../../supabase/migrations/) were removed from this folder.
 
 ## Workflow
 
@@ -21,6 +21,7 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 | `20260809120000_opd147_managed_buildings_inspections.sql` | OPD-147: `managed_buildings` + `managed_building_inspections` | applied 2026-08-09 | pending |
 | `20260809130000_opd164_przeglady_categories.sql` | OPD-164: rename Przeglądy + 6 inspection subcategories | applied 2026-08-09 | pending |
 | `20260810120000_opd152_entity_profile_bookmarks_rls.sql` | OPD-152: bookmark `managed_housing_entity` + public SELECT RLS | applied 2026-08-10 | pending |
+| `20260813010000_opd148_matched_contest_notifications.sql` | OPD-148: matched-contest pref, services_completed flag, GIN + match RPC | applied 2026-08-13 | pending |
 
 ## Recently applied to production (2026-07-01)
 

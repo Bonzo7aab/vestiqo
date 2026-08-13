@@ -53,6 +53,7 @@ function renderSubcategory(
       aria-pressed={isSelected}
       disabled={props.disabled}
       onClick={() => props.onToggle(subcategory.slug)}
+      data-testid={`service-subcategory-${subcategory.slug}`}
       className={cn(
         subcategoryTagBase,
         isSelected ? subcategoryTagSelected : subcategoryTagRest,

@@ -252,6 +252,7 @@ async function ensureProfile(
       organization_type: seed.organizationType,
       profile_completed: true,
       onboarding_completed: true,
+      contractor_services_completed: seed.userType === 'contractor',
       is_verified: true,
       verification_document_paths: {},
       verification_document_reviews: {},
@@ -276,6 +277,9 @@ async function ensureCompany(
       city: 'Warszawa',
       is_public: true,
       is_verified: true,
+      ...(seed.userType === 'contractor'
+        ? { metadata: { service_subcategory_slugs: ['remonty-dachow-izolacje'] } }
+        : {}),
     })
     .select('id')
     .single();

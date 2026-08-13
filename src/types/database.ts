@@ -1714,6 +1714,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications: boolean | null
           contractor_contest_offer_rejected_notifications: boolean | null
           contractor_contest_resolution_notifications: boolean | null
+          contractor_matched_contest_notifications: boolean | null
           created_at: string | null
           email_notifications: boolean | null
           id: string
@@ -1735,6 +1736,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications?: boolean | null
           contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
+          contractor_matched_contest_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
@@ -1756,6 +1758,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications?: boolean | null
           contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
+          contractor_matched_contest_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
@@ -2531,6 +2534,7 @@ export type Database = {
           construction_year_min: number | null
           contact_person: string | null
           contractor_retention_rate: number | null
+          contractor_services_completed: boolean
           cover_image_url: string | null
           created_at: string | null
           district: string | null
@@ -2640,6 +2644,7 @@ export type Database = {
           construction_year_min?: number | null
           contact_person?: string | null
           contractor_retention_rate?: number | null
+          contractor_services_completed?: boolean
           cover_image_url?: string | null
           created_at?: string | null
           district?: string | null
@@ -2749,6 +2754,7 @@ export type Database = {
           construction_year_min?: number | null
           contact_person?: string | null
           contractor_retention_rate?: number | null
+          contractor_services_completed?: boolean
           cover_image_url?: string | null
           created_at?: string | null
           district?: string | null
@@ -3109,6 +3115,12 @@ export type Database = {
       answer_contest_question: {
         Args: { p_answer: string; p_question_id: string }
         Returns: string
+      }
+      contractor_user_ids_matching_service_slugs: {
+        Args: { p_slugs: string[] }
+        Returns: {
+          user_id: string
+        }[]
       }
       count_unseen_contest_questions: {
         Args: { p_contest_ids: string[] }

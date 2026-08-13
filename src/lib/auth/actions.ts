@@ -576,7 +576,7 @@ async function registerActionImpl(
   if (authData.session) {
     const redirectTo =
       userType === 'contractor'
-        ? `/rejestracja/wybor-weryfikacji?message=${successMessage}`
+        ? `/konto?tab=uslugi&onboarding=1`
         : `/panel-zarzadcy/konkursy?message=${successMessage}`
     return { success: true, redirectTo }
   }

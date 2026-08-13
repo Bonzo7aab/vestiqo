@@ -110,3 +110,10 @@ export function contractorVerificationDocumentsHref(
 ): string {
   return kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor', search: params });
 }
+
+export function contractorServicesHref(options?: { onboarding?: boolean }): string {
+  return kontoHref(KONTO_TABS.uslugi, {
+    userType: 'contractor',
+    search: options?.onboarding ? { onboarding: '1' } : undefined,
+  });
+}

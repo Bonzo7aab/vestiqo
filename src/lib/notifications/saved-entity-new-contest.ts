@@ -8,7 +8,10 @@ import { buildKonkursPath } from '../listing/konkurs-slug';
  * Notify contractors who bookmarked (Zapisane) the contest’s managed housing entity
  * when a new public contest is published (OPD-152).
  */
-export async function notifySavedUsersOfNewContest(contestId: string): Promise<void> {
+export async function notifySavedUsersOfNewContest(
+  contestId: string,
+  excludeUserIds: Iterable<string> = [],
+): Promise<void> {
   const id = contestId?.trim();
   if (!id) return;
 
@@ -81,11 +84,12 @@ export async function notifySavedUsersOfNewContest(contestId: string): Promise<v
     return;
   }
 
+  const excluded = new Set(excludeUserIds);
   const userIds = [
     ...new Set(
       (bookmarks ?? [])
         .map((row) => row.user_id)
-        .filter((userId): userId is string => Boolean(userId)),
+        .filter((userId): userId is string => Boolean(userId) && !excluded.has(userId)),
     ),
   ];
 

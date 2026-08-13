@@ -69,6 +69,8 @@ export async function saveInAppNotificationPreferences(
       preferences.contractorContestOfferRejectedNotifications,
     contractor_contest_answer_notifications:
       preferences.contractorContestAnswerNotifications,
+    contractor_matched_contest_notifications:
+      preferences.contractorMatchedContestNotifications,
     updated_at: new Date().toISOString(),
   };
 
