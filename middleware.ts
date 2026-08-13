@@ -30,6 +30,7 @@ const ALLOWED_FIRST_SEGMENTS = new Set<string>([
   'panel-zarzadcy',
   'polityka-prywatnosci',
   'powitanie',
+  'program-pilotazowy',
   'pytania-konkursu',
   'regulamin',
   'rejestracja',

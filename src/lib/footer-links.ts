@@ -12,6 +12,7 @@ export interface FooterColumn {
 
 export const footerBrandLinks: FooterLink[] = [
   { label: 'O nas', href: routes.oNas },
+  { label: 'Program pilotażowy', href: routes.programPilotazowy },
   { label: 'Kontakt', href: routes.kontakt },
 ];
 

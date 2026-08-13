@@ -47,6 +47,7 @@ export const routes = {
   pomocDlaWykonawcow: '/pomoc-dla-wykonawcow',
   dlaWspolnot: '/dla-wspolnot',
   dlaWykonawcow: '/dla-wykonawcow',
+  programPilotazowy: '/program-pilotazowy',
   panelWykonawcy: '/panel-wykonawcy',
   panelWykonawcyAplikacje: '/panel-wykonawcy/aplikacje',
   panelWykonawcyPanel: '/panel-wykonawcy/panel',

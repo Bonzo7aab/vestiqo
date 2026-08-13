@@ -12,6 +12,7 @@ const PUBLIC_ROUTES = [
   '/kategorie-uslug',
   '/dla-wspolnot',
   '/dla-wykonawcow',
+  '/program-pilotazowy',
   '/pomoc-dla-zarzadcow',
   '/pomoc-dla-wykonawcow',
   '/wykonawcy',
