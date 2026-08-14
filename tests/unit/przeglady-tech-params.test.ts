@@ -73,9 +73,10 @@ const gasOne = buildPrzegladyTechParamsBlock('Przegląd gazowy (roczny)', [
   building({ name: 'Budynek A', gas_connected_units: 12, gas_risers_count: 3 }),
 ]);
 assert.ok(gasOne);
-assert.ok(gasOne!.includes(TECH_PARAMS_START));
-assert.ok(gasOne!.includes(TECH_PARAMS_END));
-assert.ok(gasOne!.includes('### Budynek A'));
+assert.ok(!gasOne!.includes(TECH_PARAMS_START));
+assert.ok(!gasOne!.includes(TECH_PARAMS_END));
+assert.ok(!gasOne!.includes('###'));
+assert.ok(gasOne!.includes('Budynek A'));
 assert.ok(gasOne!.includes('Liczba lokali z gazem: 12'));
 assert.ok(gasOne!.includes('Liczba pionów gazowych: 3'));
 assert.ok(gasOne!.includes('Kotłownia gazowa: Nie'));
@@ -115,25 +116,87 @@ const multiGas = buildPrzegladyTechParamsBlock('przeglad-gazowy-roczny', [
   building({ id: '1', name: 'A', gas_connected_units: 10, gas_risers_count: 2 }),
   building({ id: '2', name: 'B', gas_connected_units: 5, gas_risers_count: 1 }),
 ]);
-assert.ok(multiGas!.includes('### A'));
-assert.ok(multiGas!.includes('### B'));
+assert.ok(multiGas!.includes('A\nParametry techniczne (Przegląd Gazowy):'));
+assert.ok(multiGas!.includes('B\nParametry techniczne (Przegląd Gazowy):'));
 assert.ok(multiGas!.includes('Łącznie dla wszystkich wybranych budynków: 15 lokali z gazem, 3 pionów.'));
+assert.ok(!multiGas!.includes('###'));
+assert.ok(!multiGas!.includes('Łącznie wybrano budynków'));
 
 const withUserText = applyTechParamsToDescription(
   'Zakres: przegląd gazowy w terminie letnim.',
   gasOne,
 );
 assert.ok(withUserText.startsWith('Zakres: przegląd gazowy'));
-assert.ok(withUserText.includes(TECH_PARAMS_START));
+assert.ok(!withUserText.includes(TECH_PARAMS_START));
+assert.ok(withUserText.includes('Budynek A'));
 
 const replaced = applyTechParamsToDescription(withUserText, multiGas);
-assert.equal(replaced.indexOf(TECH_PARAMS_START), replaced.lastIndexOf(TECH_PARAMS_START));
-assert.ok(replaced.includes('### A'));
-assert.ok(replaced.includes('Zakres: przegląd gazowy'));
+assert.ok(replaced.startsWith('Zakres: przegląd gazowy'));
+assert.ok(replaced.includes('\nA\nParametry techniczne'));
+assert.ok(replaced.includes('\nB\nParametry techniczne'));
+assert.equal((replaced.match(/Parametry techniczne \(Przegląd Gazowy\)/g) ?? []).length, 2);
 
 const stripped = stripTechParamsFromDescription(replaced);
 assert.equal(stripped, 'Zakres: przegląd gazowy w terminie letnim.');
 assert.equal(applyTechParamsToDescription(stripped, null), stripped);
+
+const legacyWrapped = [
+  'Zakres ręczny.',
+  TECH_PARAMS_START,
+  '### Stary blok',
+  'Parametry techniczne (Przegląd Gazowy):',
+  '• Liczba lokali z gazem: 1',
+  TECH_PARAMS_END,
+].join('\n');
+assert.equal(stripTechParamsFromDescription(legacyWrapped), 'Zakres ręczny.');
+
+const multiChimney = buildPrzegladyTechParamsBlock('przeglad-kominiarski-wentylacyjny-roczny', [
+  building({
+    id: '1',
+    name: 'A',
+    chimney_openings_in_units: 10,
+    chimney_shafts_above_roof: 2,
+    roof_area_m2: 100,
+  }),
+  building({
+    id: '2',
+    name: 'B',
+    chimney_openings_in_units: 5,
+    chimney_shafts_above_roof: 1,
+    roof_area_m2: 50,
+  }),
+]);
+assert.ok(
+  multiChimney!.includes(
+    'Łącznie dla wszystkich wybranych budynków: 15 otworów w lokalach, 3 trzonów kominowych, 150 m² dachu.',
+  ),
+);
+
+const multiFire = buildPrzegladyTechParamsBlock('przeglad-ppoz-hydrantow-roczny', [
+  building({
+    id: '1',
+    name: 'A',
+    has_internal_hydrant_system: true,
+    heat_nodes_or_boilerrooms: 1,
+    staircases_count: 2,
+    above_ground_floors: 4,
+    below_ground_floors: 1,
+  }),
+  building({
+    id: '2',
+    name: 'B',
+    has_internal_hydrant_system: false,
+    heat_nodes_or_boilerrooms: 2,
+    staircases_count: 1,
+    above_ground_floors: 3,
+    below_ground_floors: 0,
+  }),
+]);
+assert.ok(
+  multiFire!.includes(
+    'Łącznie dla wszystkich wybranych budynków: hydrant wewnętrzny w 1 z 2 budynków, 3 kotłowni/węzłów, 3 klatek, 8 kondygnacji.',
+  ),
+);
 
 assert.equal(buildPrzegladyTechParamsBlock('przeglad-gazowy-roczny', []), null);
 assert.equal(buildPrzegladyTechParamsBlock('unknown', [building({ name: 'X' })]), null);

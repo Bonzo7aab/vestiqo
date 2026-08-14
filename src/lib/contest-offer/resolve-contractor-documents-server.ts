@@ -18,7 +18,7 @@ import { createSignedUrlSafe } from '../storage/r2/operations';
 const REQUIREMENT_LABELS: Record<FormalRequirementKey, string> = {
   insuranceOc: 'Polisa OC',
   zusUsCertificates: 'Zaświadczenia ZUS/US',
-  references: 'Referencje',
+  references: 'Referencje – wykaz zrealizowanych prac',
   professionalCertificates: 'Certyfikaty zawodowe',
   professionalLicenses: 'Uprawnienia zawodowe',
 };

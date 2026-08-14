@@ -130,16 +130,11 @@ function formatGeneral5yBlock(building: ManagedBuilding): string {
 }
 
 function formatFireBlock(building: ManagedBuilding): string {
-  const floorsTotal =
-    building.above_ground_floors == null && building.below_ground_floors == null
-      ? null
-      : (building.above_ground_floors ?? 0) + (building.below_ground_floors ?? 0);
-
   return [
     'Parametry techniczne (Przegląd Ppoż.):',
     `• Instalacja hydrantowa wewnętrzna: ${formatBool(building.has_internal_hydrant_system)}`,
     `• Liczba kotłowni / węzłów cieplnych: ${formatValue(building.heat_nodes_or_boilerrooms)}`,
-    `• Liczba klatek / kondygnacji: ${formatValue(building.staircases_count)} klatek / ${formatValue(floorsTotal)} kondygnacji`,
+    `• Liczba klatek / kondygnacji: ${formatValue(building.staircases_count)} klatek / ${formatValue(floorsTotal(building))} kondygnacji`,
   ].join('\n');
 }
 
@@ -166,7 +161,28 @@ function formatBuildingBlock(
     }
   })();
 
-  return [`### ${building.name}`, body].join('\n');
+  return [building.name, body].join('\n');
+}
+
+function sumNumber(
+  buildings: ManagedBuilding[],
+  read: (building: ManagedBuilding) => number | null | undefined,
+): number {
+  return buildings.reduce((sum, building) => sum + (read(building) ?? 0), 0);
+}
+
+function countTrue(
+  buildings: ManagedBuilding[],
+  read: (building: ManagedBuilding) => boolean,
+): number {
+  return buildings.reduce((count, building) => count + (read(building) ? 1 : 0), 0);
+}
+
+function floorsTotal(building: ManagedBuilding): number | null {
+  if (building.above_ground_floors == null && building.below_ground_floors == null) {
+    return null;
+  }
+  return (building.above_ground_floors ?? 0) + (building.below_ground_floors ?? 0);
 }
 
 function formatSummary(
@@ -175,35 +191,59 @@ function formatSummary(
 ): string | null {
   if (buildings.length < 2) return null;
 
-  if (slug === 'przeglad-gazowy-roczny') {
-    const gasUnits = buildings.reduce(
-      (sum, building) => sum + (building.gas_connected_units ?? 0),
-      0,
-    );
-    const risers = buildings.reduce(
-      (sum, building) => sum + (building.gas_risers_count ?? 0),
-      0,
-    );
-    return `Łącznie dla wszystkich wybranych budynków: ${gasUnits} lokali z gazem, ${risers} pionów.`;
+  const parts: string[] = [];
+
+  switch (slug) {
+    case 'przeglad-gazowy-roczny':
+      parts.push(`${sumNumber(buildings, (b) => b.gas_connected_units)} lokali z gazem`);
+      parts.push(`${sumNumber(buildings, (b) => b.gas_risers_count)} pionów`);
+      break;
+    case 'przeglad-kominiarski-wentylacyjny-roczny':
+      parts.push(
+        `${sumNumber(buildings, (b) => b.chimney_openings_in_units)} otworów w lokalach`,
+      );
+      parts.push(
+        `${sumNumber(buildings, (b) => b.chimney_shafts_above_roof)} trzonów kominowych`,
+      );
+      parts.push(`${sumNumber(buildings, (b) => b.roof_area_m2)} m² dachu`);
+      break;
+    case 'przeglad-elektryczny-odgromowy-5-letni':
+      parts.push(`${sumNumber(buildings, (b) => b.total_residential_units)} lokali`);
+      parts.push(`${sumNumber(buildings, (b) => b.staircases_count)} klatek`);
+      parts.push(`${sumNumber(buildings, (b) => b.lightning_control_joints)} złączy odgromu`);
+      break;
+    case 'przeglad-ogolnobudowlany-roczny':
+      parts.push(
+        `${sumNumber(buildings, (b) => b.above_ground_floors)} nadziemnych / ${sumNumber(buildings, (b) => b.below_ground_floors)} podziemnych kondygnacji`,
+      );
+      parts.push(`${sumNumber(buildings, (b) => b.staircases_count)} klatek`);
+      parts.push(`${sumNumber(buildings, (b) => b.facade_area_m2)} m² elewacji`);
+      parts.push(`${sumNumber(buildings, (b) => b.roof_area_m2)} m² dachu`);
+      break;
+    case 'przeglad-ogolnobudowlany-5-letni':
+      parts.push(`${sumNumber(buildings, (b) => b.total_residential_units)} lokali`);
+      parts.push(`${sumNumber(buildings, (b) => b.staircases_count)} klatek`);
+      parts.push(
+        `${sumNumber(buildings, (b) => b.above_ground_floors)} nadziemnych / ${sumNumber(buildings, (b) => b.below_ground_floors)} podziemnych kondygnacji`,
+      );
+      parts.push(`${sumNumber(buildings, (b) => b.roof_area_m2)} m² dachu`);
+      parts.push(`${sumNumber(buildings, (b) => b.facade_area_m2)} m² elewacji`);
+      break;
+    case 'przeglad-ppoz-hydrantow-roczny':
+      parts.push(
+        `hydrant wewnętrzny w ${countTrue(buildings, (b) => b.has_internal_hydrant_system)} z ${buildings.length} budynków`,
+      );
+      parts.push(
+        `${sumNumber(buildings, (b) => b.heat_nodes_or_boilerrooms)} kotłowni/węzłów`,
+      );
+      parts.push(`${sumNumber(buildings, (b) => b.staircases_count)} klatek`);
+      parts.push(`${sumNumber(buildings, floorsTotal)} kondygnacji`);
+      break;
+    default:
+      return null;
   }
 
-  if (
-    slug === 'przeglad-ogolnobudowlany-roczny' ||
-    slug === 'przeglad-ogolnobudowlany-5-letni' ||
-    slug === 'przeglad-elektryczny-odgromowy-5-letni'
-  ) {
-    const units = buildings.reduce(
-      (sum, building) => sum + (building.total_residential_units ?? 0),
-      0,
-    );
-    const staircases = buildings.reduce(
-      (sum, building) => sum + (building.staircases_count ?? 0),
-      0,
-    );
-    return `Łącznie dla wszystkich wybranych budynków: ${units} lokali, ${staircases} klatek.`;
-  }
-
-  return `Łącznie wybrano budynków: ${buildings.length}.`;
+  return `Łącznie dla wszystkich wybranych budynków: ${parts.join(', ')}.`;
 }
 
 export function buildPrzegladyTechParamsBlock(
@@ -215,9 +255,7 @@ export function buildPrzegladyTechParamsBlock(
 
   const blocks = buildings.map((building) => formatBuildingBlock(slug, building));
   const summary = formatSummary(slug, buildings);
-  const body = summary ? [...blocks, summary].join('\n\n') : blocks.join('\n\n');
-
-  return [TECH_PARAMS_START, body, TECH_PARAMS_END].join('\n');
+  return summary ? [...blocks, summary].join('\n\n') : blocks.join('\n\n');
 }
 
 export function applyTechParamsToDescription(
@@ -237,7 +275,7 @@ export function applyTechParamsToDescription(
   return `${withoutBlock}\n\n${techParamsBlock}`;
 }
 
-export function stripTechParamsFromDescription(description: string): string {
+function stripLegacyHtmlCommentBlock(description: string): string {
   const start = description.indexOf(TECH_PARAMS_START);
   if (start === -1) return description;
 
@@ -251,4 +289,26 @@ export function stripTechParamsFromDescription(description: string): string {
   if (!before) return after;
   if (!after) return before;
   return `${before}\n\n${after}`;
+}
+
+/** Cut the auto-generated params block: building name line + "Parametry techniczne (…" through the end. */
+function stripPlainTechParamsBlock(description: string): string {
+  const paramsMatch = description.search(/(^|\n)Parametry techniczne \(/);
+  if (paramsMatch === -1) return description;
+
+  let cutAt = paramsMatch;
+  if (description[paramsMatch] === '\n') {
+    const before = description.slice(0, paramsMatch);
+    const lineStart = before.lastIndexOf('\n');
+    const previousLine = before.slice(lineStart + 1).trim();
+    if (previousLine.length > 0 && !previousLine.startsWith('Parametry techniczne')) {
+      cutAt = lineStart === -1 ? 0 : lineStart;
+    }
+  }
+
+  return description.slice(0, cutAt).trimEnd();
+}
+
+export function stripTechParamsFromDescription(description: string): string {
+  return stripPlainTechParamsBlock(stripLegacyHtmlCommentBlock(description));
 }

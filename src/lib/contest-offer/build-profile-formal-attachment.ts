@@ -34,7 +34,6 @@ export function applyProfileDocumentsToForm(
 ): Partial<Record<FormalRequirementKey, ContestOfferAttachmentRef>> {
   const next = { ...existing };
   for (const doc of docs) {
-    if (doc.requirementKey === 'references') continue;
     if (!supportsContestOfferProfileAutofill(doc.requirementKey)) continue;
     if (next[doc.requirementKey]) continue;
     const attachment = buildFormalAttachmentFromProfile(doc);

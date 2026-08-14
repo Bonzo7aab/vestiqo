@@ -38,6 +38,7 @@ import {
   getContestOfferAllFieldErrors,
   getContestOfferStepFieldErrors,
   hasContestOfferFieldErrors,
+  toSerializableContestOfferForm,
   type ContestOfferFieldErrors,
   type ContestOfferWizardStep,
 } from '../../lib/database/contest-offers';
@@ -63,9 +64,7 @@ import {
   scrollToFirstContestOfferError,
 } from '../../lib/contest-offer/form-validation-ui';
 import { uploadContestOfferStagedFiles } from '../../lib/contest-offer/upload-staged-offer-files';
-import {
-  loadContractorReferencesPrefill,
-} from '../../lib/contest-offer/resolve-contractor-documents';
+import { contestOfferErrorFromUnknown, CONTEST_OFFER_ERRORS } from '../../lib/contest-offer/error-messages';
 import { resolveContractorDocuments } from '../../lib/contest-offer/resolve-contractor-documents-actions';
 import { ContestOfferWizardStepper } from './ContestOfferWizardStepper';
 import { ContestOfferContextPanel } from './ContestOfferContextPanel';
@@ -74,6 +73,7 @@ import { ContestOfferStepSchedule } from './ContestOfferStepSchedule';
 import { ContestOfferStepFormal } from './ContestOfferStepFormal';
 import { ContestOfferStepFinancial } from './ContestOfferStepFinancial';
 import { CategoryIconTile } from '../contest/CategoryIconTile';
+import { FormErrorBanner } from '../ui/form-error-banner';
 import {
   getCategoryColor,
   resolveCategorySlugFromJob,
@@ -126,6 +126,7 @@ export function ContestOfferSubmissionDialog({
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [hasExistingDraft, setHasExistingDraft] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ContestOfferFieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [validatedSteps, setValidatedSteps] = useState<Set<ContestOfferWizardStep>>(
     () => new Set(),
   );
@@ -161,16 +162,13 @@ export function ContestOfferSubmissionDialog({
     if (!isOpen || !contractorId) return;
     setIsLoading(true);
     try {
-      const [{ state: offerState }, docs, referencesPrefill] = await Promise.all([
+      const [{ state: offerState }, docs] = await Promise.all([
         fetchTenderBidOfferState(supabase, tenderId, contractorId),
         resolveContractorDocuments(contractorId, contestInfo.formalRequirements),
-        loadContractorReferencesPrefill(supabase, contractorId),
       ]);
 
       if (offerState === 'submitted') {
-        toast.error(
-          'Już złożyłeś ofertę na ten konkurs. Nie możesz złożyć więcej niż jednej oferty.',
-        );
+        toast.error(CONTEST_OFFER_ERRORS.alreadySubmitted);
         onClose();
         return;
       }
@@ -199,7 +197,6 @@ export function ContestOfferSubmissionDialog({
       } else {
         setHasExistingDraft(false);
         const empty = createEmptyContestOfferForm();
-        if (referencesPrefill) empty.referencesText = referencesPrefill;
         if (contestInfo.paymentTerms.mode === 'standard_14') {
           empty.paymentTermsAccepted = true;
         }
@@ -211,11 +208,12 @@ export function ContestOfferSubmissionDialog({
         setCurrentStep(1);
         profileDocsAppliedRef.current = true;
       }
+      setFormError(null);
       setFieldErrors({});
       setValidatedSteps(new Set());
     } catch (e) {
       console.error(e);
-      toast.error('Nie udało się załadować szkicu oferty');
+      setFormError('Nie udało się załadować szkicu oferty');
     } finally {
       setIsLoading(false);
     }
@@ -228,6 +226,7 @@ export function ContestOfferSubmissionDialog({
   useEffect(() => {
     if (!isOpen) {
       profileDocsAppliedRef.current = false;
+      setFormError(null);
       setFieldErrors({});
       setValidatedSteps(new Set());
       setHasExistingDraft(false);
@@ -257,6 +256,7 @@ export function ContestOfferSubmissionDialog({
   const applyValidationErrors = useCallback(
     (errors: ContestOfferFieldErrors, stepsToValidate: ContestOfferWizardStep[]): void => {
       shouldFocusFieldErrorRef.current = true;
+      setFormError(null);
       setFieldErrors(errors);
       setValidatedSteps((prev) => new Set([...prev, ...stepsToValidate]));
       const targetStep = firstContestOfferStepWithErrors(errors);
@@ -280,12 +280,14 @@ export function ContestOfferSubmissionDialog({
   }, [fieldErrors, currentStep]);
 
   const patchForm = (patch: Partial<ContestOfferFormData>): void => {
+    setFormError(null);
     setFieldErrors((prev) => clearContestOfferFieldErrorsForPatch(prev, patch));
     setForm((prev) => ({ ...prev, ...patch }));
   };
 
   const handleSaveDraft = async (): Promise<void> => {
     setIsSavingDraft(true);
+    setFormError(null);
     try {
       const { form: uploadedForm, error: uploadError } = await uploadContestOfferStagedFiles(
         contractorId,
@@ -293,7 +295,7 @@ export function ContestOfferSubmissionDialog({
         form,
       );
       if (uploadError) {
-        toast.error(uploadError);
+        setFormError(contestOfferErrorFromUnknown(uploadError));
         return;
       }
       setForm(uploadedForm);
@@ -301,11 +303,11 @@ export function ContestOfferSubmissionDialog({
       const { error } = await upsertTenderBidDraft(
         tenderId,
         contractorId,
-        uploadedForm,
+        toSerializableContestOfferForm(uploadedForm),
         currentStep,
       );
       if (error) {
-        toast.error(error.message);
+        setFormError(contestOfferErrorFromUnknown(error));
         return;
       }
       toast.success('Szkic oferty został zapisany');
@@ -313,6 +315,8 @@ export function ContestOfferSubmissionDialog({
       setHasExistingDraft(true);
       notifyContestBidStatusChanged({ tenderId, status: 'draft' });
       onDraftSaved?.();
+    } catch (err) {
+      setFormError(contestOfferErrorFromUnknown(err));
     } finally {
       setIsSavingDraft(false);
     }
@@ -348,6 +352,7 @@ export function ContestOfferSubmissionDialog({
     }
     setFieldErrors({});
     setValidatedSteps(new Set());
+    setFormError(null);
     setIsSubmitting(true);
     try {
       const { form: uploadedForm, error: uploadError } = await uploadContestOfferStagedFiles(
@@ -356,7 +361,7 @@ export function ContestOfferSubmissionDialog({
         form,
       );
       if (uploadError) {
-        toast.error(uploadError);
+        setFormError(contestOfferErrorFromUnknown(uploadError));
         return;
       }
       setForm(uploadedForm);
@@ -364,7 +369,7 @@ export function ContestOfferSubmissionDialog({
       const { error } = await submitTenderBid(
         tenderId,
         contractorId,
-        uploadedForm,
+        toSerializableContestOfferForm(uploadedForm),
         contestInfo,
       );
       if (error) {
@@ -373,7 +378,7 @@ export function ContestOfferSubmissionDialog({
           applyValidationErrors(inlineErrors, getContestOfferStepsWithErrors(inlineErrors));
           return;
         }
-        toast.error(error.message);
+        setFormError(contestOfferErrorFromUnknown(error));
         return;
       }
       posthog.capture('contest_offer_submitted', { tender_id: tenderId });
@@ -386,6 +391,8 @@ export function ContestOfferSubmissionDialog({
       notifyContestBidStatusChanged({ tenderId, status: 'submitted' });
       onSubmitted?.();
       onClose();
+    } catch (err) {
+      setFormError(contestOfferErrorFromUnknown(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -439,31 +446,6 @@ export function ContestOfferSubmissionDialog({
         stagedFiles.offerDocumentation = offerDocumentation;
       } else {
         delete stagedFiles.offerDocumentation;
-      }
-      return { ...prev, stagedFiles };
-    });
-  };
-
-  const stageOtherFiles = (files: File[]): void => {
-    if (files.length === 0) return;
-    setForm((prev) => ({
-      ...prev,
-      stagedFiles: {
-        ...prev.stagedFiles,
-        other: [...(prev.stagedFiles.other ?? []), ...files],
-      },
-    }));
-  };
-
-  const removeStagedOther = (index: number): void => {
-    setForm((prev) => {
-      const other = [...(prev.stagedFiles.other ?? [])];
-      other.splice(index, 1);
-      const stagedFiles = { ...prev.stagedFiles };
-      if (other.length > 0) {
-        stagedFiles.other = other;
-      } else {
-        delete stagedFiles.other;
       }
       return { ...prev, stagedFiles };
     });
@@ -642,21 +624,16 @@ export function ContestOfferSubmissionDialog({
                   onPatch={patchForm}
                 />
               )}
-              {currentStep === 3 && (
-                <ContestOfferStepFormal
-                  form={form}
-                  contestInfo={contestInfo}
-                  resolvedDocs={resolvedDocs}
-                  fieldErrors={displayedFieldErrors}
-                  onPatch={patchForm}
-                  onUseProfile={applyProfileDocument}
-                  onUploadFormal={replaceFormalDocument}
-                  onRemoveFormal={removeFormalDocument}
-                  onStageOtherFiles={stageOtherFiles}
-                  onRemoveExtra={removeExtraAttachment}
-                  onRemoveStagedOther={removeStagedOther}
-                />
-              )}
+                {currentStep === 3 && (
+                  <ContestOfferStepFormal
+                    form={form}
+                    resolvedDocs={resolvedDocs}
+                    fieldErrors={displayedFieldErrors}
+                    onUseProfile={applyProfileDocument}
+                    onUploadFormal={replaceFormalDocument}
+                    onRemoveFormal={removeFormalDocument}
+                  />
+                )}
               {currentStep === 4 && (
                 <ContestOfferStepFinancial
                   form={form}
@@ -671,6 +648,16 @@ export function ContestOfferSubmissionDialog({
             </>
           )}
         </div>
+
+        {formError ? (
+          <div className="shrink-0 px-6 pt-3">
+            <FormErrorBanner
+              message={formError}
+              className="mb-0"
+              testId="contest-offer-form-error"
+            />
+          </div>
+        ) : null}
 
         <DialogFooter className="shrink-0 flex-col gap-2 border-t bg-muted/20 px-6 py-4 sm:flex-row sm:justify-between">
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center">
