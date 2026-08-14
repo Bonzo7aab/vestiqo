@@ -421,9 +421,10 @@ export function Header({
             <HeaderJobSearch className="w-full max-w-xl" />
           </div>
 
-            {/* Add Job button - visible for unauthenticated (redirects to login) and authenticated managers.
-                Admin gets a single ADMIN button instead. Hidden below laptop (see bottom menu). */}
-            <div className="hidden lg:block mr-4">
+          {/* 3. Right cluster — ml-auto keeps the CTA on the right when search is hidden below xl */}
+          <div className="ml-auto flex flex-shrink-0 items-center space-x-2 sm:space-x-3">
+            {/* Add Job - unauthenticated + managers. Admin gets ADMIN instead. Hidden below laptop. */}
+            <div className="hidden lg:block">
               {userIsAuthenticated && isAdmin ? (
                 <Button
                   variant="default"
@@ -446,9 +447,6 @@ export function Header({
                 )
               )}
             </div>
-
-          {/* 3. Right Side Actions - messages & saved hidden below laptop (see bottom menu) */}
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {!isAdmin &&
               (userIsAuthenticated ? (
                 <Button
