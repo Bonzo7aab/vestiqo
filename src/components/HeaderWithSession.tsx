@@ -4,7 +4,10 @@ import { buildEvaluationContext } from '../lib/flagship/context';
 import { isFeatureEnabled } from '../lib/flagship/evaluate';
 import { FLAGSHIP_FLAG_KEYS } from '../lib/flagship/keys';
 import { getRegistryVerifiedForUser } from '../lib/registry/load-snapshot-for-user';
+import { Suspense } from 'react';
 import { Header } from './Header';
+import { HeaderNearestEventsLoader } from './HeaderNearestEventsLoader';
+import { HeaderNearestEventsStripFallback } from './HeaderNearestEventsStrip';
 import type { AuthUser } from '../types/auth';
 
 export async function HeaderWithSession() {
@@ -71,10 +74,21 @@ export async function HeaderWithSession() {
     evaluationContext,
   );
 
+  const showNearestEvents = Boolean(
+    initialUser && initialUser.userType !== 'contractor' && profileUserId,
+  );
+
   return (
     <Header
       initialUser={initialUser}
       showOrders={showOrders}
+      nearestEventsSlot={
+        showNearestEvents && profileUserId ? (
+          <Suspense fallback={<HeaderNearestEventsStripFallback />}>
+            <HeaderNearestEventsLoader userId={profileUserId} />
+          </Suspense>
+        ) : null
+      }
     />
   );
 }

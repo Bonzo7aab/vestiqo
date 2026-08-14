@@ -534,6 +534,51 @@ export type Database = {
           },
         ]
       }
+      calendar_reminder_sends: {
+        Row: {
+          due_on: string
+          id: string
+          sent_at: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Insert: {
+          due_on: string
+          id?: string
+          sent_at?: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Update: {
+          due_on?: string
+          id?: string
+          sent_at?: string
+          source_id?: string
+          source_kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contest_buildings: {
+        Row: {
+          building_id: string
+          contest_id: string
+          created_at: string
+        }
+        Insert: {
+          building_id: string
+          contest_id: string
+          created_at?: string
+        }
+        Update: {
+          building_id?: string
+          contest_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       contest_offers: {
         Row: {
           admin_feedback_message: string | null
@@ -1868,6 +1913,8 @@ export type Database = {
           title: string
           updated_at: string
           vat_rate: string
+          warranty_expires_at: string | null
+          warranty_months: number | null
         }
         Insert: {
           cancel_reason?: string | null
@@ -1892,6 +1939,8 @@ export type Database = {
           title: string
           updated_at?: string
           vat_rate?: string
+          warranty_expires_at?: string | null
+          warranty_months?: number | null
         }
         Update: {
           cancel_reason?: string | null
@@ -1916,6 +1965,8 @@ export type Database = {
           title?: string
           updated_at?: string
           vat_rate?: string
+          warranty_expires_at?: string | null
+          warranty_months?: number | null
         }
         Relationships: [
           {

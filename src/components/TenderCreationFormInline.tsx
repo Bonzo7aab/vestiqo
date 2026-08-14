@@ -16,6 +16,7 @@ interface TenderCreationFormInlineProps {
     newFiles: File[],
     keptDocuments: TenderContestDocumentMeta[],
     status: 'draft' | 'active',
+    buildingIds: string[],
   ) => void | Promise<void>;
   tenderId?: string;
   initialData?: TenderWithCompany;

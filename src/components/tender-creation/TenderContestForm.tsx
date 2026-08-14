@@ -134,11 +134,13 @@ export interface TenderContestFormProps {
     newFiles: File[],
     keptDocuments: TenderContestDocumentMeta[],
     status: 'draft' | 'active',
+    buildingIds: string[],
   ) => void | Promise<void>;
   isSubmitting?: boolean;
   initialForm?: TenderContestFormData;
   existingDocuments?: TenderContestDocumentMeta[];
   layout?: 'default' | 'create';
+  initialBuildingIds?: string[];
 }
 
 const PERIOD_OPTIONS: { value: WarrantyGuaranteePeriod; label: string }[] = [
@@ -177,6 +179,7 @@ export function TenderContestForm({
   initialForm,
   existingDocuments,
   layout = 'default',
+  initialBuildingIds,
 }: TenderContestFormProps): React.ReactElement {
   const { user } = useUserProfile();
   const supabase = createClient();
@@ -319,7 +322,12 @@ export function TenderContestForm({
       if (cancelled) return;
       const buildings = data ?? [];
       setEntityBuildings(buildings);
-      setSelectedBuildingIds(buildings.map((building) => building.id));
+      const preferred = (initialBuildingIds ?? []).filter((id) =>
+        buildings.some((building) => building.id === id),
+      );
+      setSelectedBuildingIds(
+        preferred.length > 0 ? preferred : buildings.map((building) => building.id),
+      );
       setIsLoadingBuildings(false);
     };
     void loadBuildings();
@@ -327,7 +335,7 @@ export function TenderContestForm({
     return () => {
       cancelled = true;
     };
-  }, [form.managedEntityId, form.category, supabase]);
+  }, [form.managedEntityId, form.category, supabase, initialBuildingIds]);
 
   useEffect(() => {
     if (!isPrzegladyCategory(form.category)) {
@@ -428,7 +436,7 @@ export function TenderContestForm({
     }
     setShowFieldErrors(false);
     setFieldErrors({});
-    await onSubmit(form, pendingFiles, keptDocuments, status);
+    await onSubmit(form, pendingFiles, keptDocuments, status, selectedBuildingIds);
   };
 
   const updateCriterion = (

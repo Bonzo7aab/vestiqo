@@ -95,6 +95,11 @@ export function kontoHref(
   return `${base}?${params.toString()}${hash}`;
 }
 
+/** Manager Nieruchomości tab. */
+export const KONTO_NIERUCHOMOSCI_HREF = kontoHref(KONTO_TABS.nieruchomosci, {
+  userType: 'manager',
+});
+
 /** Contractor verification documents tab. */
 export const KONTO_DOKUMENTY_PATH = kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor' });
 

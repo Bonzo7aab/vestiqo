@@ -1,13 +1,15 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, type ReactElement } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TenderCreationPage from '../../components/TenderCreationPage';
+import { parseContestPrefillSearchParams } from '../../lib/calendar/contest-prefill';
 
-function PostContestPageContent(): React.ReactElement {
+function PostContestPageContent(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const duplicateFrom = searchParams.get('duplicateFrom') ?? undefined;
+  const prefill = parseContestPrefillSearchParams(searchParams);
 
   return (
     <TenderCreationPage
@@ -16,11 +18,15 @@ function PostContestPageContent(): React.ReactElement {
       hidePageHeader
       pageTitle="Nowy konkurs"
       pageSubtitle="Uzupełnij zakres, terminy składania ofert i wymagania formalne."
+      prefillEntityId={prefill.entityId}
+      prefillBuildingId={prefill.buildingId}
+      prefillCategory={prefill.categoryFilterKey}
+      prefillSubcategory={prefill.subcategoryFilterKey}
     />
   );
 }
 
-export default function PostContestPage(): React.ReactElement {
+export default function PostContestPage(): ReactElement {
   return (
     <Suspense
       fallback={

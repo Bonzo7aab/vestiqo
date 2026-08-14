@@ -1,6 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import {
+  addMonthsToIsoDate,
+  parseWarrantyMonthsFromOfferDetails,
+  toIsoDate,
+} from '../calendar/dates';
+import { subcategoryToInspectionType } from '../calendar/inspection-contest-map';
+import { fetchContestBuildingIds } from './contest-buildings';
+import { upsertBuildingInspectionDate } from './managed-buildings';
+import {
   canCancelOrder,
   canContractorReportForAcceptance,
   canManagerAcceptWork,
@@ -20,11 +28,12 @@ async function fetchOrderForMutation(
   manager_company_id: string;
   contractor_company_id: string;
   contest_id: string;
+  contest_offer_id: string;
 } | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('orders')
-    .select('id, status, manager_company_id, contractor_company_id, contest_id')
+    .select('id, status, manager_company_id, contractor_company_id, contest_id, contest_offer_id')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -83,6 +92,21 @@ export async function acceptOrderWork(
   }
 
   const now = new Date().toISOString();
+  const completedDate = toIsoDate(now);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: offerRow } = await (supabase as any)
+    .from('contest_offers')
+    .select('offer_details')
+    .eq('id', order.contest_offer_id)
+    .maybeSingle();
+
+  const warrantyMonths = parseWarrantyMonthsFromOfferDetails(
+    (offerRow as { offer_details?: unknown } | null)?.offer_details,
+  );
+  const warrantyExpiresAt =
+    warrantyMonths != null ? addMonthsToIsoDate(completedDate, warrantyMonths) : null;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('orders')
@@ -90,6 +114,8 @@ export async function acceptOrderWork(
       status: 'completed',
       completed_at: now,
       updated_at: now,
+      warranty_months: warrantyMonths,
+      warranty_expires_at: warrantyExpiresAt,
     })
     .eq('id', orderId)
     .eq('manager_company_id', managerCompanyId);
@@ -97,7 +123,42 @@ export async function acceptOrderWork(
   if (error) {
     return { success: false, error: error.message || 'Nie udało się odebrać prac' };
   }
+
+  await rollInspectionDatesAfterAcceptance(supabase, order.contest_id, completedDate);
+
   return { success: true };
+}
+
+async function rollInspectionDatesAfterAcceptance(
+  supabase: SupabaseClient<Database>,
+  contestId: string,
+  completedDate: string,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: contest } = await (supabase as any)
+    .from('contests')
+    .select('subcategory_id')
+    .eq('id', contestId)
+    .maybeSingle();
+
+  const subcategoryId = (contest as { subcategory_id?: string | null } | null)?.subcategory_id;
+  if (!subcategoryId) return;
+
+  const { data: category } = await supabase
+    .from('job_categories')
+    .select('name, slug')
+    .eq('id', subcategoryId)
+    .maybeSingle();
+
+  const inspectionType = subcategoryToInspectionType(
+    category?.slug ?? category?.name ?? null,
+  );
+  if (!inspectionType) return;
+
+  const { data: buildingIds } = await fetchContestBuildingIds(supabase, contestId);
+  for (const buildingId of buildingIds) {
+    await upsertBuildingInspectionDate(supabase, buildingId, inspectionType, completedDate);
+  }
 }
 
 export async function cancelOrder(

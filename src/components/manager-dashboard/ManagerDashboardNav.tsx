@@ -7,6 +7,7 @@ import { cn } from '../ui/utils';
 const tabs = [
   { id: 'konkursy', label: 'Konkursy', href: '/panel-zarzadcy/konkursy' },
   { id: 'zamowienia', label: 'Zamówienia', href: '/panel-zarzadcy/zamowienia' },
+  { id: 'kalendarz', label: 'Kalendarz', href: '/panel-zarzadcy/kalendarz' },
   { id: 'ocena', label: 'Ocena', href: '/panel-zarzadcy/ocena' },
 ];
 
@@ -32,6 +33,8 @@ export function ManagerDashboardNav({ showOrders = false }: ManagerDashboardNavP
                   pathname.startsWith('/panel-zarzadcy/zgloszenia'))) ||
               (tab.id === 'zamowienia' &&
                 pathname.startsWith('/panel-zarzadcy/zamowienia')) ||
+              (tab.id === 'kalendarz' &&
+                pathname.startsWith('/panel-zarzadcy/kalendarz')) ||
               (tab.id === 'ocena' &&
                 (pathname === '/panel-zarzadcy/ocena' ||
                   pathname.startsWith('/panel-zarzadcy/ocena/')));
