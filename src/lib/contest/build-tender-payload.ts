@@ -19,6 +19,8 @@ import {
   DEFAULT_PAYMENT_TERMS,
   parseSelectionCriteria,
 } from '../../types/tender-contest';
+import { parseProfessionalLicenseTypes } from '../contractor/constants';
+import { formatFormalRequirementLines } from './format-formal-requirement-lines';
 
 export interface TenderContestCreatePayload {
   title: string;
@@ -76,28 +78,7 @@ function formatWarrantyLabel(value: WarrantyGuaranteePeriod | ''): string | null
 }
 
 function buildRequirementsStrings(formal: FormalRequirements): string[] {
-  const lines: string[] = [];
-  if (formal.insuranceOc) {
-    const min = formal.insuranceOcMinAmount
-      ? ` (min. ${formal.insuranceOcMinAmount.toLocaleString('pl-PL')} zł)`
-      : '';
-    lines.push(`Aktualna polisa OC wykonawcy${min}`);
-  }
-  if (formal.zusUsCertificates) {
-    lines.push('Zaświadczenia o niezaleganiu w ZUS i US (nie starsze niż 3 miesiące)');
-  }
-  if (formal.references) {
-    const min = formal.referencesMinCount ?? 2;
-    const years = formal.referencesYears ?? 3;
-    lines.push(`Referencje – min. ${min} podobne realizacje z ostatnich ${years} lat`);
-  }
-  if (formal.professionalCertificates) {
-    lines.push('Certyfikaty zawodowe');
-  }
-  if (formal.professionalLicenses) {
-    lines.push('Uprawnienia zawodowe');
-  }
-  return lines;
+  return formatFormalRequirementLines(formal);
 }
 
 export async function buildCreateTenderPayload(
@@ -268,7 +249,11 @@ export function mapTenderRowToContestForm(
     completionDate,
     siteVisitType: ((tender.site_visit_type as SiteVisitType) ?? 'not_required'),
     siteVisitNotes: (tender.site_visit_notes as string) ?? '',
-    formalRequirements: { ...DEFAULT_FORMAL_REQUIREMENTS, ...formal },
+    formalRequirements: {
+      ...DEFAULT_FORMAL_REQUIREMENTS,
+      ...formal,
+      professionalLicenseTypes: parseProfessionalLicenseTypes(formal.professionalLicenseTypes),
+    },
     selectionCriteria: selection,
     warrantyPeriod: REVERSE_WARRANTY[(tender.warranty_period as string) ?? ''] ?? '',
     guaranteePeriod: REVERSE_WARRANTY[(tender.guarantee_period as string) ?? ''] ?? '',

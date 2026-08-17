@@ -60,6 +60,8 @@ export interface ResolvedContractorDocument {
   signedUrl: string | null;
   hint: string | null;
   missing: boolean;
+  /** True when the contractor profile does not meet this contest requirement. */
+  profileBlocked: boolean;
 }
 
 export function createEmptyContestOfferForm(): ContestOfferFormData {

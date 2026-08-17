@@ -22,6 +22,7 @@ import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
 import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housing-entity';
 import type { ManagedBuilding } from '../../types/managed-building';
 import type {
+  FormalRequirements,
   SelectionCriterionItem,
   TenderContestDocumentMeta,
   TenderContestFormData,
@@ -52,6 +53,7 @@ import {
 import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
 import { ScheduleDateOffsetChips } from './ScheduleDateOffsetChips';
+import { ProfessionalQualificationTypePicker } from '../ProfessionalQualificationTypePicker';
 import {
   COMPLETION_DAY_OFFSET_OPTIONS,
   EVALUATION_DAY_OFFSET_OPTIONS,
@@ -399,6 +401,23 @@ export function TenderContestForm({
       setFieldErrors((prev) => clearTenderContestFieldErrorsForPatch(prev, patch));
     }
     setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const patchFormalRequirements = (
+    patch: Partial<FormalRequirements> | ((prev: FormalRequirements) => FormalRequirements),
+  ): void => {
+    setForm((prev) => {
+      const nextFormal =
+        typeof patch === 'function'
+          ? patch(prev.formalRequirements)
+          : { ...prev.formalRequirements, ...patch };
+      if (showFieldErrors) {
+        setFieldErrors((errors) =>
+          clearTenderContestFieldErrorsForPatch(errors, { formalRequirements: nextFormal }),
+        );
+      }
+      return { ...prev, formalRequirements: nextFormal };
+    });
   };
 
   const handleFileUpload = (accepted: File[], rejections: FileRejection[]): void => {
@@ -1128,23 +1147,43 @@ export function TenderContestForm({
             </Label>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <Checkbox
               id="req-lic"
               checked={form.formalRequirements.professionalLicenses}
               onCheckedChange={(c) =>
-                setForm((prev) => ({
-                  ...prev,
-                  formalRequirements: {
-                    ...prev.formalRequirements,
-                    professionalLicenses: c === true,
-                  },
-                }))
+                patchFormalRequirements({
+                  professionalLicenses: c === true,
+                  professionalLicenseTypes:
+                    c === true ? (form.formalRequirements.professionalLicenseTypes ?? []) : [],
+                })
               }
             />
-            <Label htmlFor="req-lic" className="font-normal">
-              Uprawnienia zawodowe
-            </Label>
+            <div className="flex-1 space-y-3">
+              <Label htmlFor="req-lic" className="font-normal">
+                Uprawnienia zawodowe
+              </Label>
+              {form.formalRequirements.professionalLicenses ? (
+                <div id="contest-professional-license-types" className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Zaznacz typy uprawnień wymagane od wykonawców składających oferty.
+                  </p>
+                  <ProfessionalQualificationTypePicker
+                    selected={form.formalRequirements.professionalLicenseTypes ?? []}
+                    onToggle={(id) => {
+                      patchFormalRequirements((prevFormal) => {
+                        const current = prevFormal.professionalLicenseTypes ?? [];
+                        const next = current.includes(id)
+                          ? current.filter((value) => value !== id)
+                          : [...current, id];
+                        return { ...prevFormal, professionalLicenseTypes: next };
+                      });
+                    }}
+                  />
+                  <ContestOfferFieldError message={displayedErrors.professionalLicenseTypes} />
+                </div>
+              ) : null}
+            </div>
           </div>
       </ContestFormSection>
 

@@ -21,6 +21,7 @@ import type {
   FormalRequirementKey,
   ResolvedContractorDocument,
 } from '../../types/contest-offer';
+import type { ContractorFormalProfileSnapshot } from '../../lib/contest-offer/validate-profile-formal-requirements';
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
@@ -119,6 +120,8 @@ export function ContestOfferSubmissionDialog({
   const [currentStep, setCurrentStep] = useState<ContestOfferWizardStep>(1);
   const [form, setForm] = useState<ContestOfferFormData>(createEmptyContestOfferForm);
   const [resolvedDocs, setResolvedDocs] = useState<ResolvedContractorDocument[]>([]);
+  const [formalProfileSnapshot, setFormalProfileSnapshot] =
+    useState<ContractorFormalProfileSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,7 +165,7 @@ export function ContestOfferSubmissionDialog({
     if (!isOpen || !contractorId) return;
     setIsLoading(true);
     try {
-      const [{ state: offerState }, docs] = await Promise.all([
+      const [{ state: offerState }, resolved] = await Promise.all([
         fetchTenderBidOfferState(supabase, tenderId, contractorId),
         resolveContractorDocuments(contractorId, contestInfo.formalRequirements),
       ]);
@@ -178,7 +181,9 @@ export function ContestOfferSubmissionDialog({
           ? (await fetchTenderBidDraft(supabase, tenderId, contractorId)).data
           : null;
 
+      const docs = resolved.documents;
       setResolvedDocs(docs);
+      setFormalProfileSnapshot(resolved.snapshot);
 
       if (draft) {
         setHasExistingDraft(true);
@@ -345,7 +350,7 @@ export function ContestOfferSubmissionDialog({
   };
 
   const handleSubmit = async (): Promise<void> => {
-    const allErrors = getContestOfferAllFieldErrors(form, contestInfo);
+    const allErrors = getContestOfferAllFieldErrors(form, contestInfo, formalProfileSnapshot);
     if (hasContestOfferFieldErrors(allErrors)) {
       applyValidationErrors(allErrors, getContestOfferStepsWithErrors(allErrors));
       return;
@@ -373,7 +378,11 @@ export function ContestOfferSubmissionDialog({
         contestInfo,
       );
       if (error) {
-        const inlineErrors = getContestOfferAllFieldErrors(uploadedForm, contestInfo);
+        const inlineErrors = getContestOfferAllFieldErrors(
+          uploadedForm,
+          contestInfo,
+          formalProfileSnapshot,
+        );
         if (hasContestOfferFieldErrors(inlineErrors)) {
           applyValidationErrors(inlineErrors, getContestOfferStepsWithErrors(inlineErrors));
           return;
@@ -399,7 +408,12 @@ export function ContestOfferSubmissionDialog({
   };
 
   const handleNextStep = (): void => {
-    const errors = getContestOfferStepFieldErrors(currentStep, form, contestInfo);
+    const errors = getContestOfferStepFieldErrors(
+      currentStep,
+      form,
+      contestInfo,
+      formalProfileSnapshot,
+    );
     if (hasContestOfferFieldErrors(errors)) {
       applyValidationErrors(errors, [currentStep]);
       return;

@@ -21,6 +21,11 @@ import {
   contestOfferErrorFromUnknown,
   isContestOfferUniqueConflict,
 } from '../contest-offer/error-messages';
+import { loadContractorFormalProfileSnapshot } from '../contest-offer/load-formal-profile-snapshot';
+import {
+  validateProfileFormalRequirements,
+  type ContractorFormalProfileSnapshot,
+} from '../contest-offer/validate-profile-formal-requirements';
 
 export type TenderBidOfferState = 'none' | 'draft' | 'submitted';
 
@@ -174,6 +179,7 @@ export function getContestOfferStepFieldErrors(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): ContestOfferFieldErrors {
   const errors: ContestOfferFieldErrors = {};
 
@@ -206,6 +212,15 @@ export function getContestOfferStepFieldErrors(
     }
     if (Object.keys(formal).length > 0) {
       errors.formal = formal;
+    }
+    if (profileSnapshot) {
+      const profileErrors = validateProfileFormalRequirements(
+        contestInfo.formalRequirements,
+        profileSnapshot,
+      );
+      if (Object.keys(profileErrors).length > 0) {
+        errors.formal = { ...formal, ...profileErrors };
+      }
     }
     return errors;
   }
@@ -244,11 +259,12 @@ export function getContestOfferStepFieldErrors(
 export function getContestOfferAllFieldErrors(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): ContestOfferFieldErrors {
-  const step1 = getContestOfferStepFieldErrors(1, form, contestInfo);
-  const step2 = getContestOfferStepFieldErrors(2, form, contestInfo);
-  const step3 = getContestOfferStepFieldErrors(3, form, contestInfo);
-  const step4 = getContestOfferStepFieldErrors(4, form, contestInfo);
+  const step1 = getContestOfferStepFieldErrors(1, form, contestInfo, profileSnapshot);
+  const step2 = getContestOfferStepFieldErrors(2, form, contestInfo, profileSnapshot);
+  const step3 = getContestOfferStepFieldErrors(3, form, contestInfo, profileSnapshot);
+  const step4 = getContestOfferStepFieldErrors(4, form, contestInfo, profileSnapshot);
 
   const formal = { ...step3.formal };
 
@@ -350,16 +366,18 @@ export function validateContestOfferStep(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): string | null {
-  const errors = getContestOfferStepFieldErrors(step, form, contestInfo);
+  const errors = getContestOfferStepFieldErrors(step, form, contestInfo, profileSnapshot);
   return firstFieldErrorMessage(errors);
 }
 
 export function validateContestOfferSubmit(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): string | null {
-  const errors = getContestOfferAllFieldErrors(form, contestInfo);
+  const errors = getContestOfferAllFieldErrors(form, contestInfo, profileSnapshot);
   return firstFieldErrorMessage(errors);
 }
 
@@ -602,7 +620,8 @@ export async function submitTenderBid(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
-  const validationError = validateContestOfferSubmit(form, contestInfo);
+  const profileSnapshot = await loadContractorFormalProfileSnapshot(supabase, contractorId);
+  const validationError = validateContestOfferSubmit(form, contestInfo, profileSnapshot);
   if (validationError) {
     return { data: null, error: new Error(validationError) as PostgrestError };
   }
