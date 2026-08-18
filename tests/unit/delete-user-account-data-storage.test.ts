@@ -3,7 +3,7 @@ import {
   collectStoragePathsFromUnknown,
   isLikelyStoragePathForDeletion,
   resolveStorageBucketForDeletion,
-} from '../../src/lib/auth/delete-user-account-data';
+} from '../../src/lib/auth/delete-user-account-storage-paths';
 import { STORAGE_BUCKETS } from '../../src/lib/storage/buckets';
 
 const userId = '123e4567-e89b-12d3-a456-426614174000';
