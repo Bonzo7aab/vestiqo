@@ -6,6 +6,7 @@ export const REGISTRATION_ERRORS = {
     'Firma z tym numerem NIP jest już zarejestrowana na platformie. Jeśli to Twoja firma, zaloguj się na istniejące konto.',
   emailRateLimitExceeded:
     'Osiągnięto limit wysyłki wiadomości e-mail. Odczekaj kilka minut i spróbuj ponownie. Jeśli problem się powtarza, napisz na kontakt@vestiqo.pl.',
+  /** Kept for older clients; registration no longer blocks on duplicate-check outages. */
   duplicateCheckUnavailable:
     'Nie udało się zweryfikować danych rejestracji. Spróbuj ponownie za chwilę.',
   managementAndCommunityNipMustDiffer:
