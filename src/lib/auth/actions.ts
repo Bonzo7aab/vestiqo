@@ -16,10 +16,8 @@ import {
   POLISH_PHONE_INVALID_MESSAGE,
 } from '../phone/polish-phone'
 import { isValidNip, normalizeNip } from '../gus/nip'
-import {
-  checkEmailRegistrationStatus,
-  checkNipRegistrationStatus,
-} from './registration-checks'
+import { checkNipRegistrationStatus } from './registration-checks'
+import { provisionRegistrationAuthUser } from './provision-registration-auth-user'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
 import { findAuthUserByEmail } from './find-user-by-email'
@@ -316,16 +314,6 @@ async function registerActionImpl(
   const { createAdminClient } = await import('../supabase/admin')
   const admin = createAdminClient()
 
-  const emailStatus = await checkEmailRegistrationStatus(admin, email)
-  if (emailStatus === 'taken') {
-    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
-  }
-  if (emailStatus === 'unavailable') {
-    // GoTrue still rejects duplicate emails on signUp. Blocking here produced
-    // OPD-171's permanent "try again later" when the admin users API was down.
-    console.error('[registerAction] email duplicate check unavailable; continuing')
-  }
-
   const companyNipRole =
     accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER ? 'management' : 'company'
 
@@ -367,47 +355,26 @@ async function registerActionImpl(
   const confirmationNext = `/?message=${confirmationMessage}`;
   const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(confirmationNext)}`;
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const provisioned = await provisionRegistrationAuthUser({
+    admin,
+    userClient: supabase,
     email,
     password,
-    options: {
-      emailRedirectTo,
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        user_type: userType,
-        phone: normalizedPhone,
-      },
+    emailRedirectTo,
+    metadata: {
+      first_name: firstName,
+      last_name: lastName,
+      user_type: userType,
+      phone: normalizedPhone,
     },
   })
 
-  if (authError) {
-    return { error: translateRegistrationErrorMessage(authError.message) }
+  if ('error' in provisioned) {
+    return { error: translateRegistrationErrorMessage(provisioned.error) }
   }
 
-  if (!authData.user) {
-    return { error: 'Nie udało się utworzyć konta' }
-  }
-
-  if (authData.user.identities?.length === 0) {
-    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
-  }
-
-  const userId = authData.user.id
-
-  // Elevated REST can 401 (bad/mismatched SUPABASE_SECRET_KEY) while Auth Admin still works.
-  // After signUp, persist profile/company with the user session so RLS insert policies apply.
-  let session = authData.session
-  if (!session) {
-    const { data: signedIn, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (signInError) {
-      console.error('[registerAction] post-signup sign-in failed:', signInError.message)
-    }
-    session = signedIn?.session ?? null
-  }
+  const userId = provisioned.userId
+  const session = provisioned.session
   const writer = session ? supabase : admin
 
   const { error: profileError } = await writer
