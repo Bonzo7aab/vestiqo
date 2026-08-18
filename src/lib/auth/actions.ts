@@ -352,7 +352,9 @@ async function registerActionImpl(
     return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
   }
   if (emailStatus === 'unavailable') {
-    return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+    // GoTrue still rejects duplicate emails on signUp. Blocking here produced
+    // OPD-171's permanent "try again later" when the admin users API was down.
+    console.error('[registerAction] email duplicate check unavailable; continuing')
   }
 
   const companyNipRole =
