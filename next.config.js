@@ -131,10 +131,6 @@ const nextConfig = {
   },
   compress: true,
   poweredByHeader: false,
-  serverActions: {
-    // Fallback for actions that still carry small payloads; large files upload via uploadBidAttachment.
-    bodySizeLimit: '12mb',
-  },
   async headers() {
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -163,7 +159,8 @@ const nextConfig = {
     } : false,
   },
   experimental: {
-    // Headroom for multipart verification document uploads via Route Handlers (10 MB per file).
+    // Next 16: replaces top-level serverActions.bodySizeLimit (invalid config key).
+    // Headroom for multipart verification uploads (10 MB per file) and remaining small Server Actions.
     proxyClientMaxBodySize: 12 * 1024 * 1024,
     optimizePackageImports: [
       'lucide-react',
