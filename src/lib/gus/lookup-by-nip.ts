@@ -4,6 +4,7 @@ import Bir, { BirError } from 'bir1';
 import { modern } from 'bir1/normalize';
 import { mapGusGminaToWarsawDistrict } from '../config/warsawDistricts';
 import { isValidNip, normalizeNip } from './nip';
+import { withGusSession } from './session-lock';
 import type { CompanyLookupResult } from './types';
 
 export type { CompanyLookupResult } from './types';
@@ -78,32 +79,34 @@ export async function lookupByNip(nipInput: string): Promise<CompanyLookupResult
     throw new Error('GUS_NOT_CONFIGURED');
   }
 
-  const bir = new Bir({ key: apiKey, normalizeFn: modern });
+  return withGusSession(async () => {
+    const bir = new Bir({ key: apiKey, normalizeFn: modern });
 
-  try {
-    const raw = (await bir.search({ nip })) as GusSearchResult | GusSearchResult[] | null | undefined;
-
-    if (!raw) {
-      return null;
-    }
-
-    const result = Array.isArray(raw) ? raw[0] : raw;
-    if (!result) {
-      return null;
-    }
-
-    return mapSearchResult(result, nip);
-  } catch (error) {
-    if (error instanceof BirError && isNotFoundError(error)) {
-      return null;
-    }
-    console.error('GUS lookup failed:', error);
-    throw new Error('GUS_UNAVAILABLE');
-  } finally {
     try {
-      await bir.logout();
-    } catch {
-      // Session cleanup is best-effort.
+      const raw = (await bir.search({ nip })) as GusSearchResult | GusSearchResult[] | null | undefined;
+
+      if (!raw) {
+        return null;
+      }
+
+      const result = Array.isArray(raw) ? raw[0] : raw;
+      if (!result) {
+        return null;
+      }
+
+      return mapSearchResult(result, nip);
+    } catch (error) {
+      if (error instanceof BirError && isNotFoundError(error)) {
+        return null;
+      }
+      console.error('GUS lookup failed:', error);
+      throw new Error('GUS_UNAVAILABLE');
+    } finally {
+      try {
+        await bir.logout();
+      } catch {
+        // Session cleanup is best-effort.
+      }
     }
-  }
+  });
 }

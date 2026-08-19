@@ -16,10 +16,8 @@ import {
   POLISH_PHONE_INVALID_MESSAGE,
 } from '../phone/polish-phone'
 import { isValidNip, normalizeNip } from '../gus/nip'
-import {
-  checkEmailRegistrationStatus,
-  checkNipRegistrationStatus,
-} from './registration-checks'
+import { checkNipRegistrationStatus } from './registration-checks'
+import { provisionRegistrationAuthUser } from './provision-registration-auth-user'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
 import { findAuthUserByEmail } from './find-user-by-email'
@@ -316,14 +314,6 @@ async function registerActionImpl(
   const { createAdminClient } = await import('../supabase/admin')
   const admin = createAdminClient()
 
-  const emailStatus = await checkEmailRegistrationStatus(admin, email)
-  if (emailStatus === 'taken') {
-    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
-  }
-  if (emailStatus === 'unavailable') {
-    return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
-  }
-
   const companyNipRole =
     accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER ? 'management' : 'company'
 
@@ -332,7 +322,9 @@ async function registerActionImpl(
     return { error: nipAlreadyRegisteredMessage(normalizedNip, companyNipRole) }
   }
   if (nipStatus === 'unavailable') {
-    return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+    // Preview/prod 401 on the elevated PostgREST key was mapped to a permanent
+    // "try again later" (OPD-171). Unique/RLS errors on insert still catch real duplicates.
+    console.error('[registerAction] NIP duplicate check unavailable; continuing')
   }
 
   const normalizedManagedEntityNipForCheck =
@@ -353,7 +345,7 @@ async function registerActionImpl(
         }
       }
       if (communityNipStatus === 'unavailable') {
-        return { error: REGISTRATION_ERRORS.duplicateCheckUnavailable }
+        console.error('[registerAction] community NIP duplicate check unavailable; continuing')
       }
     }
   }
@@ -363,35 +355,29 @@ async function registerActionImpl(
   const confirmationNext = `/?message=${confirmationMessage}`;
   const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(confirmationNext)}`;
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const provisioned = await provisionRegistrationAuthUser({
+    admin,
+    userClient: supabase,
     email,
     password,
-    options: {
-      emailRedirectTo,
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        user_type: userType,
-        phone: normalizedPhone,
-      },
+    emailRedirectTo,
+    metadata: {
+      first_name: firstName,
+      last_name: lastName,
+      user_type: userType,
+      phone: normalizedPhone,
     },
   })
 
-  if (authError) {
-    return { error: translateRegistrationErrorMessage(authError.message) }
+  if ('error' in provisioned) {
+    return { error: translateRegistrationErrorMessage(provisioned.error) }
   }
 
-  if (!authData.user) {
-    return { error: 'Nie udało się utworzyć konta' }
-  }
+  const userId = provisioned.userId
+  const session = provisioned.session
+  const writer = session ? supabase : admin
 
-  if (authData.user.identities?.length === 0) {
-    return { error: REGISTRATION_ERRORS.emailAlreadyRegistered }
-  }
-
-  const userId = authData.user.id
-
-  const { error: profileError } = await admin
+  const { error: profileError } = await writer
     .from('user_profiles')
     .insert({
       id: userId,
@@ -434,7 +420,7 @@ async function registerActionImpl(
     verification_level: userType === 'manager' ? ('verified' as const) : ('none' as const),
   }
 
-  const { data: companyRow, error: companyError } = await admin
+  const { data: companyRow, error: companyError } = await writer
     .from('companies')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- companyPayload includes metadata, type not in DB schema
     .insert(companyPayload as any)
@@ -457,7 +443,7 @@ async function registerActionImpl(
 
   // user_companies not in Database type; use type assertion
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: ucError } = await (admin as any)
+  const { error: ucError } = await (writer as any)
     .from('user_companies')
     .insert({
       user_id: userId,
@@ -472,7 +458,7 @@ async function registerActionImpl(
   }
 
   if (accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER && managedEntityNip && managedEntityName) {
-    const { error: managedEntityError } = await createManagedHousingEntity(admin, companyRow.id, {
+    const { error: managedEntityError } = await createManagedHousingEntity(writer, companyRow.id, {
       entity_type: 'wspólnota',
       nip: managedEntityNip,
       regon: managedEntityRegon ?? '',
@@ -505,7 +491,7 @@ async function registerActionImpl(
   }
 
   const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')
-  const financeResult = await persistRegistrationFinanceSettings(admin, {
+  const financeResult = await persistRegistrationFinanceSettings(writer, {
     userId,
     normalizedNip,
     bankAccountIban,
@@ -522,7 +508,7 @@ async function registerActionImpl(
 
   if (userType === 'contractor') {
     const { syncRegistryFromNip } = await import('../registry/sync-registry-from-nip')
-    const registryResult = await syncRegistryFromNip(admin, {
+    const registryResult = await syncRegistryFromNip(writer, {
       userId,
       companyId: companyRow.id,
       normalizedNip,
@@ -542,7 +528,7 @@ async function registerActionImpl(
     'Konto zostało utworzone pomyślnie. Zostałeś automatycznie zalogowany.'
   )
 
-  if (authData.session) {
+  if (session) {
     const redirectTo =
       userType === 'contractor'
         ? `/rejestracja/wybor-weryfikacji?message=${successMessage}`

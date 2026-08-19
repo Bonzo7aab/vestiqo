@@ -9,8 +9,35 @@ import type { Database } from '../../types/database'
  * 1. `SUPABASE_SECRET_KEY` — new secret key (`sb_secret_...`, recommended)
  * 2. `SUPABASE_SERVICE_ROLE_KEY` — legacy JWT `service_role` key (still supported)
  */
+function isPublishableSupabaseKey(key: string): boolean {
+  return key.startsWith('sb_publishable_')
+}
+
+function isJwtSupabaseKey(key: string): boolean {
+  return key.startsWith('eyJ') && key.split('.').length === 3
+}
+
+function isNewSecretSupabaseKey(key: string): boolean {
+  return key.startsWith('sb_secret_')
+}
+
+/**
+ * Prefer a legacy service_role JWT when present. A mis-set SUPABASE_SECRET_KEY
+ * (publishable key, or sb_secret_ that PostgREST rejects as Bearer) caused
+ * OPD-171 "Invalid API key" on Vercel Preview while Auth signup still worked.
+ */
 function resolveElevatedSupabaseKey(): string | undefined {
-  return process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  const secret = process.env.SUPABASE_SECRET_KEY?.trim()
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  const candidates = [secret, serviceRole].filter(
+    (key): key is string => Boolean(key) && !isPublishableSupabaseKey(key),
+  )
+
+  return (
+    candidates.find(isJwtSupabaseKey) ??
+    candidates.find(isNewSecretSupabaseKey) ??
+    candidates[0]
+  )
 }
 
 /** True when server env has a key that can bypass RLS (auth admin, etc.). */

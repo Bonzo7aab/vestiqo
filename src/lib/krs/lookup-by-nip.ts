@@ -9,22 +9,27 @@ import type { KrsFetchOutcome } from './fetch-odpis';
  * Resolve KRS data for a company NIP via GUS REGON → KRS number → KRS API.
  */
 export async function lookupKrsByNip(nipInput: string): Promise<KrsFetchOutcome> {
-  const gusData = await lookupByNip(nipInput);
-  if (!gusData?.regon) {
+  try {
+    const gusData = await lookupByNip(nipInput);
+    if (!gusData?.regon) {
+      return { found: false, data: null, businessStatus: 'unknown' };
+    }
+
+    const apiKey = process.env.GUS_API_KEY;
+    if (!apiKey) {
+      return { found: false, data: null, businessStatus: 'unknown' };
+    }
+
+    const { krsNumber } = await resolveKrsNumberFromRegon(gusData.regon, apiKey);
+    if (!krsNumber) {
+      return { found: false, data: null, businessStatus: 'unknown' };
+    }
+
+    return fetchKrsByNumber(krsNumber);
+  } catch (error) {
+    console.error('KRS lookup by NIP failed:', error);
     return { found: false, data: null, businessStatus: 'unknown' };
   }
-
-  const apiKey = process.env.GUS_API_KEY;
-  if (!apiKey) {
-    return { found: false, data: null, businessStatus: 'unknown' };
-  }
-
-  const { krsNumber } = await resolveKrsNumberFromRegon(gusData.regon, apiKey);
-  if (!krsNumber) {
-    return { found: false, data: null, businessStatus: 'unknown' };
-  }
-
-  return fetchKrsByNumber(krsNumber);
 }
 
 export { isGusLegalEntity };

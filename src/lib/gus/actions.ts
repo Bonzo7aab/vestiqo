@@ -34,13 +34,19 @@ export async function lookupCompanyByNipAction(nip: string): Promise<LookupCompa
     }
 
     const enriched = await enrichWithMfData(data);
-    const registry = await verifyCompanyByNip(normalized);
-    return {
-      data: {
-        ...enriched,
-        legalForm: registry?.legalForm ?? null,
-      },
-    };
+
+    try {
+      const registry = await verifyCompanyByNip(normalized);
+      return {
+        data: {
+          ...enriched,
+          legalForm: registry?.legalForm ?? null,
+        },
+      };
+    } catch (error) {
+      console.error('Registry enrichment after GUS lookup failed:', error);
+      return { data: enriched };
+    }
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'GUS_NOT_CONFIGURED') {

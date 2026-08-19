@@ -45,11 +45,29 @@ export async function verifyCompanyByNip(nipInput: string): Promise<RegistryVeri
 
   const checkedAt = new Date().toISOString();
 
-  const [ceidgOutcome, krsOutcome, mfData] = await Promise.all([
-    lookupCeidgByNip(nip),
-    lookupKrsByNip(nip),
-    fetchMfDataByNip(nip),
-  ]);
+  let ceidgOutcome: Awaited<ReturnType<typeof lookupCeidgByNip>>;
+  let krsOutcome: Awaited<ReturnType<typeof lookupKrsByNip>>;
+  let mfData: Awaited<ReturnType<typeof fetchMfDataByNip>>;
+
+  try {
+    [ceidgOutcome, krsOutcome, mfData] = await Promise.all([
+      lookupCeidgByNip(nip),
+      lookupKrsByNip(nip),
+      fetchMfDataByNip(nip),
+    ]);
+  } catch (error) {
+    console.error('Registry verification lookups failed:', error);
+    return {
+      nip,
+      registrySource: null,
+      registryStatus: 'unknown',
+      legalForm: null,
+      krs: null,
+      krsLifecycleStatus: null,
+      financeRegistryStatus: 'unknown',
+      checkedAt,
+    };
+  }
 
   let registrySource: RegistrySource | null = null;
   let registryStatus: RegistryBusinessStatus = 'unknown';

@@ -1,9 +1,176 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import { deleteObjects } from '../storage/r2/operations';
+import {
+  collectStoragePathsFromUnknown,
+  groupStoragePathsByBucket,
+  type StoragePathsByBucket,
+} from './delete-user-account-storage-paths';
 
 type AdminClient = SupabaseClient<Database>;
 
 export type DeleteUserAccountDataResult = { ok: true } | { ok: false; error: string };
+
+async function collectStoragePathsByBucket(
+  admin: AdminClient,
+  userId: string,
+): Promise<{ ok: true; pathsByBucket: StoragePathsByBucket } | { ok: false; error: string }> {
+  const collected = new Set<string>();
+
+  const { data: profileRow, error: profileError } = await admin
+    .from('user_profiles')
+    .select('verification_document_paths')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    return { ok: false, error: profileError.message };
+  }
+
+  collectStoragePathsFromUnknown(profileRow?.verification_document_paths ?? null, userId, collected);
+
+  const { data: settingsRow, error: settingsError } = await admin
+    .from('contractor_account_settings')
+    .select(
+      'oc_policy_scan_path, professional_qualifications_scan_path, zus_certificate_path, tax_certificate_path, reference_document_paths',
+    )
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (settingsError) {
+    return { ok: false, error: settingsError.message };
+  }
+
+  const directSettingsPaths = [
+    settingsRow?.oc_policy_scan_path,
+    settingsRow?.professional_qualifications_scan_path,
+    settingsRow?.zus_certificate_path,
+    settingsRow?.tax_certificate_path,
+  ];
+  for (const rawPath of directSettingsPaths) {
+    if (typeof rawPath === 'string' && rawPath.trim()) {
+      collected.add(rawPath.trim());
+    }
+  }
+  collectStoragePathsFromUnknown(settingsRow?.reference_document_paths ?? null, userId, collected);
+
+  const { data: fileUploads, error: fileUploadsError } = await admin
+    .from('file_uploads')
+    .select('file_path')
+    .eq('user_id', userId);
+
+  if (fileUploadsError) {
+    return { ok: false, error: fileUploadsError.message };
+  }
+
+  for (const row of fileUploads ?? []) {
+    if (typeof row.file_path === 'string' && row.file_path.trim()) {
+      collected.add(row.file_path.trim());
+    }
+  }
+
+  const { data: jobsRows, error: jobsError } = await admin
+    .from('jobs')
+    .select('images')
+    .eq('manager_id', userId);
+
+  if (jobsError) {
+    return { ok: false, error: jobsError.message };
+  }
+
+  for (const row of jobsRows ?? []) {
+    collectStoragePathsFromUnknown(row.images, userId, collected);
+  }
+
+  const { data: managerContestRows, error: managerContestsError } = await admin
+    .from('contests')
+    .select('documents')
+    .eq('manager_id', userId);
+
+  if (managerContestsError) {
+    return { ok: false, error: managerContestsError.message };
+  }
+
+  for (const row of managerContestRows ?? []) {
+    collectStoragePathsFromUnknown(row.documents, userId, collected);
+  }
+
+  const { data: offerRows, error: offersError } = await admin
+    .from('contest_offers')
+    .select('attachments, offer_details')
+    .eq('contractor_id', userId);
+
+  if (offersError) {
+    return { ok: false, error: offersError.message };
+  }
+
+  for (const row of offerRows ?? []) {
+    collectStoragePathsFromUnknown(row.attachments, userId, collected);
+    collectStoragePathsFromUnknown(row.offer_details, userId, collected);
+  }
+
+  const { data: applicationRows, error: applicationsError } = await admin
+    .from('job_applications')
+    .select('attachments')
+    .eq('contractor_id', userId);
+
+  if (applicationsError) {
+    return { ok: false, error: applicationsError.message };
+  }
+
+  for (const row of applicationRows ?? []) {
+    collectStoragePathsFromUnknown(row.attachments, userId, collected);
+  }
+
+  const { data: messageRows, error: messagesError } = await admin
+    .from('messages')
+    .select('attachments')
+    .eq('sender_id', userId);
+
+  if (messagesError) {
+    return { ok: false, error: messagesError.message };
+  }
+
+  for (const row of messageRows ?? []) {
+    collectStoragePathsFromUnknown(row.attachments, userId, collected);
+  }
+
+  const { data: tenderDocumentRows, error: tenderDocumentsError } = await admin
+    .from('tender_documents')
+    .select('file_url')
+    .eq('uploaded_by', userId);
+
+  if (tenderDocumentsError) {
+    return { ok: false, error: tenderDocumentsError.message };
+  }
+
+  for (const row of tenderDocumentRows ?? []) {
+    if (typeof row.file_url === 'string' && row.file_url.trim()) {
+      collected.add(row.file_url.trim());
+    }
+  }
+
+  return { ok: true, pathsByBucket: groupStoragePathsByBucket(collected) };
+}
+
+async function deleteStorageObjectsByBucket(
+  pathsByBucket: StoragePathsByBucket,
+): Promise<DeleteUserAccountDataResult> {
+  for (const [bucket, paths] of pathsByBucket.entries()) {
+    if (paths.size === 0) continue;
+    try {
+      await deleteObjects(bucket, [...paths]);
+    } catch (error) {
+      return {
+        ok: false,
+        error: `Nie udało się usunąć plików z magazynu (${bucket}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  }
+  return { ok: true };
+}
 
 /**
  * Removes rows that reference user_profiles without ON DELETE CASCADE.
@@ -97,13 +264,23 @@ async function deleteUserProfileDependencies(
 
 /**
  * Removes company/NIP data linked to a user before auth deletion.
- * Orphan companies are deleted when possible; otherwise NIP/REGON are cleared
- * so the tax id can be registered again.
+ * Orphan companies are fully deleted; if that is not possible we abort
+ * account deletion instead of leaving partially anonymized company data.
  */
 export async function deleteUserAccountData(
   admin: AdminClient,
   userId: string,
 ): Promise<DeleteUserAccountDataResult> {
+  const storagePaths = await collectStoragePathsByBucket(admin, userId);
+  if (!storagePaths.ok) {
+    return storagePaths;
+  }
+
+  const storageCleanup = await deleteStorageObjectsByBucket(storagePaths.pathsByBucket);
+  if (!storageCleanup.ok) {
+    return storageCleanup;
+  }
+
   const dependencyCleanup = await deleteUserProfileDependencies(admin, userId);
   if (!dependencyCleanup.ok) {
     return dependencyCleanup;
@@ -176,24 +353,57 @@ async function cleanupOrphanCompany(
     return { ok: true };
   }
 
+  const { error: ordersError } = await admin
+    .from('orders')
+    .delete()
+    .or(`manager_company_id.eq.${companyId},contractor_company_id.eq.${companyId}`);
+
+  if (ordersError) {
+    return { ok: false, error: ordersError.message };
+  }
+
+  const { error: contestOffersError } = await admin
+    .from('contest_offers')
+    .delete()
+    .eq('company_id', companyId);
+
+  if (contestOffersError) {
+    return { ok: false, error: contestOffersError.message };
+  }
+
+  const { error: jobApplicationsError } = await admin
+    .from('job_applications')
+    .delete()
+    .eq('company_id', companyId);
+
+  if (jobApplicationsError) {
+    return { ok: false, error: jobApplicationsError.message };
+  }
+
+  const { error: contestsError } = await admin
+    .from('contests')
+    .delete()
+    .eq('company_id', companyId);
+
+  if (contestsError) {
+    return { ok: false, error: contestsError.message };
+  }
+
+  const { error: jobsError } = await admin.from('jobs').delete().eq('company_id', companyId);
+
+  if (jobsError) {
+    return { ok: false, error: jobsError.message };
+  }
+
   const { error: deleteCompanyError } = await admin
     .from('companies')
     .delete()
     .eq('id', companyId);
 
-  if (!deleteCompanyError) {
-    return { ok: true };
-  }
-
-  const { error: clearIdentifiersError } = await admin
-    .from('companies')
-    .update({ nip: null, regon: null })
-    .eq('id', companyId);
-
-  if (clearIdentifiersError) {
+  if (deleteCompanyError) {
     return {
       ok: false,
-      error: `Nie udało się usunąć firmy ani zwolnić NIP: ${clearIdentifiersError.message}`,
+      error: `Nie udało się usunąć osieroconej firmy (${companyId}): ${deleteCompanyError.message}`,
     };
   }
 

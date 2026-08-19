@@ -5,7 +5,8 @@ export const REGISTRATION_ERRORS = {
   nipAlreadyRegistered:
     'Firma z tym numerem NIP jest już zarejestrowana na platformie. Jeśli to Twoja firma, zaloguj się na istniejące konto.',
   emailRateLimitExceeded:
-    'Osiągnięto limit wysyłki wiadomości e-mail. Odczekaj kilka minut i spróbuj ponownie. Jeśli problem się powtarza, napisz na kontakt@vestiqo.pl.',
+    'Limit wysyłki maili potwierdzających projektu został osiągnięty — to nie oznacza, że Twoja skrzynka dostała dużo wiadomości. Spróbuj za godzinę albo napisz na kontakt@vestiqo.pl.',
+  /** Kept for older clients; registration no longer blocks on duplicate-check outages. */
   duplicateCheckUnavailable:
     'Nie udało się zweryfikować danych rejestracji. Spróbuj ponownie za chwilę.',
   managementAndCommunityNipMustDiffer:
@@ -48,6 +49,8 @@ const AUTH_ERROR_TRANSLATIONS: Record<string, string> = {
     REGISTRATION_ERRORS.emailAlreadyRegistered,
   'Password should be at least 6 characters': 'Hasło musi mieć co najmniej 8 znaków.',
   'Signup requires a valid password': `Hasło musi mieć co najmniej ${8} znaków i zawierać literę oraz cyfrę.`,
+  'Invalid API key':
+    'Nie udało się dokończyć rejestracji z powodu błędu konfiguracji serwera. Spróbuj ponownie za chwilę albo napisz na kontakt@vestiqo.pl.',
   'email rate limit exceeded': REGISTRATION_ERRORS.emailRateLimitExceeded,
   'over_email_send_rate_limit': REGISTRATION_ERRORS.emailRateLimitExceeded,
 };
@@ -142,6 +145,10 @@ export function translateAuthErrorMessage(message: string): string {
 
   if (matchesEmailRateLimit(lower)) {
     return REGISTRATION_ERRORS.emailRateLimitExceeded;
+  }
+
+  if (lower.includes('invalid api key') || lower.includes('invalid jwt')) {
+    return AUTH_ERROR_TRANSLATIONS['Invalid API key'];
   }
 
   if (matchesPkceVerifierMissing(lower)) {
