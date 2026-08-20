@@ -10,6 +10,7 @@ const tabs = [
   { id: 'oferty', label: 'Oferty wykonawców', href: '/administracja/oferty' },
   { id: 'zgloszenia', label: 'Zgłoszenia zarządców', href: '/administracja/zgloszenia' },
   { id: 'ustawienia', label: 'Ustawienia', href: '/administracja/ustawienia' },
+  { id: 'flagi', label: 'Flagi', href: '/administracja/flagi' },
 ];
 
 export function AdminNav() {
