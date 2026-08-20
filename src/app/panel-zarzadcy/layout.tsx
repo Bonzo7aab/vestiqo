@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase/server';
 import { getEffectiveUserContext } from '../../lib/auth/effective-user';
+import { isCalendarFeatureEnabled } from '../../lib/flagship/calendar-feature';
 import { buildEvaluationContext } from '../../lib/flagship/context';
 import { isOrdersFeatureEnabled } from '../../lib/flagship/orders-feature';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
@@ -32,19 +33,22 @@ export default async function ManagerDashboardLayout({
     .eq('id', effectiveUserId)
     .maybeSingle();
 
-  const showOrders = await isOrdersFeatureEnabled(
-    buildEvaluationContext({
-      id: effectiveUserId,
-      email: user.email,
-      userType: profile?.user_type,
-      platformRole: effectiveContext?.isImpersonating ? 'user' : (profile?.platform_role ?? undefined),
-    }),
-  );
+  const evaluationContext = buildEvaluationContext({
+    id: effectiveUserId,
+    email: user.email,
+    userType: profile?.user_type,
+    platformRole: effectiveContext?.isImpersonating ? 'user' : (profile?.platform_role ?? undefined),
+  });
+
+  const [showOrders, showCalendar] = await Promise.all([
+    isOrdersFeatureEnabled(evaluationContext),
+    isCalendarFeatureEnabled(evaluationContext),
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <UserAccountHeader />
-      <ManagerDashboardNav showOrders={showOrders} />
+      <ManagerDashboardNav showOrders={showOrders} showCalendar={showCalendar} />
       {children}
     </div>
   );

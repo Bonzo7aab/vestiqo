@@ -1,5 +1,6 @@
 import { createClient } from '../lib/supabase/server';
 import { getEffectiveUserContext } from '../lib/auth/effective-user';
+import { isCalendarFeatureEnabled } from '../lib/flagship/calendar-feature';
 import { buildEvaluationContext } from '../lib/flagship/context';
 import { isFeatureEnabled } from '../lib/flagship/evaluate';
 import { FLAGSHIP_FLAG_KEYS } from '../lib/flagship/keys';
@@ -69,13 +70,13 @@ export async function HeaderWithSession() {
       : null,
   );
 
-  const showOrders = await isFeatureEnabled(
-    FLAGSHIP_FLAG_KEYS.ORDERS,
-    evaluationContext,
-  );
+  const [showOrders, showCalendar] = await Promise.all([
+    isFeatureEnabled(FLAGSHIP_FLAG_KEYS.ORDERS, evaluationContext),
+    isCalendarFeatureEnabled(evaluationContext),
+  ]);
 
   const showNearestEvents = Boolean(
-    initialUser && initialUser.userType !== 'contractor' && profileUserId,
+    showCalendar && initialUser && initialUser.userType !== 'contractor' && profileUserId,
   );
 
   return (

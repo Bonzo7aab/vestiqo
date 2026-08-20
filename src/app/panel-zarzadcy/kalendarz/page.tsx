@@ -1,10 +1,12 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { redirect } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/server';
 import { getEffectiveUserContext } from '../../../lib/auth/effective-user';
 import { fetchUserPrimaryCompany } from '../../../lib/database/companies';
 import { fetchManagerCalendarEvents } from '../../../lib/database/manager-calendar';
+import { isCalendarFeatureEnabledForAuthUser } from '../../../lib/flagship/calendar-feature';
 import { ManagerKalendarzContent } from '../../../components/manager-dashboard/ManagerKalendarzContent';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -26,6 +28,10 @@ export default async function KalendarzPage({
         <p className="text-muted-foreground">Wymagane logowanie.</p>
       </div>
     );
+  }
+
+  if (!(await isCalendarFeatureEnabledForAuthUser(supabase, user))) {
+    redirect('/panel-zarzadcy/konkursy');
   }
 
   const effectiveContext = await getEffectiveUserContext();

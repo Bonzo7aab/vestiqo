@@ -8,6 +8,10 @@ import { createManagerCalendarNote } from '../../../lib/database/manager-calenda
 import { createNotificationWithPush } from '../../../lib/database/notifications-server';
 import { formatPolishDate, formatHourLabel, toIsoDate } from '../../../lib/calendar/dates';
 import { isManagerCalendarEventKind } from '../../../lib/calendar/manager-calendar-events';
+import {
+  CALENDAR_FEATURE_DISABLED_ERROR,
+  isCalendarFeatureEnabledForAuthUser,
+} from '../../../lib/flagship/calendar-feature';
 import { routes } from '../../../lib/routes';
 
 export interface CreateCalendarNotePayload {
@@ -29,6 +33,10 @@ export async function createCalendarNoteAction(
 
   if (!user) {
     return { success: false, error: 'Wymagane logowanie' };
+  }
+
+  if (!(await isCalendarFeatureEnabledForAuthUser(supabase, user))) {
+    return { success: false, error: CALENDAR_FEATURE_DISABLED_ERROR };
   }
 
   const effectiveContext = await getEffectiveUserContext();
