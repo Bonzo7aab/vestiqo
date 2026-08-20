@@ -281,7 +281,7 @@ export function ContestOfferDetailView({
         </dl>
       </SectionCard>
 
-      {details?.referencesText?.trim() ? (
+      {details?.referencesText?.trim() && !details?.formalAttachments?.references ? (
         <TextBlock title="Referencje — wykaz zrealizowanych prac" content={details.referencesText} />
       ) : null}
 

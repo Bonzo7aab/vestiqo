@@ -3,20 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '../ui/utils';
+import {
+  getVisibleManagerDashboardTabs,
+  type ManagerDashboardNavVisibility,
+} from './manager-dashboard-nav-tabs';
 
-const tabs = [
-  { id: 'konkursy', label: 'Konkursy', href: '/panel-zarzadcy/konkursy' },
-  { id: 'zamowienia', label: 'Zamówienia', href: '/panel-zarzadcy/zamowienia' },
-  { id: 'ocena', label: 'Ocena', href: '/panel-zarzadcy/ocena' },
-];
-
-interface ManagerDashboardNavProps {
-  showOrders?: boolean;
-}
-
-export function ManagerDashboardNav({ showOrders = false }: ManagerDashboardNavProps) {
+export function ManagerDashboardNav({
+  showOrders = false,
+  showCalendar = false,
+}: ManagerDashboardNavVisibility) {
   const pathname = usePathname();
-  const visibleTabs = showOrders ? tabs : tabs.filter((tab) => tab.id !== 'zamowienia');
+  const visibleTabs = getVisibleManagerDashboardTabs({ showOrders, showCalendar });
 
   return (
     <nav className="border-b bg-card">
@@ -32,6 +29,8 @@ export function ManagerDashboardNav({ showOrders = false }: ManagerDashboardNavP
                   pathname.startsWith('/panel-zarzadcy/zgloszenia'))) ||
               (tab.id === 'zamowienia' &&
                 pathname.startsWith('/panel-zarzadcy/zamowienia')) ||
+              (tab.id === 'kalendarz' &&
+                pathname.startsWith('/panel-zarzadcy/kalendarz')) ||
               (tab.id === 'ocena' &&
                 (pathname === '/panel-zarzadcy/ocena' ||
                   pathname.startsWith('/panel-zarzadcy/ocena/')));

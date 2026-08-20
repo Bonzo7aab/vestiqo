@@ -13,10 +13,11 @@ import {
 } from '../../lib/database/reviews';
 import { uploadReviewImage } from '../../lib/storage/review-images';
 import { StarRatingInput } from './StarRatingInput';
-import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Card, CardContent } from '../ui/card';
+import { ReviewCommentField } from './ReviewCommentField';
+import { ReviewFormFooter } from './ReviewFormFooter';
+import { ReviewFormSkeleton } from './ReviewSkeletons';
+import { ExistingReviewSummary } from './ExistingReviewSummary';
 
 const MAX_PHOTOS = 3;
 
@@ -24,6 +25,7 @@ interface ServiceReviewPanelProps {
   jobId: string;
   contractorCompanyId: string;
   contractorName: string;
+  onCancel?: () => void;
   onSubmitted?: () => void;
 }
 
@@ -31,6 +33,7 @@ export function ServiceReviewPanel({
   jobId,
   contractorCompanyId,
   contractorName,
+  onCancel,
   onSubmitted,
 }: ServiceReviewPanelProps): ReactElement {
   const [rating, setRating] = useState(0);
@@ -154,73 +157,47 @@ export function ServiceReviewPanel({
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground py-4">Ładowanie…</p>;
+    return <ReviewFormSkeleton />;
   }
 
   if (existing) {
     return (
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Opinia o wykonawcy w konkursie <strong>{contractorName}</strong> została już wystawiona.
-          </p>
-          <div className="flex items-center gap-1 text-amber-600 font-semibold">
-            {'★'.repeat(existing.rating)}
-            <span className="text-foreground font-normal ml-2">{existing.rating}/5</span>
-          </div>
-          {existing.comment && (
-            <p className="text-sm whitespace-pre-wrap">{existing.comment}</p>
-          )}
-          {existing.imageUrls.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {existing.imageUrls.map((url) => (
-                <a
-                  key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="relative block h-20 w-20 rounded-md overflow-hidden border"
-                >
-                  <Image src={url} alt="Zdjęcie z opinii" fill className="object-cover" />
-                </a>
-              ))}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {new Date(existing.createdAt).toLocaleDateString('pl-PL')}
-          </p>
-        </CardContent>
-      </Card>
+      <ExistingReviewSummary
+        description={`Opinia o wykonawcy w konkursie ${contractorName} została już wystawiona.`}
+        rating={existing.rating}
+        comment={existing.comment}
+        createdAt={existing.createdAt}
+        imageUrls={existing.imageUrls}
+        onClose={onCancel}
+      />
     );
   }
 
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
-        Oceń konkurs wykonawcy <strong>{contractorName}</strong> po zakończeniu realizacji.
+        Oceń konkurs wykonawcy <span className="font-medium text-foreground">{contractorName}</span>{' '}
+        po zakończeniu realizacji.
       </p>
 
       <StarRatingInput label="Ocena konkursu" rating={rating} onRatingChange={setRating} />
 
-      <div>
-        <Label htmlFor="service-review-comment">Komentarz *</Label>
-        <Textarea
-          id="service-review-comment"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Opisz jakość realizacji konkursy…"
-          rows={4}
-          className="mt-1 resize-none"
-        />
-      </div>
+      <ReviewCommentField
+        id="service-review-comment"
+        value={comment}
+        onChange={setComment}
+        placeholder="Opisz jakość realizacji konkursu…"
+      />
 
       <div>
         <Label>Dodaj zdjęcie</Label>
-        <p className="text-xs text-muted-foreground mb-2">Maks. {MAX_PHOTOS} zdjęcia (JPG, PNG, WEBP)</p>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Maks. {MAX_PHOTOS} zdjęcia (JPG, PNG, WEBP)
+        </p>
         {photoPreviews.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="mb-3 flex flex-wrap gap-2">
             {photoPreviews.map((preview, index) => (
-              <div key={preview} className="relative h-20 w-20 rounded-md overflow-hidden border">
+              <div key={preview} className="relative h-20 w-20 overflow-hidden rounded-md border">
                 <Image src={preview} alt="" fill className="object-cover" />
                 <button
                   type="button"
@@ -249,13 +226,13 @@ export function ServiceReviewPanel({
         )}
       </div>
 
-      <Button
-        type="button"
-        onClick={() => void handleSubmit()}
-        disabled={submitting || rating === 0 || !comment.trim()}
-      >
-        {submitting ? 'Zapisywanie…' : 'Wyślij ocenę konkursy'}
-      </Button>
+      <ReviewFormFooter
+        onCancel={onCancel}
+        onSubmit={() => void handleSubmit()}
+        submitting={submitting}
+        disabled={rating === 0 || !comment.trim()}
+        submitLabel="Wyślij ocenę konkursu"
+      />
     </div>
   );
 }

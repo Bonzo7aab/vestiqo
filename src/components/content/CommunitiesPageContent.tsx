@@ -71,6 +71,11 @@ export function CommunitiesPageContent() {
             </Link>
           </li>
           <li>
+            <Link href={routes.programPilotazowy} className="text-primary hover:underline">
+              Program pilotażowy — dołącz jako zarządca
+            </Link>
+          </li>
+          <li>
             <Link href={routes.kontakt} className="text-primary hover:underline">
               Kontakt z zespołem Vestiqo
             </Link>

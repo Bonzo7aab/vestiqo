@@ -24,6 +24,7 @@ export interface ContestOfferDetails {
   currentStep?: number;
   proposedCompletionDate?: string | null;
   siteVisitConfirmed?: boolean;
+  /** @deprecated OPD-150: references are formalAttachments.references; kept for legacy drafts */
   referencesText?: string;
   netPrice?: number | null;
   vatRate?: ContestOfferVatRate;
@@ -59,6 +60,8 @@ export interface ResolvedContractorDocument {
   signedUrl: string | null;
   hint: string | null;
   missing: boolean;
+  /** True when the contractor profile does not meet this contest requirement. */
+  profileBlocked: boolean;
 }
 
 export function createEmptyContestOfferForm(): ContestOfferFormData {

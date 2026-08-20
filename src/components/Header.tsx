@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, type ReactNode } from 'react';
 import posthog from 'posthog-js';
 import {
   User,
@@ -47,6 +47,8 @@ import { cn } from './ui/utils';
 import { AccountMenuPanel } from './account/AccountMenuPanel';
 import { buildAccountMenuSections } from '../lib/account-menu-sections';
 import { routes } from '../lib/routes';
+import { DevQuickLoginButtons } from './dev/DevQuickLoginButtons';
+import { isDevQuickLoginEnabled } from '../lib/auth/dev-quick-login';
 
 function GuestAuthDropdown({
   onLogin,
@@ -57,6 +59,8 @@ function GuestAuthDropdown({
   onRegister: () => void;
   triggerClassName?: string;
 }) {
+  const showDevQuickLogin = isDevQuickLoginEnabled();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -100,6 +104,7 @@ function GuestAuthDropdown({
             </span>
           </button>
         </div>
+        {showDevQuickLogin ? <DevQuickLoginButtons /> : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -109,11 +114,14 @@ interface HeaderProps {
   initialUser?: AuthUser | null;
   /** Set server-side from Flagship `orders` flag. Defaults to hidden. */
   showOrders?: boolean;
+  /** Compact week strip for managers (not wykonawcy). */
+  nearestEventsSlot?: ReactNode;
 }
 
 export function Header({
   initialUser,
   showOrders = false,
+  nearestEventsSlot = null,
 }: HeaderProps) {
   const router = useNavigationWithLoading();
   const pathname = usePathname();
@@ -390,26 +398,33 @@ export function Header({
     }
   };
 
+  const showNearestEventsStrip =
+    Boolean(nearestEventsSlot) &&
+    !isAuthRoute &&
+    userIsAuthenticated &&
+    currentUser?.userType !== 'contractor';
+
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex h-16 min-w-0 items-center justify-between gap-2">
           {/* 1. Logo Section - Left */}
-          <div className="flex-shrink-0">
+          <div className="min-w-0 shrink-0">
             <BrandLogo
               variant="full"
               onClick={handleHomeClick}
             />
           </div>
 
-          {/* 2. Center - Search (hidden below laptop) */}
-          <div className="hidden lg:flex items-center flex-1 justify-center">
-            <HeaderJobSearch className="max-w-md lg:max-w-xl" />
+          {/* 2. Center - Search (desktop / PC only; mobile uses the bottom dock) */}
+          <div className="hidden min-w-0 flex-1 items-center justify-center px-4 xl:flex">
+            <HeaderJobSearch className="w-full max-w-xl" />
           </div>
 
-            {/* Add Job button - visible for unauthenticated (redirects to login) and authenticated managers.
-                Admin gets a single ADMIN button instead. Hidden below laptop (see bottom menu). */}
-            <div className="hidden lg:block mr-4">
+          {/* 3. Right cluster — ml-auto keeps the CTA on the right when search is hidden below xl */}
+          <div className="ml-auto flex flex-shrink-0 items-center space-x-2 sm:space-x-3">
+            {/* Add Job - unauthenticated + managers. Admin gets ADMIN instead. Hidden below laptop. */}
+            <div className="hidden lg:block">
               {userIsAuthenticated && isAdmin ? (
                 <Button
                   variant="default"
@@ -432,9 +447,6 @@ export function Header({
                 )
               )}
             </div>
-
-          {/* 3. Right Side Actions - messages & saved hidden below laptop (see bottom menu) */}
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {!isAdmin &&
               (userIsAuthenticated ? (
                 <Button
@@ -508,7 +520,7 @@ export function Header({
             {((isMounted && isLoading && !currentUser) || (!isMounted && !initialUser)) ? (
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-lg bg-gray-200 animate-pulse"></div>
-                <span className="text-sm text-gray-500">Ładowanie...</span>
+                <span className="hidden text-sm text-gray-500 sm:inline">Ładowanie...</span>
               </div>
             ) : userIsAuthenticated ? (
               <>
@@ -564,6 +576,7 @@ export function Header({
           </div>
         </div>
       </div>
+      {showNearestEventsStrip ? nearestEventsSlot : null}
     </header>
   );
 }

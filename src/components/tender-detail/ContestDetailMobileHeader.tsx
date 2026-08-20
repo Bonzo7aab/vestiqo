@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Clock, MapPin } from 'lucide-react';
 import type { ContestInfo, Job } from '../../types/job';
 import {
   formatContestLocation,
   formatContestSubmissionDeadline,
 } from '../../lib/contest-display';
+import { routes } from '../../lib/routes';
 import { cn } from '../ui/utils';
 import { formatDaysRemaining, getDaysRemaining } from '../../utils/tenderHelpers';
 import { CONTEST_TAB_ITEMS } from './TenderContestDetailTabs';
@@ -45,7 +47,11 @@ export function ContestDetailMobileHeader({
 }: ContestDetailMobileHeaderProps): React.ReactElement {
   const locationLabel =
     job.contestInfo.entityAddress?.trim() || formatContestLocation(job.location);
-  const organizerLabel = job.contestInfo.entityName?.trim() || job.company;
+  const entityName = job.contestInfo.entityName?.trim() || null;
+  const managedEntityId = job.contestInfo.managedEntityId;
+  const organizerLabel = entityName || job.company;
+  const organizerHref =
+    managedEntityId && entityName ? routes.uzytkownik(managedEntityId) : null;
   const [renderedAt] = useState(() => Date.now());
 
   const deadlineMeta = useMemo(
@@ -97,7 +103,16 @@ export function ContestDetailMobileHeader({
             {job.title}
           </h1>
           {organizerLabel ? (
-            <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{organizerLabel}</p>
+            organizerHref ? (
+              <Link
+                href={organizerHref}
+                className="mt-1 line-clamp-1 text-sm text-muted-foreground underline-offset-2 hover:underline"
+              >
+                {organizerLabel}
+              </Link>
+            ) : (
+              <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{organizerLabel}</p>
+            )
           ) : null}
         </div>
 

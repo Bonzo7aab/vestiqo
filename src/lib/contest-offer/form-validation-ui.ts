@@ -15,7 +15,7 @@ export function getContestOfferStepsWithErrors(
   if (errors.proposedCompletionDate || errors.siteVisitConfirmed) {
     steps.push(2);
   }
-  if (errors.referencesText || (errors.formal && Object.keys(errors.formal).length > 0)) {
+  if (errors.formal && Object.keys(errors.formal).length > 0) {
     steps.push(3);
   }
   if (
@@ -42,9 +42,6 @@ export function clearContestOfferFieldErrorsForPatch(
   }
   if ('siteVisitConfirmed' in patch) {
     delete next.siteVisitConfirmed;
-  }
-  if ('referencesText' in patch) {
-    delete next.referencesText;
   }
   if ('netPrice' in patch) {
     delete next.netPrice;
@@ -94,7 +91,6 @@ export function firstContestOfferErrorSelector(
   }
 
   if (step === 3) {
-    if (errors.referencesText) return '#contest-offer-referencesText';
     if (errors.formal) {
       const firstKey = Object.keys(errors.formal)[0];
       if (firstKey) return `[data-contest-offer-formal="${firstKey}"]`;

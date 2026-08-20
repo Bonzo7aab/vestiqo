@@ -8,7 +8,7 @@ Use this when developing or QA’ing features **without touching production data
 |--------|------------------|-----|---------|-------------|
 | **Local Docker** | `domio` (CLI) | `localhost:54321` | `http://localhost:3000` | Isolated E2E, schema experiments, offline |
 | **Cloud test** | `vestiqo-test` | `hcnoqbnschbsxsjrbxao` | localhost or **Vercel Preview** | Day-to-day feature work, shareable PR previews |
-| **Production** | `vestiqo` | `fabbgaqxsetnsppxegnx` | production domain | Live users only |
+| **Production** | `vestiqo` | `fabbgaqxsetnsppxegnx` | `https://www.vestiqo.pl` (also `https://vestiqo.vercel.app`) | Live users only |
 
 Safety rules: [`.cursor/rules/supabase-production-safety.mdc`](../.cursor/rules/supabase-production-safety.mdc).
 
@@ -31,6 +31,34 @@ Templates: [`.env.example`](../.env.example), [`tests/env.example.txt`](../tests
 | **Production** | `vestiqo` (`fabbgaqxsetnsppxegnx`) |
 | **Preview** | `vestiqo-test` (`hcnoqbnschbsxsjrbxao`) |
 | **Development** | `vestiqo-test` |
+
+Production app URLs: `https://www.vestiqo.pl`, `https://vestiqo.vercel.app` (legacy `domio-ruby.vercel.app` removed).
+
+`NEXT_PUBLIC_APP_URL` on Vercel Production is `https://www.vestiqo.pl`. Preview builds use `VERCEL_URL` via `getPublicAppOrigin()`.
+
+### Preview password gate
+
+Feature-branch Preview URLs are gated by `PREVIEW_PASSWORD` (middleware). Production and local `npm run dev` are not gated.
+
+1. In Vercel → Project → Settings → Environment Variables, add `PREVIEW_PASSWORD` for **Preview** only (not Production).
+2. Redeploy the preview (or push a new commit) so the build picks it up.
+3. Open the Preview URL, enter the password once. A signed httpOnly cookie remembers access in that browser for **1 year**. Changing the password invalidates existing cookies.
+
+If `PREVIEW_PASSWORD` is unset, Preview stays publicly reachable.
+
+### Supabase Auth redirect URLs (dashboard)
+
+For **vestiqo** (prod) set Site URL to `https://www.vestiqo.pl` and include in Redirect URLs:
+
+- `https://www.vestiqo.pl/**`
+- `https://vestiqo.vercel.app/**`
+- `https://vestiqo-bonzo7aabs-projects.vercel.app/**`
+
+For **vestiqo-test** include Preview wildcards if available, e.g. `https://*-bonzo7aabs-projects.vercel.app/**` and `http://localhost:3000/**`.
+
+### Sentry
+
+Org slug in env is still `domio-z0` (project display name set to `vestiqo`). To rename the org in Sentry: Settings → General → Organization slug. Then update Vercel `SENTRY_ORG`. Allowed domains are currently `*` (no block on `vestiqo.vercel.app`).
 
 After changing Preview env vars, redeploy the preview (or push a new commit) so the build picks them up.
 

@@ -8,6 +8,10 @@ import { createClient } from '../lib/supabase/client';
 import { createTender, fetchTenderById, updateTender } from '../lib/database/jobs';
 import type { TenderWithCompany } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
+import {
+  fetchContestBuildingIds,
+  replaceContestBuildings,
+} from '../lib/database/contest-buildings';
 import { uploadContestDocuments } from '../lib/storage/contest-documents';
 import {
   buildCreateTenderPayload,
@@ -17,6 +21,7 @@ import {
   parseExistingTenderDocuments,
 } from '../lib/contest/build-tender-payload';
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/tender-contest';
+import { createEmptyTenderContestForm } from '../types/tender-contest';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
@@ -33,6 +38,10 @@ interface TenderCreationPageProps {
   hidePageHeader?: boolean;
   pageTitle?: string;
   pageSubtitle?: string;
+  prefillEntityId?: string;
+  prefillBuildingId?: string;
+  prefillCategory?: string;
+  prefillSubcategory?: string;
 }
 
 export default function TenderCreationPage({
@@ -43,6 +52,10 @@ export default function TenderCreationPage({
   hidePageHeader = false,
   pageTitle,
   pageSubtitle,
+  prefillEntityId,
+  prefillBuildingId,
+  prefillCategory,
+  prefillSubcategory,
 }: TenderCreationPageProps): React.ReactElement {
   const { user, session, isLoading } = useUserProfile();
   const router = useRouter();
@@ -51,6 +64,7 @@ export default function TenderCreationPage({
   const [isLoadingTender, setIsLoadingTender] = useState(Boolean(tenderId || duplicateFromId));
   const [initialTender, setInitialTender] = useState<TenderWithCompany | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadedBuildingIds, setLoadedBuildingIds] = useState<string[]>([]);
 
   const isEditMode = Boolean(tenderId);
   const isDuplicateMode = Boolean(duplicateFromId) && !isEditMode;
@@ -103,6 +117,8 @@ export default function TenderCreationPage({
         }
 
         setInitialTender(tender);
+        const { data: buildingIds } = await fetchContestBuildingIds(supabase, tender.id);
+        setLoadedBuildingIds(buildingIds);
       } catch {
         setLoadError('Nie udało się wczytać konkursu.');
       } finally {
@@ -144,6 +160,8 @@ export default function TenderCreationPage({
         }
 
         setInitialTender(tender);
+        const { data: buildingIds } = await fetchContestBuildingIds(supabase, tender.id);
+        setLoadedBuildingIds(buildingIds);
       } catch {
         setLoadError('Nie udało się wczytać danych konkursu.');
       } finally {
@@ -155,15 +173,38 @@ export default function TenderCreationPage({
   }, [duplicateFromId, tenderId, user?.id]);
 
   const initialForm = useMemo(() => {
-    if (!initialTender) return undefined;
-    const row = initialTender as unknown as Record<string, unknown>;
-    const mapped = mapTenderRowToContestForm(
-      row,
-      initialTender.category?.name,
-      initialTender.subcategory?.name,
-    );
-    return isDuplicateMode ? clearContestFormDates(mapped) : mapped;
-  }, [initialTender, isDuplicateMode]);
+    if (initialTender) {
+      const row = initialTender as unknown as Record<string, unknown>;
+      const mapped = mapTenderRowToContestForm(
+        row,
+        initialTender.category?.name,
+        initialTender.subcategory?.name,
+      );
+      return isDuplicateMode ? clearContestFormDates(mapped) : mapped;
+    }
+    if (tenderId || duplicateFromId) return undefined;
+    if (!prefillEntityId && !prefillCategory && !prefillSubcategory) return undefined;
+    return {
+      ...createEmptyTenderContestForm(),
+      managedEntityId: prefillEntityId ?? '',
+      category: prefillCategory ?? '',
+      subcategory: prefillSubcategory ?? '',
+    };
+  }, [
+    initialTender,
+    isDuplicateMode,
+    tenderId,
+    duplicateFromId,
+    prefillEntityId,
+    prefillCategory,
+    prefillSubcategory,
+  ]);
+
+  const initialBuildingIds = useMemo(() => {
+    if (loadedBuildingIds.length > 0) return loadedBuildingIds;
+    if (prefillBuildingId && !tenderId && !duplicateFromId) return [prefillBuildingId];
+    return [];
+  }, [loadedBuildingIds, prefillBuildingId, tenderId, duplicateFromId]);
 
   const existingDocuments = useMemo(
     () => parseExistingTenderDocuments(initialTender?.documents),
@@ -175,6 +216,7 @@ export default function TenderCreationPage({
     newFiles: File[],
     keptDocuments: TenderContestDocumentMeta[],
     status: 'draft' | 'active',
+    buildingIds: string[],
   ): Promise<void> => {
     if (!user?.id) {
       toast.error('Musisz być zalogowany, aby zapisać konkurs');
@@ -249,6 +291,14 @@ export default function TenderCreationPage({
           );
           return;
         }
+        const { error: buildingsError } = await replaceContestBuildings(
+          supabase,
+          tenderId,
+          buildingIds,
+        );
+        if (buildingsError) {
+          toast.warning('Konkurs zapisany, ale nie udało się zapisać budynków.');
+        }
       } else {
         const createPayload = {
           ...payload,
@@ -256,13 +306,23 @@ export default function TenderCreationPage({
             ? { renewedFromContestId: duplicateFromId }
             : {}),
         };
-        const { error: saveError } = await createTender(supabase, createPayload);
+        const { data: created, error: saveError } = await createTender(supabase, createPayload);
 
         if (saveError) {
           toast.error(
             'Nie udało się zapisać konkursu: ' + (saveError.message || 'Nieznany błąd'),
           );
           return;
+        }
+        if (created?.id) {
+          const { error: buildingsError } = await replaceContestBuildings(
+            supabase,
+            created.id,
+            buildingIds,
+          );
+          if (buildingsError) {
+            toast.warning('Konkurs zapisany, ale nie udało się zapisać budynków.');
+          }
         }
       }
 
@@ -396,6 +456,7 @@ export default function TenderCreationPage({
               isSubmitting={isSubmitting || isRedirectingAfterPublish}
               initialForm={initialForm}
               existingDocuments={existingDocuments}
+              initialBuildingIds={initialBuildingIds}
             />
           </div>
         ) : (
@@ -404,6 +465,7 @@ export default function TenderCreationPage({
             isSubmitting={isSubmitting || isRedirectingAfterPublish}
             initialForm={initialForm}
             existingDocuments={existingDocuments}
+            initialBuildingIds={initialBuildingIds}
           />
         )}
       </div>

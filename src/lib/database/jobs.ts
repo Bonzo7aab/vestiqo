@@ -18,6 +18,7 @@ import {
 } from '../tender-workflow-status';
 import { ilikePattern } from './escape-postgrest-filter';
 import { mapTenderRowToContestDisplay } from '../contest/map-tender-contest-display';
+import { notifySavedUsersOfNewContestAction } from '../../app/panel-zarzadcy/konkursy/actions';
 import {
   contestIdColumn,
   contestOffersTable,
@@ -28,6 +29,16 @@ import {
   shouldApplyContestTendersFilter,
 } from './schema-compat';
 
+function scheduleNotifySavedUsersOfNewContest(
+  contestId: string | undefined | null,
+  status: string | undefined | null,
+  managedEntityId: string | undefined | null,
+): void {
+  if (!contestId || status !== 'active' || !managedEntityId) return;
+  void notifySavedUsersOfNewContestAction(contestId).catch((error) => {
+    console.warn('notifySavedUsersOfNewContestAction:', error);
+  });
+}
 /** Matches contest rows in DB (see opd70_remove_legacy_tenders migration). */
 export const CONTEST_TENDERS_OR_FILTER =
   'managed_entity_id.not.is.null,selection_criteria.not.is.null,formal_requirements.not.is.null';
@@ -359,7 +370,7 @@ export async function resolveJobFormCategoryIds(
     'Utrzymanie Czystości i Zieleni': 'Sprzątanie',
     'Roboty Remontowo-Budowlane': 'Budowlanka',
     'Instalacje i systemy': 'Instalacje',
-    'Utrzymanie techniczne i konserwacja': 'Przeglądy i Serwis',
+    'Utrzymanie techniczne i konserwacja': 'Przeglądy',
     'Specjalistyczne usługi': 'Inżynieria',
     Inne: 'Inżynieria',
   };
@@ -1171,6 +1182,14 @@ export async function fetchTenders(
         subcategory:job_categories!tenders_subcategory_id_fkey (
           name,
           slug
+        ),
+        managed_entity:managed_housing_entities!contests_managed_entity_id_fkey (
+          id,
+          name,
+          address,
+          city,
+          entity_type,
+          nip
         )
       `);
 
@@ -1316,34 +1335,9 @@ export async function fetchTenders(
       return { data: null, error };
     }
 
-    // Calculate offers_count dynamically if not already accurate
-    if (data && data.length > 0) {
-      const tenderIds = (data || []).map((tender: TenderWithCompany) => tender.id);
-      
-      // Fetch counts for all tenders at once
-      const contestIdField = contestIdColumn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: countsData, error: countsError } = await (supabase as any)
-        .from(contestOffersTable())
-        .select(contestIdField)
-        .in(contestIdField, tenderIds)
-        .neq('status', 'draft')
-        .neq('status', 'cancelled') as { data: TenderBidRow[] | null; error: PostgrestError | null };
-
-      if (!countsError && countsData) {
-        // Count bids per tender
-        const countsMap: { [key: string]: number } = {};
-        countsData?.forEach((bid: TenderBidRow) => {
-          const parentId = bid[contestIdField as keyof TenderBidRow] as string;
-          countsMap[parentId] = (countsMap[parentId] || 0) + 1;
-        });
-
-        // Update offers_count for each tender
-        data.forEach((tender: TenderWithCompany) => {
-          (tender as TenderWithCompany & { offers_count: number }).offers_count = countsMap[tender.id] || 0;
-        });
-      }
-    }
+    // Prefer denormalized contests.offers_count (DB trigger). Recounting via
+    // contest_offers under the caller session is incorrect for public readers
+    // because RLS only exposes the caller's own offers.
 
     return { data: normalizeContestRows(data as Record<string, unknown>[]) as unknown as TenderWithCompany[], error };
   } catch (err) {
@@ -1623,18 +1617,9 @@ export async function fetchTenderById(
       return { data: null, error: null };
     }
 
-    // Calculate offers_count dynamically if tender exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { count, error: countsError } = await (supabase as any)
-      .from(contestOffersTable())
-      .select('*', { count: 'exact', head: true })
-      .eq(contestIdColumn(), id)
-      .neq('status', 'draft')
-      .neq('status', 'cancelled');
-
-    if (!countsError && count !== null && result.data) {
-      (result.data as unknown as { offers_count?: number }).offers_count = count;
-    }
+    // Use denormalized contests.offers_count (maintained by DB trigger).
+    // Do not recount from contest_offers here — RLS hides other contractors'
+    // offers and would overwrite the public count with 0/1.
 
     return {
       data: normalizeContestRow(result.data as Record<string, unknown>) as unknown as TenderWithCompany,
@@ -1790,13 +1775,11 @@ function ensureValidCoordinates(lat?: number | null, lng?: number | null, locati
   if (location) {
     const cityCoords = findCityCoordinates(location);
     if (cityCoords) {
-      console.warn(`Using city fallback coordinates for location: ${location}`);
       return addRandomScattering(cityCoords, jobId);
     }
   }
 
   // Default to Warsaw center with scattering if no coordinates available
-  console.warn(`No valid coordinates found for location: ${location}, using Warsaw center`);
   return addRandomScattering({ lat: 52.2297, lng: 21.0122 }, jobId);
 }
 
@@ -1939,7 +1922,14 @@ export async function createTender(
       };
     }
 
-    return { data: insertedTender as unknown as TenderWithCompany, error: null };
+    const created = insertedTender as unknown as TenderWithCompany;
+    scheduleNotifySavedUsersOfNewContest(
+      created?.id,
+      tenderData.status,
+      tenderData.managedEntityId ?? created?.managed_entity_id,
+    );
+
+    return { data: created, error: null };
   } catch (err) {
     console.error('Error creating tender:', err);
     return { data: null, error: err };
@@ -2017,7 +2007,14 @@ export async function updateTender(
       return { data: null, error: updateError };
     }
 
-    return { data: updatedTender as unknown as TenderWithCompany, error: null };
+    const updated = updatedTender as unknown as TenderWithCompany;
+    scheduleNotifySavedUsersOfNewContest(
+      updated?.id ?? tenderId,
+      tenderData.status,
+      tenderData.managedEntityId ?? updated?.managed_entity_id,
+    );
+
+    return { data: updated, error: null };
   } catch (err) {
     console.error('Error updating tender:', err);
     return { data: null, error: err };

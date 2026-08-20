@@ -18,6 +18,8 @@ export interface FormalRequirements {
   referencesYears?: number;
   professionalCertificates?: boolean;
   professionalLicenses?: boolean;
+  /** Qualification catalog ids required when professionalLicenses is set. */
+  professionalLicenseTypes?: string[];
 }
 
 export type SelectionCriterionType = 'price' | 'quality' | 'time' | 'experience' | 'other';
@@ -77,6 +79,7 @@ export const DEFAULT_FORMAL_REQUIREMENTS: FormalRequirements = {
   referencesYears: 3,
   professionalCertificates: false,
   professionalLicenses: false,
+  professionalLicenseTypes: [],
 };
 
 export const DEFAULT_SELECTION_CRITERIA_ITEMS: SelectionCriterionItem[] = [

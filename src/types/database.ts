@@ -534,6 +534,51 @@ export type Database = {
           },
         ]
       }
+      calendar_reminder_sends: {
+        Row: {
+          due_on: string
+          id: string
+          sent_at: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Insert: {
+          due_on: string
+          id?: string
+          sent_at?: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Update: {
+          due_on?: string
+          id?: string
+          sent_at?: string
+          source_id?: string
+          source_kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contest_buildings: {
+        Row: {
+          building_id: string
+          contest_id: string
+          created_at: string
+        }
+        Insert: {
+          building_id: string
+          contest_id: string
+          created_at?: string
+        }
+        Update: {
+          building_id?: string
+          contest_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       contest_offers: {
         Row: {
           admin_feedback_message: string | null
@@ -1714,6 +1759,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications: boolean | null
           contractor_contest_offer_rejected_notifications: boolean | null
           contractor_contest_resolution_notifications: boolean | null
+          contractor_matched_contest_notifications: boolean | null
           created_at: string | null
           email_notifications: boolean | null
           id: string
@@ -1735,6 +1781,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications?: boolean | null
           contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
+          contractor_matched_contest_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
@@ -1756,6 +1803,7 @@ export type Database = {
           contractor_contest_offer_accepted_notifications?: boolean | null
           contractor_contest_offer_rejected_notifications?: boolean | null
           contractor_contest_resolution_notifications?: boolean | null
+          contractor_matched_contest_notifications?: boolean | null
           created_at?: string | null
           email_notifications?: boolean | null
           id?: string
@@ -1865,6 +1913,8 @@ export type Database = {
           title: string
           updated_at: string
           vat_rate: string
+          warranty_expires_at: string | null
+          warranty_months: number | null
         }
         Insert: {
           cancel_reason?: string | null
@@ -1889,6 +1939,8 @@ export type Database = {
           title: string
           updated_at?: string
           vat_rate?: string
+          warranty_expires_at?: string | null
+          warranty_months?: number | null
         }
         Update: {
           cancel_reason?: string | null
@@ -1913,6 +1965,8 @@ export type Database = {
           title?: string
           updated_at?: string
           vat_rate?: string
+          warranty_expires_at?: string | null
+          warranty_months?: number | null
         }
         Relationships: [
           {
@@ -2531,6 +2585,7 @@ export type Database = {
           construction_year_min: number | null
           contact_person: string | null
           contractor_retention_rate: number | null
+          contractor_services_completed: boolean
           cover_image_url: string | null
           created_at: string | null
           district: string | null
@@ -2640,6 +2695,7 @@ export type Database = {
           construction_year_min?: number | null
           contact_person?: string | null
           contractor_retention_rate?: number | null
+          contractor_services_completed?: boolean
           cover_image_url?: string | null
           created_at?: string | null
           district?: string | null
@@ -2749,6 +2805,7 @@ export type Database = {
           construction_year_min?: number | null
           contact_person?: string | null
           contractor_retention_rate?: number | null
+          contractor_services_completed?: boolean
           cover_image_url?: string | null
           created_at?: string | null
           district?: string | null
@@ -3109,6 +3166,12 @@ export type Database = {
       answer_contest_question: {
         Args: { p_answer: string; p_question_id: string }
         Returns: string
+      }
+      contractor_user_ids_matching_service_slugs: {
+        Args: { p_slugs: string[] }
+        Returns: {
+          user_id: string
+        }[]
       }
       count_unseen_contest_questions: {
         Args: { p_contest_ids: string[] }
@@ -3925,7 +3988,7 @@ export type Database = {
       }
     }
     Enums: {
-      bookmark_entity_type: "job" | "contest"
+      bookmark_entity_type: "job" | "contest" | "managed_housing_entity"
       notification_type:
         | "new_job"
         | "new_tender"
@@ -4092,7 +4155,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      bookmark_entity_type: ["job", "contest"],
+      bookmark_entity_type: ["job", "contest", "managed_housing_entity"],
       notification_type: [
         "new_job",
         "new_tender",

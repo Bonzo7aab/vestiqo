@@ -33,7 +33,7 @@ export interface PushNotificationPayload {
 export function initializeVAPID() {
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-  const vapidSubject = process.env.VAPID_SUBJECT || process.env.NEXT_PUBLIC_SUPABASE_URL || 'mailto:admin@domio.pl';
+  const vapidSubject = process.env.VAPID_SUBJECT || process.env.NEXT_PUBLIC_SUPABASE_URL || 'mailto:kontakt@vestiqo.pl';
 
   if (!vapidPublicKey || !vapidPrivateKey) {
     throw new Error(

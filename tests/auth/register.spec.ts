@@ -99,21 +99,33 @@ test.describe('Registration Page', () => {
 
     await page.click('button[type="submit"]');
 
-    // Wait for verification choice step (auto-login), legacy documents tab, or login (email confirm)
     await page.waitForURL(
       (url) =>
-        url.pathname.includes('/rejestracja/wybor-weryfikacji') ||
-        (url.pathname.includes('/konto') && url.search.includes('tab=dokumenty')) ||
+        (url.pathname.includes('/konto') && url.search.includes('tab=uslugi')) ||
         url.pathname.includes('/logowanie'),
       { timeout: 15000 }
     );
 
-    if (page.url().includes('/rejestracja/wybor-weryfikacji')) {
+    if (page.url().includes('/konto')) {
+      await expect(page.getByTestId('contractor-services-tab')).toBeVisible();
+      await expect(page.getByTestId('contractor-services-onboarding-banner')).toBeVisible();
+
+      await page.getByTestId('contractor-services-save').click();
+      await expect(page.getByText('Wybierz przynajmniej jedną usługę')).toBeVisible();
+
+      await page.goto('/');
+      await page.waitForURL((url) => url.pathname.includes('/konto') && url.search.includes('tab=uslugi'), {
+        timeout: 15000,
+      });
+      await expect(page.getByTestId('contractor-services-tab')).toBeVisible();
+
+      await page.getByTestId('service-subcategory-remonty-dachow-izolacje').click();
+      await page.getByTestId('contractor-services-save').click();
+
+      await page.waitForURL((url) => url.pathname.includes('/rejestracja/wybor-weryfikacji'), {
+        timeout: 15000,
+      });
       await expect(page.getByTestId('register-verification-choice')).toBeVisible();
-      await expect(page.getByText('Prześlij dokumenty teraz')).toBeVisible();
-      await expect(page.getByText('Zrobię to później')).toBeVisible();
-    } else if (page.url().includes('/konto')) {
-      expect(page.url()).toMatch(/tab=dokumenty/);
     }
 
     // Cleanup: delete the created user

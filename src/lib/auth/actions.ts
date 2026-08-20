@@ -39,6 +39,12 @@ import {
   type WspolnotaSubRole,
 } from '../profile/account-role-labels'
 import { createManagedHousingEntity } from '../database/managed-housing-entities'
+import {
+  isDevQuickLoginAccountKey,
+  isDevQuickLoginEnabled,
+  isProductionSupabaseUrl,
+} from './dev-quick-login'
+import { getDevQuickLoginCredentials } from './dev-quick-login-credentials'
 
 export interface LoginData {
   email: string
@@ -144,6 +150,31 @@ async function loginActionImpl(
     const message = error instanceof Error ? error.message : 'Wystąpił błąd. Spróbuj ponownie.'
     return { error: translateAuthErrorMessage(message) }
   }
+}
+
+/**
+ * One-click login for seeded vestiqo-test accounts (local + Preview only).
+ */
+async function devQuickLoginActionImpl(
+  accountKey: string,
+): Promise<{ success: true; redirectTo: string } | { error: string }> {
+  if (!isDevQuickLoginEnabled()) {
+    return { error: 'Szybkie logowanie jest dostępne tylko w środowisku developerskim.' }
+  }
+
+  if (isProductionSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    return { error: 'Szybkie logowanie jest zablokowane dla bazy produkcyjnej.' }
+  }
+
+  if (!isDevQuickLoginAccountKey(accountKey)) {
+    return { error: 'Nieznane konto testowe.' }
+  }
+
+  const { email, password } = getDevQuickLoginCredentials(accountKey)
+  const formData = new FormData()
+  formData.set('email', email)
+  formData.set('password', password)
+  return loginActionImpl(formData)
 }
 
 export type RegisterActionResult =
@@ -531,7 +562,7 @@ async function registerActionImpl(
   if (session) {
     const redirectTo =
       userType === 'contractor'
-        ? `/rejestracja/wybor-weryfikacji?message=${successMessage}`
+        ? `/konto?tab=uslugi&onboarding=1`
         : `/panel-zarzadcy/konkursy?message=${successMessage}`
     return { success: true, redirectTo }
   }
@@ -819,6 +850,10 @@ async function deleteAccountActionImpl(): Promise<DeleteAccountActionResult> {
 }
 
 export const loginAction = instrumentServerAction('loginAction', loginActionImpl)
+export const devQuickLoginAction = instrumentServerAction(
+  'devQuickLoginAction',
+  devQuickLoginActionImpl,
+)
 export const registerAction = instrumentServerAction('registerAction', registerActionImpl)
 export const logoutAction = instrumentServerAction('logoutAction', logoutActionImpl)
 export const updateUserAction = instrumentServerAction('updateUserAction', updateUserActionImpl)

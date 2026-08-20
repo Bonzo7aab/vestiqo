@@ -12,13 +12,18 @@ import {
   getContractorAccountSettings,
   type ContractorAccountSettings,
 } from '../database/contractor-account';
-import { DEFAULT_SERVICE_AREA } from '../contractor/constants';
+import { DEFAULT_SERVICE_AREA, professionalQualificationLabel } from '../contractor/constants';
 import { createSignedUrlSafe } from '../storage/r2/operations';
+import { formalSnapshotFromSources } from './load-formal-profile-snapshot';
+import {
+  validateProfileFormalRequirements,
+  type ContractorFormalProfileSnapshot,
+} from './validate-profile-formal-requirements';
 
 const REQUIREMENT_LABELS: Record<FormalRequirementKey, string> = {
   insuranceOc: 'Polisa OC',
   zusUsCertificates: 'Zaświadczenia ZUS/US',
-  references: 'Referencje',
+  references: 'Referencje – wykaz zrealizowanych prac',
   professionalCertificates: 'Certyfikaty zawodowe',
   professionalLicenses: 'Uprawnienia zawodowe',
 };
@@ -35,6 +40,31 @@ function formatDateHint(iso: string | null | undefined): string | null {
   return `Ważne / wgrane: ${new Date(ms).toLocaleDateString('pl-PL')}`;
 }
 
+function formatOcHint(settings: ContractorAccountSettings): string | null {
+  const parts: string[] = [];
+  if (settings.ocGuaranteeAmount != null) {
+    parts.push(`Suma: ${settings.ocGuaranteeAmount.toLocaleString('pl-PL')} zł`);
+  }
+  if (settings.ocValidUntil) {
+    const ms = Date.parse(settings.ocValidUntil);
+    if (Number.isFinite(ms)) {
+      parts.push(`Ważna do: ${new Date(ms).toLocaleDateString('pl-PL')}`);
+    }
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function formatLicensesHint(settings: ContractorAccountSettings): string | null {
+  const parts: string[] = [];
+  const dateHint = formatDateHint(settings.professionalQualificationsValidUntil);
+  if (dateHint) parts.push(dateHint);
+  if (settings.professionalQualificationTypes.length > 0) {
+    const labels = settings.professionalQualificationTypes.map(professionalQualificationLabel);
+    parts.push(labels.join(', '));
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 function resolveDocumentPath(
   key: FormalRequirementKey,
   verificationPaths: Record<string, string>,
@@ -45,9 +75,7 @@ function resolveDocumentPath(
       const path = settings.ocPolicyScanPath ?? verificationPaths.insurance ?? null;
       return {
         path,
-        hint: settings.ocValidUntil
-          ? `Ważna do: ${new Date(settings.ocValidUntil).toLocaleDateString('pl-PL')}`
-          : null,
+        hint: formatOcHint(settings),
       };
     }
     case 'zusUsCertificates': {
@@ -68,20 +96,40 @@ function resolveDocumentPath(
     case 'professionalLicenses':
       return {
         path: settings.professionalQualificationsScanPath ?? null,
-        hint: formatDateHint(settings.professionalQualificationsValidUntil),
+        hint: formatLicensesHint(settings),
       };
     default:
       return { path: null, hint: null };
   }
 }
 
+export interface ResolvedContractorFormalContext {
+  documents: ResolvedContractorDocument[];
+  snapshot: ContractorFormalProfileSnapshot;
+}
+
 export async function resolveContractorDocumentsWithClient(
   supabase: SupabaseClient<Database>,
   userId: string,
   formal: FormalRequirements,
-): Promise<ResolvedContractorDocument[]> {
+): Promise<ResolvedContractorFormalContext> {
   const keys = requiredFormalKeys(formal);
-  if (keys.length === 0) return [];
+  if (keys.length === 0) {
+    return {
+      documents: [],
+      snapshot: formalSnapshotFromSources(
+        {
+          ocGuaranteeAmount: null,
+          ocValidUntil: null,
+          ocPolicyScanPath: null,
+          professionalQualificationTypes: [],
+          professionalQualificationsScanPath: null,
+          professionalQualificationsValidUntil: null,
+        },
+        {},
+      ),
+    };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (supabase as any)
@@ -126,6 +174,8 @@ export async function resolveContractorDocumentsWithClient(
     // Fall back to verification paths only when account settings are unavailable.
   }
 
+  const snapshot = formalSnapshotFromSources(settings, verificationPaths);
+  const profileErrors = validateProfileFormalRequirements(formal, snapshot);
   const results: ResolvedContractorDocument[] = [];
 
   for (const key of keys) {
@@ -143,8 +193,9 @@ export async function resolveContractorDocumentsWithClient(
       signedUrl,
       hint,
       missing: !path,
+      profileBlocked: Boolean(profileErrors[key]),
     });
   }
 
-  return results;
+  return { documents: results, snapshot };
 }

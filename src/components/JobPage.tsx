@@ -1229,9 +1229,18 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                 {job.contestInfo ? (
                   <>
                     {job.contestInfo.entityName ? (
-                      <p className="mb-2 text-xs font-medium text-gray-700 break-words sm:text-sm md:text-base">
-                        {job.contestInfo.entityName}
-                      </p>
+                      job.contestInfo.managedEntityId ? (
+                        <Link
+                          href={routes.uzytkownik(job.contestInfo.managedEntityId)}
+                          className="mb-2 block text-xs font-medium text-gray-700 break-words underline-offset-2 hover:underline sm:text-sm md:text-base"
+                        >
+                          {job.contestInfo.entityName}
+                        </Link>
+                      ) : (
+                        <p className="mb-2 text-xs font-medium text-gray-700 break-words sm:text-sm md:text-base">
+                          {job.contestInfo.entityName}
+                        </p>
+                      )
                     ) : null}
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs md:text-sm">
@@ -1806,14 +1815,10 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
             {/* Action Buttons — contractor actions only */}
             {!isManager && (
             <Card>
-              <CardContent className="p-6">
-                <div className="space-y-3">
+              <CardContent className="space-y-4 p-5">
+                <div className="space-y-2">
                   <ContestApplyOfferButton
-                    className={
-                      hasExistingBid && job.postType === 'contest'
-                        ? 'w-full'
-                        : 'w-full'
-                    }
+                    className="w-full"
                     size="lg"
                     isLoggedIn={Boolean(user)}
                     user={user}
@@ -1828,47 +1833,50 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                       void handleApplicationSubmit();
                     }}
                   />
-                  {hasDraftBid && !hasExistingBid && isContestView && (
-                    <p className="text-xs text-muted-foreground text-center">
+                  {hasDraftBid && !hasExistingBid && isContestView ? (
+                    <p className="text-center text-xs text-muted-foreground">
                       Masz zapisany szkic oferty w tym konkursie
                     </p>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleBookmark}
-                      className="flex items-center gap-2"
-                    >
-                      <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current text-primary' : ''}`} />
-                      <span className="truncate">
-                        {isBookmarked ? 'W zapisanych' : 'Dodaj do zapisanych'}
-                      </span>
-                    </Button>
-                    
-                    {existingConversationId ? (
-                      <Button 
-                        variant="outline"
-                        onClick={() => router.push(`/wiadomosci?conversation=${existingConversationId}`)}
-                        className="flex items-center gap-2"
-                      >
-                        <MessagesSquare className="w-4 h-4" />
-                        <span className="truncate">Wiadomość</span>
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline"
-                        onClick={handleAskQuestion}
-                        className="flex items-center gap-2"
-                        disabled={isCheckingConversation}
-                      >
-                        <MessagesSquare className="w-4 h-4" />
-                        <span className="truncate">
-                          {isCheckingConversation ? 'Sprawdzanie...' : 'Wiadomość'}
-                        </span>
-                      </Button>
-                    )}
-                  </div>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border/70 bg-muted/20">
+                  <button
+                    type="button"
+                    onClick={handleBookmark}
+                    className="flex flex-col items-center gap-1.5 px-3 py-3 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  >
+                    <Star
+                      className={`h-4 w-4 ${isBookmarked ? 'fill-current text-primary' : 'text-muted-foreground'}`}
+                      aria-hidden
+                    />
+                    <span className="text-xs font-medium leading-tight text-foreground">
+                      {isBookmarked ? 'Zapisano' : 'Zapisz'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={
+                      existingConversationId
+                        ? () =>
+                            router.push(
+                              `/wiadomosci?conversation=${existingConversationId}`,
+                            )
+                        : handleAskQuestion
+                    }
+                    disabled={!existingConversationId && isCheckingConversation}
+                    className="flex flex-col items-center gap-1.5 border-l border-border/70 px-3 py-3 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <MessagesSquare
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="text-xs font-medium leading-tight text-foreground">
+                      {!existingConversationId && isCheckingConversation
+                        ? '…'
+                        : 'Wiadomość'}
+                    </span>
+                  </button>
                 </div>
               </CardContent>
             </Card>

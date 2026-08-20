@@ -168,6 +168,48 @@ export async function getBookmarkCount(
 }
 
 /**
+ * Get bookmarked rows for a user, optionally filtered by type.
+ */
+export async function getUserBookmarks(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  entityType?: BookmarkEntityType,
+): Promise<{
+  bookmarks: Array<{ entity_type: BookmarkEntityType; entity_id: string; created_at: string }>;
+  error: PostgrestError | null;
+}> {
+  try {
+    let query = supabase
+      .from('bookmarks')
+      .select('entity_type, entity_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (entityType) {
+      query = query.eq('entity_type', entityType);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { bookmarks: [], error };
+    }
+
+    return {
+      bookmarks: (data || []).map((row) => ({
+        entity_type: row.entity_type as BookmarkEntityType,
+        entity_id: row.entity_id,
+        created_at: row.created_at ?? '',
+      })),
+      error: null,
+    };
+  } catch (err) {
+    console.error('Error getting user bookmark rows:', err);
+    return { bookmarks: [], error: err as PostgrestError };
+  }
+}
+
+/**
  * Get bookmarked entity IDs for a user, optionally filtered by type.
  */
 export async function getUserBookmarkedEntityIds(

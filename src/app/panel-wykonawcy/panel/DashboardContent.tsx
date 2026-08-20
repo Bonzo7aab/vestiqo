@@ -235,7 +235,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
           <CardContent className="space-y-4">
             <Button className="w-full justify-start" onClick={() => router.push('/panel-wykonawcy/ulubione')}>
               <Star className="w-4 h-4 mr-2" />
-              Zapisane konkursy
+              Zapisane
             </Button>
             <Button variant="outline" className="w-full justify-start" onClick={() => router.push(kontoCompanyDataHref('contractor'))}>
               <Edit className="w-4 h-4 mr-2" />

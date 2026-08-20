@@ -12,6 +12,7 @@ export type Opd41NotificationKind =
   | 'contractor_contest_offer_accepted'
   | 'contractor_contest_offer_rejected'
   | 'contractor_contest_answer'
+  | 'contractor_matched_contest'
   | 'manager_contest_ended'
   | 'system_announcement';
 
@@ -23,12 +24,14 @@ const PREFERENCE_COLUMN: Record<
     | 'contractor_contest_offer_accepted_notifications'
     | 'contractor_contest_offer_rejected_notifications'
     | 'contractor_contest_answer_notifications'
+    | 'contractor_matched_contest_notifications'
   >
 > = {
   manager_contest_question: 'manager_contest_question_notifications',
   contractor_contest_offer_accepted: 'contractor_contest_offer_accepted_notifications',
   contractor_contest_offer_rejected: 'contractor_contest_offer_rejected_notifications',
   contractor_contest_answer: 'contractor_contest_answer_notifications',
+  contractor_matched_contest: 'contractor_matched_contest_notifications',
 };
 
 export function truncateQuestionPreview(text: string, maxLength = 80): string {

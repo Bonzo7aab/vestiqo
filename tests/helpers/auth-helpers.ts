@@ -70,6 +70,7 @@ export async function createTestUser(
       is_verified: false,
       profile_completed: false,
       onboarding_completed: false,
+      contractor_services_completed: userType === 'contractor',
     });
 
   if (profileError) {

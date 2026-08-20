@@ -1,5 +1,4 @@
-import { CircleAlert } from 'lucide-react';
-import { cn } from '../ui/utils';
+import { FormErrorBanner } from '../ui/form-error-banner';
 
 interface AuthFormErrorProps {
   message: string;
@@ -8,17 +7,5 @@ interface AuthFormErrorProps {
 }
 
 export function AuthFormError({ message, className, testId }: AuthFormErrorProps) {
-  return (
-    <div
-      role="alert"
-      data-testid={testId}
-      className={cn(
-        'mb-4 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3.5 py-3 text-sm leading-snug text-destructive',
-        className,
-      )}
-    >
-      <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <p>{message}</p>
-    </div>
-  );
+  return <FormErrorBanner message={message} className={className} testId={testId} />;
 }

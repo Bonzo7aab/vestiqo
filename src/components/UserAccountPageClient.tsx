@@ -104,9 +104,26 @@ export function UserAccountPageClient({
     [applyTabToUrl, user],
   );
 
+  const lockToServices =
+    user?.userType === 'contractor' && (initialServiceSubcategorySlugs?.length ?? 0) === 0;
+
+  const handleLockedTabChange = React.useCallback(
+    (tab: string) => {
+      if (lockToServices && tab !== KONTO_TABS.uslugi) {
+        return;
+      }
+      handleTabChange(tab);
+    },
+    [handleTabChange, lockToServices],
+  );
+
   // URL → state (menu / deep links). useLayoutEffect so we apply before persist-style races.
   React.useLayoutEffect(() => {
     if (!isMounted || !user) return;
+    if (user.userType === 'contractor' && (initialServiceSubcategorySlugs?.length ?? 0) === 0) {
+      setActiveTab(KONTO_TABS.uslugi);
+      return;
+    }
     const tabParam = searchParams.get('tab');
     const resolved = resolveTabFromUrl(tabParam);
     if (resolved) {
@@ -116,7 +133,7 @@ export function UserAccountPageClient({
     if (!tabParam) {
       setActiveTab(getDefaultKontoTab(user.userType));
     }
-  }, [isMounted, user, searchParams, resolveTabFromUrl]);
+  }, [isMounted, user, searchParams, resolveTabFromUrl, initialServiceSubcategorySlugs]);
 
   // Scroll to the target anchor (e.g. `#oc-policy`) once the active tab's
   // content has had a chance to render. Runs whenever the active tab changes
@@ -167,6 +184,7 @@ export function UserAccountPageClient({
     organizationType: user.organizationType,
   });
   const showManagedHousingEntities = shouldShowManagedHousingEntitiesOnAccount(accountRole);
+  const isOnboarding = searchParams.get('onboarding') === '1';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,6 +195,17 @@ export function UserAccountPageClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-1 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {user.userType === 'contractor' ? (
+              lockToServices ? (
+                <button
+                  onClick={() => handleLockedTabChange(KONTO_TABS.uslugi)}
+                  className={cn(
+                    'px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0',
+                    'border-primary text-primary',
+                  )}
+                >
+                  Usługi
+                </button>
+              ) : (
               <>
                 <button
                   onClick={() => handleTabChange(KONTO_TABS.twojeDane)}
@@ -221,19 +250,37 @@ export function UserAccountPageClient({
                   Usługi
                 </button>
               </>
+              )
             ) : (
-              <button
-                onClick={() => handleTabChange(KONTO_TABS.profil)}
-                className={cn(
-                  "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                  activeTab === KONTO_TABS.profil
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
-                )}
-              >
-                Twoje dane
-              </button>
+              <>
+                <button
+                  onClick={() => handleTabChange(KONTO_TABS.profil)}
+                  className={cn(
+                    "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
+                    activeTab === KONTO_TABS.profil
+                      ? "border-primary text-primary"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                  )}
+                >
+                  Twoje dane
+                </button>
+                {showManagedHousingEntities ? (
+                  <button
+                    onClick={() => handleTabChange(KONTO_TABS.nieruchomosci)}
+                    className={cn(
+                      "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
+                      activeTab === KONTO_TABS.nieruchomosci
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
+                    )}
+                  >
+                    Nieruchomości
+                  </button>
+                ) : null}
+              </>
             )}
+            {lockToServices ? null : (
+              <>
             <button
               onClick={() => handleTabChange(KONTO_TABS.bezpieczenstwo)}
               className={cn(
@@ -256,6 +303,8 @@ export function UserAccountPageClient({
             >
               Ustawienia powiadomień
             </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -263,13 +312,16 @@ export function UserAccountPageClient({
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <fieldset disabled={isImpersonating} className="min-w-0 space-y-0 border-0 p-0 m-0">
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <Tabs value={activeTab} onValueChange={handleLockedTabChange}>
           <TabsContent value={KONTO_TABS.profil} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
-            {user.userType === 'manager' && showManagedHousingEntities && (
-              <CompanyManagementForm user={user} managedEntitiesOnly />
-            )}
           </TabsContent>
+
+          {showManagedHousingEntities ? (
+            <TabsContent value={KONTO_TABS.nieruchomosci} className="space-y-6">
+              <CompanyManagementForm user={user} managedEntitiesOnly />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value={KONTO_TABS.twojeDane} className="space-y-6">
             <ProfileForm user={user} includeBusinessData />
@@ -289,6 +341,8 @@ export function UserAccountPageClient({
               key={initialServiceSubcategorySlugs?.join(',') ?? 'none'}
               companyId={contractorCompanyId}
               initialSubcategorySlugs={initialServiceSubcategorySlugs}
+              isOnboarding={isOnboarding}
+              lockToServices={lockToServices}
             />
           </TabsContent>
 

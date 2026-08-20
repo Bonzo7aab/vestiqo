@@ -18,6 +18,7 @@ export interface TenderContestFormFieldErrors {
   paymentTermsCustomDays?: string;
   selectionCriteria?: string;
   criteriaItems?: Record<string, string>;
+  professionalLicenseTypes?: string;
 }
 
 function isCompletionOnOrBeforeSubmission(completion: Date, submission: Date): boolean {
@@ -138,6 +139,13 @@ export function getTenderContestFormFieldErrors(
     }
   }
 
+  if (form.formalRequirements.professionalLicenses) {
+    const types = form.formalRequirements.professionalLicenseTypes ?? [];
+    if (types.length === 0) {
+      errors.professionalLicenseTypes = 'Zaznacz wymagane typy uprawnień zawodowych';
+    }
+  }
+
   return errors;
 }
 
@@ -158,7 +166,8 @@ export function hasTenderContestFormFieldErrors(
     errors.depositAmount ||
     errors.depositInstructions ||
     errors.paymentTermsCustomDays ||
-    errors.selectionCriteria
+    errors.selectionCriteria ||
+    errors.professionalLicenseTypes
   ) {
     return true;
   }
@@ -194,6 +203,9 @@ export function clearTenderContestFieldErrorsForPatch(
     delete next.selectionCriteria;
     delete next.criteriaItems;
   }
+  if ('formalRequirements' in patch) {
+    delete next.professionalLicenseTypes;
+  }
 
   return next;
 }
@@ -211,6 +223,7 @@ export function firstTenderContestErrorSelector(
   if (errors.evaluationDeadline) return '#evaluation-deadline';
   if (errors.completionDate) return '#completion-date';
   if (errors.siteVisitNotes) return '#site-visit-notes';
+  if (errors.professionalLicenseTypes) return '#contest-professional-license-types';
   if (errors.criteriaItems) {
     const firstId = Object.keys(errors.criteriaItems)[0];
     if (firstId) return `[data-criterion-id="${firstId}"]`;

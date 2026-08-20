@@ -4,9 +4,11 @@ export const KONTO_TABS = {
   twojeDane: 'twoje-dane',
   dokumenty: 'dokumenty',
   uslugi: 'uslugi',
+  nieruchomosci: 'nieruchomosci',
   bezpieczenstwo: 'bezpieczenstwo',
   powiadomienia: 'powiadomienia',
 } as const;
+
 
 export type KontoTab = (typeof KONTO_TABS)[keyof typeof KONTO_TABS];
 
@@ -59,6 +61,10 @@ export function resolveKontoTabFromUrl(
     return KONTO_TABS.profil;
   }
 
+  if (normalized === KONTO_TABS.nieruchomosci && userType !== 'manager') {
+    return KONTO_TABS.profil;
+  }
+
   if (normalized === KONTO_TABS.uslugi && userType !== 'contractor') {
     return KONTO_TABS.profil;
   }
@@ -89,6 +95,11 @@ export function kontoHref(
   return `${base}?${params.toString()}${hash}`;
 }
 
+/** Manager Nieruchomości tab. */
+export const KONTO_NIERUCHOMOSCI_HREF = kontoHref(KONTO_TABS.nieruchomosci, {
+  userType: 'manager',
+});
+
 /** Contractor verification documents tab. */
 export const KONTO_DOKUMENTY_PATH = kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor' });
 
@@ -103,4 +114,11 @@ export function contractorVerificationDocumentsHref(
   params?: Record<string, string>,
 ): string {
   return kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor', search: params });
+}
+
+export function contractorServicesHref(options?: { onboarding?: boolean }): string {
+  return kontoHref(KONTO_TABS.uslugi, {
+    userType: 'contractor',
+    search: options?.onboarding ? { onboarding: '1' } : undefined,
+  });
 }

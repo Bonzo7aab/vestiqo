@@ -2,7 +2,7 @@
 
 Queue for SQL that is **not yet** in production Supabase migration history (`vestiqo`, `fabbgaqxsetnsppxegnx`).
 
-**Status (2026-07-25):** Two files pending prod. Duplicates that already live under [`supabase/migrations/`](../../supabase/migrations/) were removed from this folder.
+**Status (2026-08-13):** Six files pending prod. Duplicates that already live under [`supabase/migrations/`](../../supabase/migrations/) were removed from this folder.
 
 ## Workflow
 
@@ -18,6 +18,13 @@ After a file is applied to prod, **move it** to [`supabase/migrations/`](../../s
 |------|---------|------|------|
 | `20260701120000_contest_offers_one_per_company.sql` | Unique non-cancelled offer per company per contest | applied 2026-07-17 | pending |
 | `20260725120000_contest_offers_contractor_delete_draft.sql` | RLS: contractors may DELETE own `draft` offers (Odrzuć szkic) | applied 2026-07-25 | pending |
+| `20260809120000_opd147_managed_buildings_inspections.sql` | OPD-147: `managed_buildings` + `managed_building_inspections` | applied 2026-08-09 | pending |
+| `20260809130000_opd164_przeglady_categories.sql` | OPD-164: rename Przeglądy + 6 inspection subcategories | applied 2026-08-09 | pending |
+| `20260810120000_opd152_entity_profile_bookmarks_rls.sql` | OPD-152: bookmark `managed_housing_entity` + public SELECT RLS | applied 2026-08-10 | pending |
+| `20260813010000_opd148_matched_contest_notifications.sql` | OPD-148: matched-contest pref, services_completed flag, GIN + match RPC | applied 2026-08-13 | pending |
+| `20260813120000_opd48_calendar_warranty.sql` | OPD-48: orders warranty columns, contest_buildings, calendar_reminder_sends | applied 2026-08-13 | pending |
+| `20260814010000_opd48_calendar_notes.sql` | OPD-48: manager custom calendar notes (events) | applied 2026-08-14 | pending |
+| `20260814170000_opd48_calendar_note_kind.sql` | OPD-48: `event_kind` on manager calendar notes | applied 2026-08-14 | pending |
 
 ## Recently applied to production (2026-07-01)
 

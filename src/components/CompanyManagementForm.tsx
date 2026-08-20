@@ -8,7 +8,6 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription } from './ui/alert';
-import { Separator } from './ui/separator';
 import type { AuthUser } from '../types/auth';
 import { createClient } from '../lib/supabase/client';
 import { fetchUserPrimaryCompany, upsertUserCompany } from '../lib/database/companies';
@@ -401,7 +400,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <p className="ml-2 text-sm text-muted-foreground">
-            {managedEntitiesOnly ? 'Ładowanie wspólnot...' : 'Ładowanie danych firmy...'}
+            {managedEntitiesOnly ? 'Ładowanie nieruchomości...' : 'Ładowanie danych firmy...'}
           </p>
         </div>
       </div>
@@ -410,20 +409,19 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
 
   if (managedEntitiesOnly) {
     return (
-      <div className="space-y-4" id="wspolnoty-spoldzielnie">
+      <div className="space-y-4" id="nieruchomosci">
         {hasCompany && companyId ? (
           <ManagedHousingEntityManagement companyId={companyId} />
         ) : (
           <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-center gap-2 mb-2">
               <Building className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-medium">Zarządzanie wspólnotami</h4>
+              <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
             </div>
             <div className="text-center py-6">
               <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
-                Dane firmy z rejestracji są widoczne powyżej. Wspólnoty możesz dodać po
-                utworzeniu konta.
+                Najpierw uzupełnij dane firmy w zakładce Twoje dane, aby dodawać nieruchomości.
               </p>
             </div>
           </div>
@@ -981,32 +979,6 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
           </div>
         )}
       </div>
-
-      {/* Managed WM/SM section - only for managers */}
-      {user.userType === 'manager' && (
-        <div className="mt-6" id="wspolnoty-spoldzielnie">
-          <Separator className="my-6" />
-          {hasCompany && companyId ? (
-            <ManagedHousingEntityManagement companyId={companyId} />
-          ) : (
-            <div className="border rounded-lg p-4 bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                <h4 className="font-medium">Zarządzanie wspólnotami</h4>
-              </div>
-              <div className="text-center py-6">
-                <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Aby dodać wspólnoty, najpierw uzupełnij dane firmy powyżej
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Po zapisaniu firmy możesz dodawać wspólnoty po numerze NIP
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
     </div>
   );

@@ -24,7 +24,7 @@ import {
 import { getDataSourceConfig } from '../lib/config/data-source';
 import { getTestingFeatureFlagsAction } from '../lib/flagship/actions';
 import {
-  FLAGSHIP_FLAG_KEYS,
+  FLAGSHIP_FLAG_DESCRIPTIONS,
   FLAGSHIP_FLAG_LABELS,
   type FlagshipFlagKey,
   type TestingFeatureFlags,
@@ -77,15 +77,6 @@ function parseStoredSettings(raw: string | null): TestingSettings {
     return DEFAULT_SETTINGS;
   }
 }
-
-const FLAG_DESCRIPTIONS: Record<FlagshipFlagKey, string> = {
-  [FLAGSHIP_FLAG_KEYS.NEW_TENDER_SYSTEM]: 'Ulepszona wersja systemu przetargowego',
-  [FLAGSHIP_FLAG_KEYS.ENHANCED_MAP]: 'Nowa wersja mapy z dodatkowymi funkcjami',
-  [FLAGSHIP_FLAG_KEYS.ADVANCED_FILTERS]: 'Dodatkowe opcje filtrowania zgłoszeń',
-  [FLAGSHIP_FLAG_KEYS.MOBILE_OPTIMIZATIONS]: 'Ulepszenia dla urządzeń mobilnych',
-  [FLAGSHIP_FLAG_KEYS.ORDERS]: 'Moduł zamówień dla zarządców i wykonawców',
-  [FLAGSHIP_FLAG_KEYS.CONTRACTOR_SERVICES]: 'Zakładka Usługi (cennik) w panelu wykonawcy',
-};
 
 export const TestingModeManager: React.FC<TestingModeManagerProps> = ({ onBack }) => {
   const [settings, setSettings] = useState<TestingSettings>(() => {
@@ -444,7 +435,7 @@ export const TestingModeManager: React.FC<TestingModeManagerProps> = ({ onBack }
                       <div className="space-y-0.5">
                         <Label>{FLAGSHIP_FLAG_LABELS[flagKey]}</Label>
                         <div className="text-sm text-muted-foreground">
-                          {FLAG_DESCRIPTIONS[flagKey]}
+                          {FLAGSHIP_FLAG_DESCRIPTIONS[flagKey]}
                         </div>
                         <code className="text-xs text-muted-foreground">{flagKey}</code>
                       </div>

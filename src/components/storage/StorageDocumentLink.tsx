@@ -4,6 +4,7 @@ import { useState, type ReactElement, type ReactNode } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthorizedDownloadUrl } from '../../lib/storage/authorized-download';
+import { cn } from '../ui/utils';
 
 interface StorageDocumentLinkProps {
   name: string;
@@ -60,17 +61,17 @@ export function StorageDocumentLink({
       type="button"
       onClick={() => void handleClick()}
       disabled={isDownloading || (!path && !url)}
-      className={
-        className ??
-        'flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:opacity-50'
-      }
+      className={cn(
+        'inline-flex min-w-0 items-center gap-2 text-left text-sm font-medium text-primary hover:underline disabled:opacity-50',
+        className,
+      )}
     >
       {leadingIcon}
-      <span className="min-w-0 truncate">{name}</span>
+      <span className="min-w-0 flex-1 truncate">{name}</span>
       {isDownloading ? (
-        <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
       ) : (
-        <Download className="h-3 w-3 shrink-0" aria-hidden />
+        <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
       )}
     </button>
   );

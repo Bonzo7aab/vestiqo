@@ -7,15 +7,9 @@ import {
   getContractorAccountSettings,
   upsertContractorAccountSettings,
 } from '../lib/database/contractor-account';
-import { PROFESSIONAL_QUALIFICATION_GROUPS } from '../lib/contractor/constants';
-import {
-  selectionPillBase,
-  selectionPillSelected,
-  selectionPillUnselected,
-} from '../lib/ui/selection-pill-styles';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { cn } from './ui/utils';
+import { ProfessionalQualificationTypePicker } from './ProfessionalQualificationTypePicker';
 
 interface ContractorProfessionalQualificationsChecklistProps {
   userId: string;
@@ -95,64 +89,7 @@ export function ContractorProfessionalQualificationsChecklist({
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PROFESSIONAL_QUALIFICATION_GROUPS.map(group => (
-          <QualificationGroup
-            key={group.title}
-            title={group.title}
-            options={group.options}
-            selected={selected}
-            onToggle={toggle}
-          />
-        ))}
-      </div>
+      <ProfessionalQualificationTypePicker selected={selected} onToggle={toggle} />
     </div>
-  );
-}
-
-function QualificationGroup({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  options: { id: string; label: string }[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  const selectedInGroup = options.filter(option => selected.includes(option.id)).length;
-
-  return (
-    <section className="rounded-xl border border-border/70 bg-muted/20 p-3 sm:p-4">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-        {selectedInGroup > 0 ? (
-          <span className="shrink-0 text-[10px] font-medium tabular-nums text-primary">
-            {selectedInGroup}/{options.length}
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {options.map(option => {
-          const isSelected = selected.includes(option.id);
-          return (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => onToggle(option.id)}
-              className={cn(
-                selectionPillBase,
-                'text-left text-xs sm:text-sm',
-                isSelected ? selectionPillSelected : selectionPillUnselected,
-              )}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 }

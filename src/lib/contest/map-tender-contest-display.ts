@@ -17,6 +17,8 @@ import {
   parseSelectionCriteria,
 } from '../../types/tender-contest';
 import { mapTenderRowToContestForm, parseExistingTenderDocuments } from './build-tender-payload';
+import { formatFormalRequirementLines } from './format-formal-requirement-lines';
+
 const SITE_VISIT_LABELS: Record<SiteVisitType, string> = {
   not_required: 'Niewymagana',
   optional: 'Opcjonalna',
@@ -33,28 +35,7 @@ export function isContestTender(row: Pick<
 }
 
 function buildFormalRequirementLines(formal: FormalRequirements): string[] {
-  const lines: string[] = [];
-  if (formal.insuranceOc) {
-    const min = formal.insuranceOcMinAmount
-      ? ` (min. ${formal.insuranceOcMinAmount.toLocaleString('pl-PL')} zł)`
-      : '';
-    lines.push(`Aktualna polisa OC wykonawcy${min}`);
-  }
-  if (formal.zusUsCertificates) {
-    lines.push('Zaświadczenia o niezaleganiu w ZUS i US (nie starsze niż 3 miesiące)');
-  }
-  if (formal.references) {
-    const min = formal.referencesMinCount ?? 2;
-    const years = formal.referencesYears ?? 3;
-    lines.push(`Referencje – min. ${min} podobne realizacje z ostatnich ${years} lat`);
-  }
-  if (formal.professionalCertificates) {
-    lines.push('Certyfikaty zawodowe');
-  }
-  if (formal.professionalLicenses) {
-    lines.push('Uprawnienia zawodowe');
-  }
-  return lines;
+  return formatFormalRequirementLines(formal);
 }
 
 export function formatPaymentTermsLabel(payment: PaymentTerms): string {
@@ -66,6 +47,7 @@ export function formatPaymentTermsLabel(payment: PaymentTerms): string {
 }
 
 export interface ContestDisplayInfo {
+  managedEntityId: string | null;
   entityName: string | null;
   entityAddress: string | null;
   documents: TenderContestDocumentMeta[];
@@ -110,6 +92,7 @@ export function mapTenderRowToContestDisplay(
       : null;
 
   return {
+    managedEntityId: tender.managed_entity_id ?? entity?.id ?? null,
     entityName: entity?.name ?? null,
     entityAddress: entity?.address ?? tender.address ?? null,
     documents,

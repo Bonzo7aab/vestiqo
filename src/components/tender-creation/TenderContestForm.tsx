@@ -17,9 +17,12 @@ import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { fetchAllCategoriesWithSubcategories } from '../../lib/database/categories';
 import type { CategoryWithSubcategories } from '../../lib/database/categories';
 import { fetchManagerHousingEntities } from '../../lib/database/managed-housing-entities';
+import { fetchManagedBuildingsForEntity } from '../../lib/database/managed-buildings';
 import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
 import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housing-entity';
+import type { ManagedBuilding } from '../../types/managed-building';
 import type {
+  FormalRequirements,
   SelectionCriterionItem,
   TenderContestDocumentMeta,
   TenderContestFormData,
@@ -37,18 +40,27 @@ import {
   type TenderContestFormFieldErrors,
 } from '../../lib/contest/contest-form-validation';
 import {
+  applyTechParamsToDescription,
+  buildPrzegladyTechParamsBlock,
+  isPrzegladyCategory,
+  resolvePrzegladySubcategorySlug,
+  stripTechParamsFromDescription,
+} from '../../lib/contest/przeglady-tech-params';
+import {
   ContestOfferFieldError,
   fieldErrorInputClass,
 } from '../contest-offer/ContestOfferFieldError';
 import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
 import { cn } from '../ui/utils';
 import { ScheduleDateOffsetChips } from './ScheduleDateOffsetChips';
+import { ProfessionalQualificationTypePicker } from '../ProfessionalQualificationTypePicker';
 import {
   COMPLETION_DAY_OFFSET_OPTIONS,
   EVALUATION_DAY_OFFSET_OPTIONS,
   completionDateFromEvaluationOffset,
   evaluationDateFromSubmissionOffset,
   isDateOnOrBefore,
+  matchingScheduleOffsetDays,
   minCompletionDateAfterEvaluation,
   minEvaluationDateAfterSubmission,
 } from '../../lib/contest/contest-schedule-dates';
@@ -124,11 +136,13 @@ export interface TenderContestFormProps {
     newFiles: File[],
     keptDocuments: TenderContestDocumentMeta[],
     status: 'draft' | 'active',
+    buildingIds: string[],
   ) => void | Promise<void>;
   isSubmitting?: boolean;
   initialForm?: TenderContestFormData;
   existingDocuments?: TenderContestDocumentMeta[];
   layout?: 'default' | 'create';
+  initialBuildingIds?: string[];
 }
 
 const PERIOD_OPTIONS: { value: WarrantyGuaranteePeriod; label: string }[] = [
@@ -167,6 +181,7 @@ export function TenderContestForm({
   initialForm,
   existingDocuments,
   layout = 'default',
+  initialBuildingIds,
 }: TenderContestFormProps): React.ReactElement {
   const { user } = useUserProfile();
   const supabase = createClient();
@@ -182,6 +197,12 @@ export function TenderContestForm({
   );
   const [fieldErrors, setFieldErrors] = useState<TenderContestFormFieldErrors>({});
   const [showFieldErrors, setShowFieldErrors] = useState(false);
+  const [entityBuildings, setEntityBuildings] = useState<ManagedBuilding[]>([]);
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
+  const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+
+  const showPrzegladyBuildings =
+    isPrzegladyCategory(form.category) && Boolean(form.managedEntityId);
 
   const sortedManagedEntities = useMemo(
     () =>
@@ -227,6 +248,26 @@ export function TenderContestForm({
     hasValidSubmissionDeadline,
   ]);
 
+  const selectedEvaluationOffsetDays = useMemo(
+    () =>
+      matchingScheduleOffsetDays(
+        form.submissionDeadline,
+        form.evaluationDeadline,
+        EVALUATION_DAY_OFFSET_OPTIONS,
+      ),
+    [form.submissionDeadline, form.evaluationDeadline],
+  );
+
+  const selectedCompletionOffsetDays = useMemo(
+    () =>
+      matchingScheduleOffsetDays(
+        form.evaluationDeadline,
+        form.completionDate,
+        COMPLETION_DAY_OFFSET_OPTIONS,
+      ),
+    [form.evaluationDeadline, form.completionDate],
+  );
+
   useEffect(() => {
     if (!initialForm) return;
     setForm({
@@ -267,13 +308,116 @@ export function TenderContestForm({
     void load();
   }, [user?.id, supabase]);
 
+  useEffect(() => {
+    const entityId = form.managedEntityId;
+    if (!isPrzegladyCategory(form.category) || !entityId) {
+      setEntityBuildings([]);
+      setSelectedBuildingIds([]);
+      setIsLoadingBuildings(false);
+      return;
+    }
+
+    let cancelled = false;
+    const loadBuildings = async (): Promise<void> => {
+      setIsLoadingBuildings(true);
+      const { data } = await fetchManagedBuildingsForEntity(supabase, entityId);
+      if (cancelled) return;
+      const buildings = data ?? [];
+      setEntityBuildings(buildings);
+      const preferred = (initialBuildingIds ?? []).filter((id) =>
+        buildings.some((building) => building.id === id),
+      );
+      setSelectedBuildingIds(
+        preferred.length > 0 ? preferred : buildings.map((building) => building.id),
+      );
+      setIsLoadingBuildings(false);
+    };
+    void loadBuildings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.managedEntityId, form.category, supabase, initialBuildingIds]);
+
+  useEffect(() => {
+    if (!isPrzegladyCategory(form.category)) {
+      setForm((prev) => {
+        const nextDescription = stripTechParamsFromDescription(prev.description);
+        if (nextDescription === prev.description) return prev;
+        return { ...prev, description: nextDescription };
+      });
+      return;
+    }
+
+    const slug = resolvePrzegladySubcategorySlug(form.subcategory);
+    if (!slug) {
+      setForm((prev) => {
+        const nextDescription = stripTechParamsFromDescription(prev.description);
+        if (nextDescription === prev.description) return prev;
+        return { ...prev, description: nextDescription };
+      });
+      return;
+    }
+
+    // Wait until buildings for the entity finished loading so edit mode
+    // does not wipe an existing tech-params block prematurely.
+    if (form.managedEntityId && isLoadingBuildings) {
+      return;
+    }
+
+    const selectedBuildings = entityBuildings.filter((building) =>
+      selectedBuildingIds.includes(building.id),
+    );
+    const block = buildPrzegladyTechParamsBlock(form.subcategory, selectedBuildings);
+
+    setForm((prev) => {
+      const nextDescription = applyTechParamsToDescription(prev.description, block);
+      if (nextDescription === prev.description) return prev;
+      return { ...prev, description: nextDescription };
+    });
+  }, [
+    form.category,
+    form.subcategory,
+    form.managedEntityId,
+    entityBuildings,
+    selectedBuildingIds,
+    isLoadingBuildings,
+  ]);
+
   const displayedErrors = showFieldErrors ? fieldErrors : {};
+
+  const toggleBuildingSelection = (buildingId: string, checked: boolean): void => {
+    setSelectedBuildingIds((prev) => {
+      if (checked) {
+        if (prev.includes(buildingId)) return prev;
+        return [...prev, buildingId];
+      }
+      return prev.filter((id) => id !== buildingId);
+    });
+  };
 
   const patchForm = (patch: Partial<TenderContestFormData>): void => {
     if (showFieldErrors) {
       setFieldErrors((prev) => clearTenderContestFieldErrorsForPatch(prev, patch));
     }
     setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const patchFormalRequirements = (
+    patch: Partial<FormalRequirements> | ((prev: FormalRequirements) => FormalRequirements),
+  ): void => {
+    setForm((prev) => {
+      const nextFormal =
+        typeof patch === 'function'
+          ? patch(prev.formalRequirements)
+          : { ...prev.formalRequirements, ...patch };
+      if (showFieldErrors) {
+        setFieldErrors((errors) =>
+          clearTenderContestFieldErrorsForPatch(errors, { formalRequirements: nextFormal }),
+        );
+      }
+      return { ...prev, formalRequirements: nextFormal };
+    });
   };
 
   const handleFileUpload = (accepted: File[], rejections: FileRejection[]): void => {
@@ -311,7 +455,7 @@ export function TenderContestForm({
     }
     setShowFieldErrors(false);
     setFieldErrors({});
-    await onSubmit(form, pendingFiles, keptDocuments, status);
+    await onSubmit(form, pendingFiles, keptDocuments, status, selectedBuildingIds);
   };
 
   const updateCriterion = (
@@ -481,7 +625,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label>Wspólnota / Spółdzielnia *</Label>
+            <Label>Nieruchomość *</Label>
             {isLoadingMeta ? (
               <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
             ) : managedEntities.length === 0 ? (
@@ -564,6 +708,67 @@ export function TenderContestForm({
               <ContestOfferFieldError message={displayedErrors.subcategory} />
             </div>
           </div>
+
+          {showPrzegladyBuildings ? (
+            <div>
+              <Label>Budynki do parametrów technicznych</Label>
+              {isLoadingBuildings ? (
+                <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
+              ) : entityBuildings.length === 0 ? (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Brak budynków dla wybranej nieruchomości. Dodaj je w Konto → Nieruchomości.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2 rounded-md border border-border p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setSelectedBuildingIds(entityBuildings.map((building) => building.id))
+                      }
+                    >
+                      Zaznacz wszystkie
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedBuildingIds([])}
+                    >
+                      Odznacz
+                    </Button>
+                  </div>
+                  <ul className="space-y-2">
+                    {entityBuildings.map((building) => {
+                      const checked = selectedBuildingIds.includes(building.id);
+                      return (
+                        <li key={building.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`contest-building-${building.id}`}
+                            checked={checked}
+                            onCheckedChange={(value) =>
+                              toggleBuildingSelection(building.id, value === true)
+                            }
+                          />
+                          <Label
+                            htmlFor={`contest-building-${building.id}`}
+                            className="font-normal cursor-pointer"
+                          >
+                            {building.name}
+                          </Label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    Wybrane budynki uzupełnią sekcję „Parametry techniczne” w opisie konkursu.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <div id="contest-documents">
             <Label className="text-base font-medium">Dokumentacja konkursowa *</Label>
@@ -716,6 +921,7 @@ export function TenderContestForm({
             <ScheduleDateOffsetChips
               offsets={EVALUATION_DAY_OFFSET_OPTIONS}
               disabled={!hasValidSubmissionDeadline || isSubmitting}
+              selectedOffsetDays={selectedEvaluationOffsetDays}
               onSelect={(days) => {
                 if (!hasValidSubmissionDeadline) return;
                 handleEvaluationDeadlineChange(
@@ -750,6 +956,7 @@ export function TenderContestForm({
             <ScheduleDateOffsetChips
               offsets={COMPLETION_DAY_OFFSET_OPTIONS}
               disabled={!hasValidEvaluationDeadline || isSubmitting}
+              selectedOffsetDays={selectedCompletionOffsetDays}
               onSelect={(days) => {
                 if (!form.evaluationDeadline) return;
                 patchForm({
@@ -940,23 +1147,43 @@ export function TenderContestForm({
             </Label>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <Checkbox
               id="req-lic"
               checked={form.formalRequirements.professionalLicenses}
               onCheckedChange={(c) =>
-                setForm((prev) => ({
-                  ...prev,
-                  formalRequirements: {
-                    ...prev.formalRequirements,
-                    professionalLicenses: c === true,
-                  },
-                }))
+                patchFormalRequirements({
+                  professionalLicenses: c === true,
+                  professionalLicenseTypes:
+                    c === true ? (form.formalRequirements.professionalLicenseTypes ?? []) : [],
+                })
               }
             />
-            <Label htmlFor="req-lic" className="font-normal">
-              Uprawnienia zawodowe
-            </Label>
+            <div className="flex-1 space-y-3">
+              <Label htmlFor="req-lic" className="font-normal">
+                Uprawnienia zawodowe
+              </Label>
+              {form.formalRequirements.professionalLicenses ? (
+                <div id="contest-professional-license-types" className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Zaznacz typy uprawnień wymagane od wykonawców składających oferty.
+                  </p>
+                  <ProfessionalQualificationTypePicker
+                    selected={form.formalRequirements.professionalLicenseTypes ?? []}
+                    onToggle={(id) => {
+                      patchFormalRequirements((prevFormal) => {
+                        const current = prevFormal.professionalLicenseTypes ?? [];
+                        const next = current.includes(id)
+                          ? current.filter((value) => value !== id)
+                          : [...current, id];
+                        return { ...prevFormal, professionalLicenseTypes: next };
+                      });
+                    }}
+                  />
+                  <ContestOfferFieldError message={displayedErrors.professionalLicenseTypes} />
+                </div>
+              ) : null}
+            </div>
           </div>
       </ContestFormSection>
 

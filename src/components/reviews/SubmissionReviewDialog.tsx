@@ -31,9 +31,9 @@ export function SubmissionReviewDialog({
 }: SubmissionReviewDialogProps): ReactElement {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Oceń Konkurs</DialogTitle>
+          <DialogTitle>Oceń konkurs</DialogTitle>
           <DialogDescription>
             {submissionTitle
               ? `Oceń konkurs: ${submissionTitle}`
@@ -44,6 +44,7 @@ export function SubmissionReviewDialog({
           jobId={jobId}
           managerCompanyId={managerCompanyId}
           managerCompanyName={managerCompanyName}
+          onCancel={() => onOpenChange(false)}
           onSubmitted={() => {
             onSubmitted?.();
             onOpenChange(false);

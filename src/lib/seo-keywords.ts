@@ -51,10 +51,23 @@ export const aboutKeywords = [
   'cyfryzacja konkursów ofert',
 ] as const
 
+export const pilotKeywords = [
+  'program pilotażowy vestiqo',
+  'pilotaż dla zarządców nieruchomości',
+  'pilotaż dla wykonawców',
+  'partnerzy pilotażu vestiqo',
+] as const
+
 export const newsKeywords = [
   'aktualności nieruchomości',
   'nowości vestiqo',
   'przetargi i konkursy ofert',
+] as const
+
+export const changelogKeywords = [
+  'co nowego vestiqo',
+  'historia zmian platformy',
+  'nowości dla zarządców i wykonawców',
 ] as const
 
 export const managerHelpKeywords = [

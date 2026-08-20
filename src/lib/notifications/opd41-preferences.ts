@@ -5,6 +5,7 @@ export interface InAppNotificationPreferences {
   contractorContestOfferAcceptedNotifications: boolean;
   contractorContestOfferRejectedNotifications: boolean;
   contractorContestAnswerNotifications: boolean;
+  contractorMatchedContestNotifications: boolean;
 }
 
 export const DEFAULT_IN_APP_NOTIFICATION_PREFERENCES: InAppNotificationPreferences = {
@@ -12,6 +13,7 @@ export const DEFAULT_IN_APP_NOTIFICATION_PREFERENCES: InAppNotificationPreferenc
   contractorContestOfferAcceptedNotifications: true,
   contractorContestOfferRejectedNotifications: true,
   contractorContestAnswerNotifications: true,
+  contractorMatchedContestNotifications: true,
 };
 
 export function mapInAppNotificationPreferences(
@@ -34,5 +36,7 @@ export function mapInAppNotificationPreferences(
       legacyResolution,
     contractorContestAnswerNotifications:
       row.contractor_contest_answer_notifications ?? true,
+    contractorMatchedContestNotifications:
+      row.contractor_matched_contest_notifications ?? true,
   };
 }

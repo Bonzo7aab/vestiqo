@@ -148,3 +148,19 @@ export const PROFESSIONAL_QUALIFICATION_GROUPS: ProfessionalQualificationGroup[]
 export const ALL_PROFESSIONAL_QUALIFICATION_IDS = PROFESSIONAL_QUALIFICATION_GROUPS.flatMap(g =>
   g.options.map(o => o.id),
 );
+
+const PROFESSIONAL_QUALIFICATION_LABEL_BY_ID: Record<string, string> = Object.fromEntries(
+  PROFESSIONAL_QUALIFICATION_GROUPS.flatMap((group) =>
+    group.options.map((option) => [option.id, option.label]),
+  ),
+);
+
+export function professionalQualificationLabel(id: string): string {
+  return PROFESSIONAL_QUALIFICATION_LABEL_BY_ID[id] ?? id;
+}
+
+export function parseProfessionalLicenseTypes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const allowed = new Set<string>(ALL_PROFESSIONAL_QUALIFICATION_IDS);
+  return raw.filter((id): id is string => typeof id === 'string' && allowed.has(id));
+}

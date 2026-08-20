@@ -8,6 +8,10 @@ import {
 } from '../admin/impersonation'
 import type { Database } from '../../types/database'
 import { supabaseCookieOptions } from './cookie-options'
+import {
+  contractorServicesGateSearch,
+  isContractorServicesGateExemptPath,
+} from '../contractor-services-gate'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -87,11 +91,25 @@ export async function updateSession(request: NextRequest) {
 
   // Ghost session: auth cookie present but profile gone (e.g. after account deletion).
   if (user) {
-    const { data: profile } = await supabase
+    let servicesGateEnabled = true
+    const firstProfile = await supabase
       .from('user_profiles')
-      .select('user_type, platform_role')
+      .select('user_type, platform_role, contractor_services_completed')
       .eq('id', user.id)
       .maybeSingle()
+
+    let profile = firstProfile.data
+    if (firstProfile.error) {
+      servicesGateEnabled = false
+      const fallback = await supabase
+        .from('user_profiles')
+        .select('user_type, platform_role')
+        .eq('id', user.id)
+        .maybeSingle()
+      profile = fallback.data
+        ? { ...fallback.data, contractor_services_completed: true }
+        : null
+    }
 
     if (!profile) {
       await supabase.auth.signOut({ scope: 'local' })
@@ -132,6 +150,22 @@ export async function updateSession(request: NextRequest) {
     const effectiveIsManager = isImpersonating
       ? impersonation.subjectUserType === 'manager'
       : isManager
+
+    if (
+      servicesGateEnabled &&
+      effectiveIsContractor &&
+      !routeAsAdmin &&
+      !isImpersonating &&
+      profile.contractor_services_completed !== true
+    ) {
+      const tab = request.nextUrl.searchParams.get('tab')
+      if (!isContractorServicesGateExemptPath(pathname, tab)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/konto'
+        url.search = contractorServicesGateSearch()
+        return NextResponse.redirect(url)
+      }
+    }
 
     const homePathFor = (() => {
       if (routeAsAdmin) return '/administracja'

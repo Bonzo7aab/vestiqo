@@ -166,29 +166,51 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
   },
   'przeglady-obsługa-techniczna': {
     slug: 'przeglady-obsługa-techniczna',
-    name: 'Przeglądy i Serwis',
-    shortName: 'Przeglądy i Serwis',
-    legacyNames: ['Przeglądy i Obsługa Techniczna', 'Przeglądy'],
+    name: 'Przeglądy',
+    shortName: 'Przeglądy',
+    legacyNames: [
+      'Przeglądy i Serwis',
+      'Przeglądy i Obsługa Techniczna',
+    ],
     color: '#0d9488',
     icon: ClipboardCheck,
-    description: 'Przeglądy techniczne, inspekcje, serwis urządzeń',
+    description: 'Przeglądy techniczne budynku i instalacji',
     subcategories: [
       {
-        slug: 'przeglady-ogolnobudowlane-konstrukcyjne',
-        name: 'Przeglądy budowlane',
+        slug: 'przeglad-gazowy-roczny',
+        name: 'Przegląd gazowy (roczny)',
+        legacyNames: ['Przeglądy instalacji gazowych (szczelność)'],
+      },
+      {
+        slug: 'przeglad-kominiarski-wentylacyjny-roczny',
+        name: 'Przegląd kominiarski i wentylacyjny (roczny)',
         legacyNames: [
+          'Kominiarz i wentylacja',
+          'Inspekcje kominiarskie i drożność wentylacji',
+        ],
+      },
+      {
+        slug: 'przeglad-ogolnobudowlany-roczny',
+        name: 'Przegląd ogólnobudowlany (roczny)',
+        legacyNames: [
+          'Przeglądy budowlane',
           'Przeglądy ogólnobudowlane i konstrukcyjne (roczne / 5-letnie)',
         ],
       },
       {
-        slug: 'inspekcje-kominiarskie-droznosc-wentylacji',
-        name: 'Kominiarz i wentylacja',
-        legacyNames: ['Inspekcje kominiarskie i drożność wentylacji'],
+        slug: 'przeglad-ogolnobudowlany-5-letni',
+        name: 'Przegląd ogólnobudowlany (5-letni)',
+        legacyNames: [],
       },
       {
-        slug: 'serwis-bram-szlabanow-automatyki',
-        name: 'Bramy i automatyka',
-        legacyNames: ['Serwis bram wjazdowych, szlabanów i automatyki'],
+        slug: 'przeglad-elektryczny-odgromowy-5-letni',
+        name: 'Przegląd elektryczny i odgromowy (5-letni)',
+        legacyNames: ['Przeglądy instalacji elektrycznych i piorunochronnych'],
+      },
+      {
+        slug: 'przeglad-ppoz-hydrantow-roczny',
+        name: 'Przegląd instalacji Ppoż. i hydrantów (roczny)',
+        legacyNames: [],
       },
     ],
   },

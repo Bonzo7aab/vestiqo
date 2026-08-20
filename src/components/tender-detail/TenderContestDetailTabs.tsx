@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   Building2,
@@ -20,6 +21,7 @@ import {
   getCategoryDisplayName,
   getSubcategoryDisplayName,
 } from '../../lib/config/categoryConfig';
+import { routes } from '../../lib/routes';
 import { ContestScheduleTimeline } from './ContestScheduleTimeline';
 import {
   ContestDetailCallout,
@@ -94,7 +96,21 @@ export function TenderContestDetailTabs({
                 />
               ) : null}
               {contestInfo.entityName ? (
-                <ContestDetailField label="Wspólnota / Spółdzielnia" value={contestInfo.entityName} />
+                <ContestDetailField
+                  label="Nieruchomość"
+                  value={
+                    contestInfo.managedEntityId ? (
+                      <Link
+                        href={routes.uzytkownik(contestInfo.managedEntityId)}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {contestInfo.entityName}
+                      </Link>
+                    ) : (
+                      contestInfo.entityName
+                    )
+                  }
+                />
               ) : null}
               {contestInfo.entityAddress ? (
                 <ContestDetailField label="Adres obiektu" value={contestInfo.entityAddress} />
@@ -111,12 +127,14 @@ export function TenderContestDetailTabs({
               <ContestDetailDocumentList>
                 {contestInfo.documents.map((doc) => (
                   <ContestDetailDocumentItem key={doc.id}>
-                    <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <StorageDocumentLink
                       name={doc.name}
                       path={doc.path}
                       url={doc.url}
-                      className="min-w-0 flex-1 text-sm font-medium"
+                      className="w-full flex-1"
+                      leadingIcon={
+                        <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      }
                     />
                   </ContestDetailDocumentItem>
                 ))}

@@ -60,6 +60,7 @@ export function ContestOfferFormalDocBlock({
   const isStaged = Boolean(stagedName);
   const previewUrl = isStaged ? undefined : attached?.url;
   const showProfileOptions = supportsContestOfferProfileAutofill(doc.requirementKey);
+  const showProfileCta = showProfileOptions && (doc.missing || doc.profileBlocked);
 
   return (
     <div
@@ -68,10 +69,26 @@ export function ContestOfferFormalDocBlock({
     >
       <div>
         <ContestOfferRequiredLabel>{doc.label}</ContestOfferRequiredLabel>
+        {doc.hint ? (
+          <p className="mt-1 text-xs text-muted-foreground">{doc.hint}</p>
+        ) : null}
 
-        {!isAttached && showProfileOptions && doc.missing ? (
+        {showProfileCta && !isAttached && doc.missing ? (
           <p className="mb-3 mt-1 text-sm text-muted-foreground">
             Brak tego dokumentu w profilu.{' '}
+            <Link
+              href={CONTRACTOR_VERIFICATION_DOCUMENTS_PATH}
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              Uzupełnij w profilu
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </p>
+        ) : null}
+
+        {showProfileCta && (isAttached || !doc.missing) && doc.profileBlocked ? (
+          <p className="mb-3 mt-1 text-sm text-muted-foreground">
+            Wymagania konkursu nie zgadzają się z profilem.{' '}
             <Link
               href={CONTRACTOR_VERIFICATION_DOCUMENTS_PATH}
               className="inline-flex items-center gap-1 text-primary hover:underline"

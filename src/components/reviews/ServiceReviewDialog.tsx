@@ -29,17 +29,19 @@ export function ServiceReviewDialog({
 }: ServiceReviewDialogProps): ReactElement {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Oceń Konkurs: {contractorName}</DialogTitle>
+          <DialogTitle>Oceń konkurs</DialogTitle>
           <DialogDescription>
-            Oceń realizację konkursy przez wykonawcę — gwiazdki, komentarz i opcjonalne zdjęcia.
+            Oceń realizację konkursu przez {contractorName} — gwiazdki, komentarz i opcjonalne
+            zdjęcia.
           </DialogDescription>
         </DialogHeader>
         <ServiceReviewPanel
           jobId={jobId}
           contractorCompanyId={contractorCompanyId}
           contractorName={contractorName}
+          onCancel={() => onOpenChange(false)}
           onSubmitted={() => {
             onSubmitted?.();
             onOpenChange(false);

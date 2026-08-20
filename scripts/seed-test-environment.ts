@@ -159,6 +159,7 @@ async function ensureProfile(
       account_role: seed.accountRole,
       profile_completed: true,
       onboarding_completed: true,
+      contractor_services_completed: seed.userType === 'contractor',
       is_verified: true,
       verification_document_paths: {},
       verification_document_reviews: {},
@@ -184,6 +185,14 @@ async function ensureCompany(
 
   const existingCompanyId = links?.[0]?.company_id as string | undefined;
   if (existingCompanyId) {
+    if (seed.userType === 'contractor') {
+      await admin
+        .from('companies')
+        .update({
+          metadata: { service_subcategory_slugs: ['remonty-dachow-izolacje'] },
+        })
+        .eq('id', existingCompanyId);
+    }
     console.log(`  company ok: ${seed.companyName} (${existingCompanyId})`);
     return existingCompanyId;
   }
@@ -196,6 +205,9 @@ async function ensureCompany(
       city: 'Warszawa',
       is_public: true,
       is_verified: true,
+      ...(seed.userType === 'contractor'
+        ? { metadata: { service_subcategory_slugs: ['remonty-dachow-izolacje'] } }
+        : {}),
     })
     .select('id')
     .single();

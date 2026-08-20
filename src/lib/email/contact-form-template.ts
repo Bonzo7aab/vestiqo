@@ -3,6 +3,7 @@
  * and `supabase/templates/confirmation.html`. Sent via Resend.
  */
 export const CONTACT_FORM_EMAIL_SUBJECT_PREFIX = '[Kontakt Vestiqo]';
+export const PILOT_FORM_EMAIL_SUBJECT_PREFIX = '[Pilotaż Vestiqo]';
 
 export interface ContactFormEmailParams {
   roleLabel: string;
@@ -38,6 +39,10 @@ function fieldRow(label: string, value: string, options?: { multiline?: boolean 
 
 export function buildContactFormEmailSubject(subject: string): string {
   return `${CONTACT_FORM_EMAIL_SUBJECT_PREFIX} ${subject}`;
+}
+
+export function buildPilotFormEmailSubject(subject: string): string {
+  return `${PILOT_FORM_EMAIL_SUBJECT_PREFIX} ${subject}`;
 }
 
 export function buildContactFormEmailHtml(params: ContactFormEmailParams): string {

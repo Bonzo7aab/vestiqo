@@ -174,6 +174,17 @@ export function InAppNotificationSettingsPanel({
                     }))
                   }
                 />
+                <NotificationToggleField
+                  label="Dopasowane konkursy"
+                  description="Powiadomimy Cię, gdy Zarządca opublikuje konkurs w kategorii zgodnej z Twoimi usługami."
+                  checked={preferences.contractorMatchedContestNotifications}
+                  onChange={(checked) =>
+                    setPreferences((prev) => ({
+                      ...prev,
+                      contractorMatchedContestNotifications: checked,
+                    }))
+                  }
+                />
               </>
             )}
           </div>

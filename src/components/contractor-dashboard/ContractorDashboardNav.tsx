@@ -7,7 +7,7 @@ import { cn } from '../ui/utils';
 const tabs = [
   { id: 'offers', label: 'Moje Oferty', href: '/panel-wykonawcy/aplikacje' },
   { id: 'orders', label: 'Zamówienia', href: '/panel-wykonawcy/zamowienia' },
-  { id: 'favorites', label: 'Zapisane konkursy', href: '/panel-wykonawcy/ulubione' },
+  { id: 'favorites', label: 'Zapisane', href: '/panel-wykonawcy/ulubione' },
   { id: 'ratings', label: 'Ocena', href: '/panel-wykonawcy/oceny' },
   { id: 'services', label: 'Usługi', href: '/panel-wykonawcy/cennik' },
 ];

@@ -16,6 +16,16 @@ import {
 } from '../../types/contest-offer';
 import type { SiteVisitType } from '../../types/tender-contest';
 import { uploadContestOfferStagedFiles } from '../contest-offer/upload-staged-offer-files';
+import {
+  CONTEST_OFFER_ERRORS,
+  contestOfferErrorFromUnknown,
+  isContestOfferUniqueConflict,
+} from '../contest-offer/error-messages';
+import { loadContractorFormalProfileSnapshot } from '../contest-offer/load-formal-profile-snapshot';
+import {
+  validateProfileFormalRequirements,
+  type ContractorFormalProfileSnapshot,
+} from '../contest-offer/validate-profile-formal-requirements';
 
 export type TenderBidOfferState = 'none' | 'draft' | 'submitted';
 
@@ -53,9 +63,9 @@ async function ensureContractorCanBid(
   if (companyError || !company) {
     return {
       error: new Error(
-        companyError instanceof Error
-          ? companyError.message
-          : 'Contractor must have a company to submit bids',
+        companyError
+          ? contestOfferErrorFromUnknown(companyError)
+          : CONTEST_OFFER_ERRORS.missingCompany,
       ) as PostgrestError,
     };
   }
@@ -98,6 +108,7 @@ function buildRowFromForm(
     currency: 'PLN',
     proposed_start_date: form.proposedCompletionDate || null,
     proposed_timeline: timeline,
+    // Legacy text column; new offers store references as formalAttachments.references (OPD-150).
     experience_summary: form.referencesText.trim() || null,
     attachments: attachments.length > 0 ? attachments : null,
     offer_details: details,
@@ -112,7 +123,6 @@ export interface ContestOfferFieldErrors {
   offerDocumentation?: string;
   proposedCompletionDate?: string;
   siteVisitConfirmed?: string;
-  referencesText?: string;
   netPrice?: string;
   warrantyMonths?: string;
   guaranteeMonths?: string;
@@ -134,7 +144,6 @@ export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boo
     errors.offerDocumentation ||
     errors.proposedCompletionDate ||
     errors.siteVisitConfirmed ||
-    errors.referencesText ||
     errors.netPrice ||
     errors.warrantyMonths ||
     errors.guaranteeMonths ||
@@ -152,26 +161,25 @@ function hasOfferDocumentation(form: ContestOfferFormData): boolean {
   return offerDocs.length > 0 || staged > 0;
 }
 
+/**
+ * Previously remapped `other` → `offerDocumentation` for older drafts.
+ * That incorrectly moved Wymogi optional uploads onto step 1 after draft save (OPD-150).
+ * Kept as a no-op so call sites remain stable.
+ */
 export function migrateLegacyOfferAttachments(form: ContestOfferFormData): ContestOfferFormData {
-  const hasOfferDocKey = form.extraAttachments.some((a) => a.requirementKey === 'offerDocumentation');
-  if (hasOfferDocKey) return form;
+  return form;
+}
 
-  const extraAttachments = form.extraAttachments.map((a) =>
-    a.requirementKey === 'other' ? { ...a, requirementKey: 'offerDocumentation' as const } : a,
-  );
-  const stagedFiles = { ...form.stagedFiles };
-  if (stagedFiles.other?.length && !stagedFiles.offerDocumentation?.length) {
-    stagedFiles.offerDocumentation = stagedFiles.other;
-    delete stagedFiles.other;
-  }
-
-  return { ...form, extraAttachments, stagedFiles };
+/** Strip File objects so the form can be passed to server actions. */
+export function toSerializableContestOfferForm(form: ContestOfferFormData): ContestOfferFormData {
+  return { ...form, stagedFiles: {} };
 }
 
 export function getContestOfferStepFieldErrors(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): ContestOfferFieldErrors {
   const errors: ContestOfferFieldErrors = {};
 
@@ -196,12 +204,6 @@ export function getContestOfferStepFieldErrors(
     const formal: Partial<Record<FormalRequirementKey, string>> = {};
     const required = requiredFormalKeys(contestInfo.formalRequirements);
     for (const key of required) {
-      if (key === 'references') {
-        if (!form.referencesText.trim()) {
-          errors.referencesText = 'Uzupełnij wykaz zrealizowanych prac';
-        }
-        continue;
-      }
       const attached = form.formalAttachments[key];
       const staged = form.stagedFiles[key]?.length;
       if (!attached && !staged) {
@@ -210,6 +212,15 @@ export function getContestOfferStepFieldErrors(
     }
     if (Object.keys(formal).length > 0) {
       errors.formal = formal;
+    }
+    if (profileSnapshot) {
+      const profileErrors = validateProfileFormalRequirements(
+        contestInfo.formalRequirements,
+        profileSnapshot,
+      );
+      if (Object.keys(profileErrors).length > 0) {
+        errors.formal = { ...formal, ...profileErrors };
+      }
     }
     return errors;
   }
@@ -248,11 +259,12 @@ export function getContestOfferStepFieldErrors(
 export function getContestOfferAllFieldErrors(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): ContestOfferFieldErrors {
-  const step1 = getContestOfferStepFieldErrors(1, form, contestInfo);
-  const step2 = getContestOfferStepFieldErrors(2, form, contestInfo);
-  const step3 = getContestOfferStepFieldErrors(3, form, contestInfo);
-  const step4 = getContestOfferStepFieldErrors(4, form, contestInfo);
+  const step1 = getContestOfferStepFieldErrors(1, form, contestInfo, profileSnapshot);
+  const step2 = getContestOfferStepFieldErrors(2, form, contestInfo, profileSnapshot);
+  const step3 = getContestOfferStepFieldErrors(3, form, contestInfo, profileSnapshot);
+  const step4 = getContestOfferStepFieldErrors(4, form, contestInfo, profileSnapshot);
 
   const formal = { ...step3.formal };
 
@@ -260,7 +272,6 @@ export function getContestOfferAllFieldErrors(
     offerDocumentation: step1.offerDocumentation,
     proposedCompletionDate: step2.proposedCompletionDate,
     siteVisitConfirmed: step2.siteVisitConfirmed,
-    referencesText: step3.referencesText,
     netPrice: step4.netPrice,
     warrantyMonths: step4.warrantyMonths,
     guaranteeMonths: step4.guaranteeMonths,
@@ -284,7 +295,6 @@ export function filterFieldErrorsForStep(
       };
     case 3:
       return {
-        referencesText: errors.referencesText,
         formal: errors.formal,
       };
     case 4:
@@ -305,7 +315,7 @@ export function firstContestOfferStepWithErrors(
 ): ContestOfferWizardStep | null {
   if (errors.offerDocumentation) return 1;
   if (errors.proposedCompletionDate || errors.siteVisitConfirmed) return 2;
-  if (errors.referencesText || (errors.formal && Object.keys(errors.formal).length > 0)) {
+  if (errors.formal && Object.keys(errors.formal).length > 0) {
     return 3;
   }
   if (
@@ -324,7 +334,6 @@ function firstFieldErrorMessage(errors: ContestOfferFieldErrors): string | null 
   if (errors.offerDocumentation) return errors.offerDocumentation;
   if (errors.proposedCompletionDate) return errors.proposedCompletionDate;
   if (errors.siteVisitConfirmed) return errors.siteVisitConfirmed;
-  if (errors.referencesText) return errors.referencesText;
   if (errors.formal) {
     const first = Object.values(errors.formal)[0];
     if (first) return first;
@@ -341,9 +350,6 @@ export function isFormalRequirementComplete(
   form: ContestOfferFormData,
   key: FormalRequirementKey,
 ): boolean {
-  if (key === 'references') {
-    return form.referencesText.trim().length > 0;
-  }
   return Boolean(form.formalAttachments[key] || form.stagedFiles[key]?.length);
 }
 
@@ -360,16 +366,18 @@ export function validateContestOfferStep(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): string | null {
-  const errors = getContestOfferStepFieldErrors(step, form, contestInfo);
+  const errors = getContestOfferStepFieldErrors(step, form, contestInfo, profileSnapshot);
   return firstFieldErrorMessage(errors);
 }
 
 export function validateContestOfferSubmit(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
+  profileSnapshot?: ContractorFormalProfileSnapshot | null,
 ): string | null {
-  const errors = getContestOfferAllFieldErrors(form, contestInfo);
+  const errors = getContestOfferAllFieldErrors(form, contestInfo, profileSnapshot);
   return firstFieldErrorMessage(errors);
 }
 
@@ -415,6 +423,64 @@ export async function fetchTenderBidDraft(
   return { data: null, error: null };
 }
 
+function userFacingOfferError(error: unknown): PostgrestError {
+  return new Error(contestOfferErrorFromUnknown(error)) as PostgrestError;
+}
+
+async function insertOfferRow(
+  supabase: SupabaseClient<Database>,
+  tenderId: string,
+  contractorId: string,
+  companyId: string,
+  row: Record<string, unknown>,
+): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('contest_offers')
+    .insert({
+      contest_id: tenderId,
+      contractor_id: contractorId,
+      company_id: companyId,
+      ...row,
+    })
+    .select()
+    .single();
+
+  if (!error) {
+    return { data: data as TenderBidRowLite, error: null };
+  }
+
+  if (!isContestOfferUniqueConflict(error as { code?: string; message?: string })) {
+    return { data: null, error: userFacingOfferError(error) };
+  }
+
+  const { state, bid } = await fetchTenderBidOfferState(supabase, tenderId, contractorId);
+  if (state === 'submitted') {
+    return {
+      data: null,
+      error: new Error(CONTEST_OFFER_ERRORS.alreadySubmitted) as PostgrestError,
+    };
+  }
+  if (state === 'draft' && bid?.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: updated, error: updateError } = await (supabase as any)
+      .from('contest_offers')
+      .update(row)
+      .eq('id', bid.id)
+      .select()
+      .single();
+    if (updateError) {
+      return { data: null, error: userFacingOfferError(updateError) };
+    }
+    return { data: updated as TenderBidRowLite, error: null };
+  }
+
+  return {
+    data: null,
+    error: new Error(CONTEST_OFFER_ERRORS.uniqueConflict) as PostgrestError,
+  };
+}
+
 export async function upsertTenderBidDraft(
   supabase: SupabaseClient<Database>,
   tenderId: string,
@@ -432,7 +498,7 @@ export async function upsertTenderBidDraft(
     if (state === 'submitted') {
       return {
         data: null,
-        error: new Error('Oferta została już złożona.') as PostgrestError,
+        error: new Error(CONTEST_OFFER_ERRORS.alreadySubmitted) as PostgrestError,
       };
     }
 
@@ -457,31 +523,16 @@ export async function upsertTenderBidDraft(
         .select()
         .single();
       if (error) {
-        return { data: null, error: error as PostgrestError };
+        return { data: null, error: userFacingOfferError(error) };
       }
       return { data: data as TenderBidRowLite, error: null };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from('contest_offers')
-      .insert({
-        contest_id: tenderId,
-        contractor_id: contractorId,
-        company_id: access.companyId,
-        ...row,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { data: null, error: error as PostgrestError };
-    }
-    return { data: data as TenderBidRowLite, error: null };
+    return insertOfferRow(supabase, tenderId, contractorId, access.companyId, row);
   } catch (err) {
     return {
       data: null,
-      error: (err instanceof Error ? err : new Error(String(err))) as PostgrestError,
+      error: userFacingOfferError(err),
     };
   }
 }
@@ -569,7 +620,8 @@ export async function submitTenderBid(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
-  const validationError = validateContestOfferSubmit(form, contestInfo);
+  const profileSnapshot = await loadContractorFormalProfileSnapshot(supabase, contractorId);
+  const validationError = validateContestOfferSubmit(form, contestInfo, profileSnapshot);
   if (validationError) {
     return { data: null, error: new Error(validationError) as PostgrestError };
   }
@@ -607,9 +659,7 @@ export async function submitTenderBid(
     if (state === 'submitted') {
       return {
         data: null,
-        error: new Error(
-          'Już złożyłeś ofertę na ten konkurs. Nie możesz złożyć więcej niż jednej oferty.',
-        ) as PostgrestError,
+        error: new Error(CONTEST_OFFER_ERRORS.alreadySubmitted) as PostgrestError,
       };
     }
 
@@ -621,28 +671,15 @@ export async function submitTenderBid(
         .eq('id', bid.id)
         .select()
         .single();
-      if (error) return { data: null, error: error as PostgrestError };
+      if (error) return { data: null, error: userFacingOfferError(error) };
       return { data: data as TenderBidRowLite, error: null };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from('contest_offers')
-      .insert({
-        contest_id: tenderId,
-        contractor_id: contractorId,
-        company_id: access.companyId,
-        ...row,
-      })
-      .select()
-      .single();
-
-    if (error) return { data: null, error: error as PostgrestError };
-    return { data: data as TenderBidRowLite, error: null };
+    return insertOfferRow(supabase, tenderId, contractorId, access.companyId, row);
   } catch (err) {
     return {
       data: null,
-      error: (err instanceof Error ? err : new Error(String(err))) as PostgrestError,
+      error: userFacingOfferError(err),
     };
   }
 }

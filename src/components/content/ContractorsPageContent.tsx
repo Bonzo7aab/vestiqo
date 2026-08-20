@@ -61,6 +61,11 @@ export function ContractorsPageContent() {
             </Link>
           </li>
           <li>
+            <Link href={routes.programPilotazowy} className="text-primary hover:underline">
+              Program pilotażowy — dołącz jako wykonawca
+            </Link>
+          </li>
+          <li>
             <Link href={routes.rejestracja} className="text-primary hover:underline">
               Rejestracja firmy w Vestiqo
             </Link>

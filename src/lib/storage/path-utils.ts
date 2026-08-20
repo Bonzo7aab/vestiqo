@@ -56,10 +56,12 @@ export function normalizeStorageObjectPath(path: string, bucket: StorageBucket):
 
 export function resolveStorageBucket(path: string): StorageBucket {
   const normalized = path.replace(/^\/+/, '');
-  if (
-    (normalized.includes('/contests/') || normalized.includes('/tenders/')) &&
-    !normalized.includes('/zlecenia/')
-  ) {
+  // Contest documentation lives in job-attachments (`{userId}/contests/...`).
+  if (normalized.includes('/contests/') && !normalized.includes('/zlecenia/')) {
+    return STORAGE_BUCKETS.JOB_ATTACHMENTS;
+  }
+  // Offer (bid) attachments live in bid-attachments (`{userId}/tenders/...`).
+  if (normalized.includes('/tenders/') && !normalized.includes('/zlecenia/')) {
     return STORAGE_BUCKETS.BID_ATTACHMENTS;
   }
   if (normalized.includes('/weryfikacja/')) {

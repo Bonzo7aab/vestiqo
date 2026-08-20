@@ -1,31 +1,39 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Edit2, Loader2, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { CategoryDirectoryPicker } from './CategoryDirectoryPicker';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
+import { Alert, AlertDescription } from '../ui/alert';
 import { updateContractorServiceSubcategories } from '../../lib/database/contractor-service-categories';
 import { kontoCompanyDataHref } from '../../lib/konto-tabs';
+import { routes } from '../../lib/routes';
 
 interface ContractorServicesTabProps {
   companyId: string | null;
   initialSubcategorySlugs?: string[];
+  isOnboarding?: boolean;
+  lockToServices?: boolean;
 }
 
 export function ContractorServicesTab({
   companyId,
   initialSubcategorySlugs = [],
+  isOnboarding = false,
+  lockToServices = false,
 }: ContractorServicesTabProps) {
+  const router = useRouter();
   const [savedSlugs, setSavedSlugs] = useState<Set<string>>(
     () => new Set(initialSubcategorySlugs),
   );
   const [draftSlugs, setDraftSlugs] = useState<Set<string>>(
     () => new Set(initialSubcategorySlugs),
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isOnboarding || lockToServices);
   const [saving, setSaving] = useState(false);
 
   const handleToggle = useCallback((slug: string) => {
@@ -51,6 +59,11 @@ export function ContractorServicesTab({
     const previous = new Set(savedSlugs);
     const next = [...draftSlugs];
 
+    if (next.length === 0) {
+      toast.error('Wybierz przynajmniej jedną usługę');
+      return;
+    }
+
     setSaving(true);
 
     const { error } = await updateContractorServiceSubcategories(companyId, next);
@@ -64,13 +77,20 @@ export function ContractorServicesTab({
       setDraftSlugs(saved);
       setIsEditing(false);
       toast.success('Zapisano usługi');
+      if (isOnboarding) {
+        router.push(routes.rejestracjaWyborWeryfikacji);
+      } else if (lockToServices) {
+        router.push(routes.home);
+        router.refresh();
+      }
     }
 
     setSaving(false);
-  }, [companyId, draftSlugs, savedSlugs, saving]);
+  }, [companyId, draftSlugs, isOnboarding, lockToServices, router, savedSlugs, saving]);
 
   const activeSlugs = isEditing ? draftSlugs : savedSlugs;
   const selectedServicesCount = activeSlugs.size;
+  const showRequiredBanner = isOnboarding || lockToServices;
 
   if (!companyId) {
     return (
@@ -89,7 +109,16 @@ export function ContractorServicesTab({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="contractor-services-tab">
+      {showRequiredBanner ? (
+        <Alert data-testid="contractor-services-onboarding-banner">
+          <AlertDescription>
+            Wybierz przynajmniej jedną usługę, aby korzystać z platformy. Bez tego nie
+            dopasujemy konkursów do Twojej firmy.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-brand-navy">
@@ -113,11 +142,18 @@ export function ContractorServicesTab({
             </Button>
           ) : (
             <>
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={saving}>
-                <X className="mr-2 h-4 w-4" />
-                Anuluj
-              </Button>
-              <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
+              {!lockToServices && !isOnboarding ? (
+                <Button variant="outline" size="sm" onClick={handleCancel} disabled={saving}>
+                  <X className="mr-2 h-4 w-4" />
+                  Anuluj
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                onClick={() => void handleSave()}
+                disabled={saving}
+                data-testid="contractor-services-save"
+              >
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
