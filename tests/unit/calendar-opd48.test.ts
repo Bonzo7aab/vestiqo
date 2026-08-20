@@ -164,6 +164,10 @@ assert.deepEqual(nearestVisible, [
   '2026-08-18',
   '2026-08-19',
 ]);
+assert.deepEqual(
+  headerNearestVisibleIsoDates(parseIsoDateLocal('2026-08-14') ?? friday),
+  nearestVisible,
+);
 assert.equal(polishWeekdayShort(friday), 'Pt');
 
 const headerStrip = selectHeaderNearestStrip(events, friday);

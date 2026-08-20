@@ -7,7 +7,7 @@ import {
   fetchPublicEntityContests,
   type PublicEntityContest,
 } from '../../lib/database/public-entity-contests';
-import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
+import type { PublicManagedHousingEntity } from '../../lib/database/public-managed-housing-entity';
 import { HousingEntityContestsTable } from './HousingEntityContestsTable';
 import { HousingEntityProfileHeader } from './HousingEntityProfileHeader';
 
@@ -18,7 +18,7 @@ interface HousingEntityProfilePageProps {
 export function HousingEntityProfilePage({
   entityId,
 }: HousingEntityProfilePageProps): React.ReactElement {
-  const [entity, setEntity] = useState<ManagedHousingEntity | null>(null);
+  const [entity, setEntity] = useState<PublicManagedHousingEntity | null>(null);
   const [contests, setContests] = useState<PublicEntityContest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
