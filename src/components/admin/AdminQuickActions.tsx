@@ -3,6 +3,7 @@ import {
   Building2,
   ClipboardCheck,
   FileWarning,
+  Flag,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -39,6 +40,12 @@ const actions: QuickAction[] = [
     label: 'Ustawienia',
     description: 'Konfiguruj rejestrację i wysyłaj komunikaty systemowe do użytkowników.',
     icon: Settings,
+  },
+  {
+    href: '/administracja/flagi',
+    label: 'Flagi funkcji',
+    description: 'Włączaj i wyłączaj funkcje platformy (Cloudflare Flagship) dla tego środowiska.',
+    icon: Flag,
   },
 ];
 

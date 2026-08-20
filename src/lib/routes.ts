@@ -73,6 +73,7 @@ export const routes = {
   administracjaWeryfikacjaUzytkownik: (userId: string) =>
     `/administracja/weryfikacja/${userId}` as const,
   administracjaUstawienia: '/administracja/ustawienia',
+  administracjaFlagi: '/administracja/flagi',
   administracjaOferty: '/administracja/oferty',
   administracjaZgloszenia: '/administracja/zgloszenia',
   authAktualizacjaHasla: '/auth/aktualizacja-hasla',

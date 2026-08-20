@@ -120,9 +120,20 @@ Buckets `*-test` exist in Cloudflare. Wire them as follows:
 
 Optional overrides (instead of suffix): `R2_BUCKET_JOB_ATTACHMENTS`, `R2_BUCKET_BUILDING_IMAGES`, `R2_BUCKET_BID_ATTACHMENTS`, `R2_BUCKET_VERIFICATION_DOCUMENTS`.
 
-### Email / analytics
+### Email / analytics / feature flags
 
-Resend, PostHog, and Flagship may still be shared with prod. Avoid bulk mail from Preview; filter analytics by `VERCEL_ENV=preview` if needed.
+Resend and PostHog may still be shared with prod. Avoid bulk mail from Preview; filter analytics by `VERCEL_ENV=preview` if needed.
+
+**Flagship** uses a separate app per environment (same flag keys, different `FLAGSHIP_APP_ID`):
+
+| Environment | Flagship app |
+|-------------|----------------|
+| **Production** | existing prod app (e.g. `vestiqo`) |
+| **Preview / Development / local** | `vestiqo-preview` (create in Cloudflare if missing) |
+
+Set `FLAGSHIP_APP_ID` per Vercel environment. The API token needs **Flagship Read** (evaluate) and **Flagship Write** (admin toggles on `/administracja/flagi`). Admins toggle only the app wired to that deployment — Preview cannot change production flags.
+
+Boolean flags (`orders`, `contractor-services`, `calendar`, and the others in `src/lib/flagship/keys.ts`): variants `on=true` / `off=false`. When enabled with no targeting rules, `default_variation` must be `on`. Changes can take up to ~30 seconds to propagate.
 
 ## Quick recipes
 
