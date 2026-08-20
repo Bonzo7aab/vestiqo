@@ -5,6 +5,11 @@ import type {
   ManagedHousingEntityFormData,
 } from '../../types/managed-housing-entity';
 import { normalizeNip } from '../gus/nip';
+import {
+  PUBLIC_MANAGED_HOUSING_ENTITY_SELECT,
+  toPublicManagedHousingEntity,
+  type PublicManagedHousingEntity,
+} from './public-managed-housing-entity';
 
 export async function fetchManagerHousingEntities(
   supabase: SupabaseClient<Database>,
@@ -211,7 +216,7 @@ export async function deleteManagedHousingEntity(
 export async function fetchManagedHousingEntityById(
   supabase: SupabaseClient<Database>,
   entityId: string,
-): Promise<{ data: ManagedHousingEntity | null; error: PostgrestError | null }> {
+): Promise<{ data: PublicManagedHousingEntity | null; error: PostgrestError | null }> {
   const id = entityId?.trim();
   if (!id) {
     return { data: null, error: null };
@@ -220,7 +225,7 @@ export async function fetchManagedHousingEntityById(
   try {
     const { data, error } = await supabase
       .from('managed_housing_entities')
-      .select('*')
+      .select(PUBLIC_MANAGED_HOUSING_ENTITY_SELECT)
       .eq('id', id)
       .maybeSingle();
 
@@ -228,7 +233,7 @@ export async function fetchManagedHousingEntityById(
       return { data: null, error };
     }
 
-    return { data: (data as ManagedHousingEntity) ?? null, error: null };
+    return { data: toPublicManagedHousingEntity(data), error: null };
   } catch (err) {
     console.error('Error fetching managed housing entity by id:', err);
     return { data: null, error: err as PostgrestError };
@@ -241,7 +246,7 @@ export async function fetchManagedHousingEntityById(
 export async function fetchManagedHousingEntitiesByIds(
   supabase: SupabaseClient<Database>,
   entityIds: string[],
-): Promise<{ data: ManagedHousingEntity[]; error: PostgrestError | null }> {
+): Promise<{ data: PublicManagedHousingEntity[]; error: PostgrestError | null }> {
   if (!entityIds.length) {
     return { data: [], error: null };
   }
@@ -249,14 +254,19 @@ export async function fetchManagedHousingEntitiesByIds(
   try {
     const { data, error } = await supabase
       .from('managed_housing_entities')
-      .select('*')
+      .select(PUBLIC_MANAGED_HOUSING_ENTITY_SELECT)
       .in('id', entityIds);
 
     if (error) {
       return { data: [], error };
     }
 
-    return { data: (data as ManagedHousingEntity[]) ?? [], error: null };
+    return {
+      data: ((data ?? []) as unknown[])
+        .map(toPublicManagedHousingEntity)
+        .filter((entity): entity is PublicManagedHousingEntity => entity !== null),
+      error: null,
+    };
   } catch (err) {
     console.error('Error fetching managed housing entities by ids:', err);
     return { data: [], error: err as PostgrestError };

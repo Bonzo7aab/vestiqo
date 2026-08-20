@@ -20,6 +20,7 @@ export async function HeaderNearestEventsLoader({
   userId,
 }: HeaderNearestEventsLoaderProps) {
   const supabase = await createClient();
+  const todayIso = isoDateInTimeZone(CALENDAR_TIME_ZONE);
   let eventDates: string[] = [];
   let dayEvents: HeaderStripEventPreview[] = [];
   let lastPastEvent: HeaderStripEventPreview | null = null;
@@ -29,8 +30,7 @@ export async function HeaderNearestEventsLoader({
     const { data: company } = await fetchUserPrimaryCompany(supabase, userId);
     if (company) {
       const events = await fetchManagerCalendarEvents(supabase, company.id);
-      const today =
-        parseIsoDateLocal(isoDateInTimeZone(CALENDAR_TIME_ZONE)) ?? new Date();
+      const today = parseIsoDateLocal(todayIso) ?? new Date();
       const model = selectHeaderNearestStrip(events, today);
       eventDates = model.eventDates;
       dayEvents = model.dayEvents;
@@ -43,6 +43,7 @@ export async function HeaderNearestEventsLoader({
 
   return (
     <HeaderNearestEventsStrip
+      todayIso={todayIso}
       eventDates={eventDates}
       dayEvents={dayEvents}
       lastPastEvent={lastPastEvent}

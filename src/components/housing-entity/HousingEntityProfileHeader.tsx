@@ -7,10 +7,8 @@ import { toast } from 'sonner';
 import { useUserProfile } from '../../contexts/AuthContext';
 import { createClient } from '../../lib/supabase/client';
 import { routes } from '../../lib/routes';
-import {
-  formatManagedHousingEntityType,
-  type ManagedHousingEntity,
-} from '../../types/managed-housing-entity';
+import { formatManagedHousingEntityType } from '../../types/managed-housing-entity';
+import type { PublicManagedHousingEntity } from '../../lib/database/public-managed-housing-entity';
 import {
   addBookmark,
   isBookmarked,
@@ -21,7 +19,7 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { cn } from '../ui/utils';
 
 interface HousingEntityProfileHeaderProps {
-  entity: ManagedHousingEntity;
+  entity: PublicManagedHousingEntity;
 }
 
 export function HousingEntityProfileHeader({

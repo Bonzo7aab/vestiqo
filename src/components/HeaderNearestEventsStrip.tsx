@@ -13,13 +13,13 @@ import {
   headerNearestVisibleIsoDates,
   parseIsoDateLocal,
   polishWeekdayShort,
-  toIsoDate,
 } from '../lib/calendar/dates';
 import { routes } from '../lib/routes';
 import { calendarKindChipClass } from './manager-dashboard/ManagerKalendarzEventChip';
 import { cn } from './ui/utils';
 
 interface HeaderNearestEventsStripProps {
+  todayIso: string;
   eventDates: string[];
   dayEvents: HeaderStripEventPreview[];
   lastPastEvent: HeaderStripEventPreview | null;
@@ -104,6 +104,7 @@ function HeaderStripFlankingEvent({
 }
 
 export function HeaderNearestEventsStrip({
+  todayIso,
   eventDates,
   dayEvents,
   lastPastEvent,
@@ -111,8 +112,7 @@ export function HeaderNearestEventsStrip({
 }: HeaderNearestEventsStripProps): ReactElement {
   const rootRef = useRef<HTMLElement>(null);
   const [openList, setOpenList] = useState<OpenEventList | null>(null);
-  const today = new Date();
-  const todayIso = toIsoDate(today);
+  const today = parseIsoDateLocal(todayIso) ?? new Date();
   const visibleDates = headerNearestVisibleIsoDates(today);
   const firstVisible = visibleDates[0];
   const lastVisible = visibleDates[visibleDates.length - 1];
