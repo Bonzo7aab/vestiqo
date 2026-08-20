@@ -24,7 +24,10 @@ import { createJobApplication, createTenderBid } from '../lib/database/jobs';
 import { fetchUserPrimaryCompany } from '../lib/database/companies';
 import { kontoCompanyDataHref } from '../lib/konto-tabs';
 import { VerificationRequiredApplyDialog } from '../components/VerificationRequiredApplyDialog';
-import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
+import {
+  isVerificationPendingReview,
+  needsVerificationAttention,
+} from '../lib/verification/needs-verification-attention';
 import { ContestOfferSubmissionDialog } from '../components/contest-offer/ContestOfferSubmissionDialog';
 import { getTenderById } from '../lib/data';
 import {
@@ -681,6 +684,7 @@ function HomePageContent() {
       <VerificationRequiredApplyDialog
         open={verificationApplyDialogOpen}
         onOpenChange={setVerificationApplyDialogOpen}
+        ocSubmitted={isVerificationPendingReview(user)}
       />
 
       {contestOfferModalOpen && contestOfferContext && user?.id && (

@@ -80,8 +80,7 @@ export function RegisterVerificationChoice() {
                 <div className="min-w-0 flex-1 text-left">
                   <h2 className="font-semibold text-slate-900">Prześlij dokumenty teraz</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    KRS/CEIDG, polisa OC i opcjonalne załączniki. Weryfikacja trwa zwykle 1–3 dni
-                    robocze.
+                    Polisa OC i opcjonalne załączniki. Weryfikacja trwa zwykle 1–3 dni robocze.
                   </p>
                 </div>
                 <ArrowRight className="h-5 w-5 shrink-0 text-primary mt-1" />

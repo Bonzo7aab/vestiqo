@@ -1,6 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import { createSignedUrlSafe } from '../storage/signed-url-actions';
+import {
+  countSubmittedDocuments,
+  expectedDocumentCount,
+  verificationDocumentLabel,
+  type VerificationDocumentEntry,
+} from '../verification/required-documents';
+
+export {
+  countSubmittedDocuments,
+  expectedDocumentCount,
+  filterPathsToRequiredDocuments,
+  getRequiredDocumentKeys,
+  mergeRequiredVerificationDocuments,
+  verificationDocumentLabel,
+  type VerificationDocumentEntry,
+} from '../verification/required-documents';
 
 export interface VerificationQueueRowBase {
   userId: string;
@@ -47,81 +63,6 @@ export interface AdminVerificationSubjectProfile {
   bankAccountIban: string | null;
   vatStatusLabel: string | null;
   ocGuaranteeAmountPln: number | null;
-}
-
-const CONTRACTOR_REQUIRED_DOC_KEYS = ['company_registration', 'insurance'] as const;
-const CONTRACTOR_OPTIONAL_DOC_KEYS = ['certifications', 'references'] as const;
-
-const MANAGER_REQUIRED_DOC_KEYS = ['company_registration', 'insurance'] as const;
-const MANAGER_OPTIONAL_DOC_KEYS = ['management_license', 'management_contracts'] as const;
-
-const CONTRACTOR_DOC_KEYS = [
-  ...CONTRACTOR_REQUIRED_DOC_KEYS,
-  ...CONTRACTOR_OPTIONAL_DOC_KEYS,
-] as const;
-
-const MANAGER_DOC_KEYS = [
-  ...MANAGER_REQUIRED_DOC_KEYS,
-  ...MANAGER_OPTIONAL_DOC_KEYS,
-] as const;
-
-export function getRequiredDocumentKeys(userType: string): readonly string[] {
-  return userType === 'contractor' ? CONTRACTOR_REQUIRED_DOC_KEYS : MANAGER_REQUIRED_DOC_KEYS;
-}
-
-export function filterPathsToRequiredDocuments(
-  userType: string,
-  paths: Record<string, string> | null | undefined
-): Record<string, string> {
-  const required = new Set(getRequiredDocumentKeys(userType));
-  const filtered: Record<string, string> = {};
-  for (const [key, path] of Object.entries(paths ?? {})) {
-    if (required.has(key) && typeof path === 'string' && path.trim().length > 0) {
-      filtered[key] = path;
-    }
-  }
-  return filtered;
-}
-
-/** Ensures every required slot appears once, with placeholders for missing uploads. */
-export function mergeRequiredVerificationDocuments(
-  userType: string,
-  uploaded: VerificationDocumentEntry[]
-): VerificationDocumentEntry[] {
-  const byKey = new Map(uploaded.map((doc) => [doc.key, doc]));
-  return getRequiredDocumentKeys(userType).map((key) => {
-    const existing = byKey.get(key);
-    if (existing) return existing;
-    return {
-      key,
-      label: verificationDocumentLabel(key),
-      path: '',
-      filename: '',
-      uploadedAt: null,
-      viewUrl: null,
-      downloadUrl: null,
-      missing: true,
-    };
-  });
-}
-
-export function expectedDocumentCount(userType: string): number {
-  return getRequiredDocumentKeys(userType).length;
-}
-
-export function countSubmittedDocuments(
-  userType: string,
-  paths: Record<string, string> | null | undefined
-): number {
-  const keys = getRequiredDocumentKeys(userType);
-  let count = 0;
-  for (const key of keys) {
-    const path = paths?.[key];
-    if (path && typeof path === 'string' && path.trim().length > 0) {
-      count += 1;
-    }
-  }
-  return count;
 }
 
 export function resolveUpdatedAt(
@@ -195,24 +136,6 @@ function buildQueueRowBase(profile: ProfileQueueSource): Omit<VerificationQueueR
   };
 }
 
-export interface VerificationDocumentEntry {
-  key: string;
-  label: string;
-  path: string;
-  filename: string;
-  /**
-   * ISO timestamp parsed from the storage filename's `Date.now()` prefix
-   * (see `submitVerificationDocumentsAction`). Null when the prefix can't
-   * be parsed — typically for legacy paths uploaded before this convention.
-   */
-  uploadedAt: string | null;
-  viewUrl: string | null;
-  downloadUrl: string | null;
-  error?: string;
-  /** True when the required document slot has no file in the user's profile. */
-  missing?: boolean;
-}
-
 export interface DocumentReview {
   status: 'approved' | 'rejected';
   reason: string | null;
@@ -221,20 +144,6 @@ export interface DocumentReview {
 }
 
 export type DocumentReviewMap = Record<string, DocumentReview>;
-
-const DOC_LABELS: Record<string, string> = {
-  company_registration: 'Wypis z KRS / CEIDG',
-  insurance: 'Polisa ubezpieczeniowa',
-  certifications: 'Certyfikaty',
-  references: 'Referencje',
-  management_license: 'Licencja zarządcy',
-  management_contracts: 'Umowy zarządcze',
-  oc_policy_scan: 'Polisa OC',
-};
-
-export function verificationDocumentLabel(key: string): string {
-  return DOC_LABELS[key] ?? key;
-}
 
 function logSupabaseError(label: string, error: unknown): void {
   if (error && typeof error === 'object') {

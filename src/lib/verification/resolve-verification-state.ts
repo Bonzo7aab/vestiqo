@@ -18,7 +18,7 @@ interface ResolveVerificationStatusInput {
 
 /**
  * Single source of truth for contractor/manager verification state.
- * Contractors: OPD-118 registry-only approval (CEIDG/KRS + MF).
+ * Contractors: OPD-118 registry approval (CEIDG/KRS + MF), or admin `is_verified`.
  */
 export function resolveVerificationStatus(
   input: ResolveVerificationStatusInput,
@@ -46,6 +46,25 @@ export function resolveVerificationStatus(
         submittedAt,
         decidedAt: null,
         reason: null,
+      };
+    }
+
+    if (input.isVerified === true) {
+      return {
+        state: 'approved',
+        submittedAt,
+        decidedAt: null,
+        reason: null,
+      };
+    }
+
+    const latest = input.latestDecision;
+    if (latest?.decision === 'rejected' && !submittedAt) {
+      return {
+        state: 'rejected',
+        submittedAt: null,
+        decidedAt: latest.created_at,
+        reason: latest.reason ?? null,
       };
     }
 

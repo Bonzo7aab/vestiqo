@@ -66,7 +66,10 @@ import {
 } from '../lib/config/categoryConfig';
 import { CategoryIconTile } from './contest/CategoryIconTile';
 import { VerificationRequiredApplyDialog } from './VerificationRequiredApplyDialog';
-import { needsVerificationAttention } from '../lib/verification/needs-verification-attention';
+import {
+  isVerificationPendingReview,
+  needsVerificationAttention,
+} from '../lib/verification/needs-verification-attention';
 import { ContestOfferSubmissionDialog } from './contest-offer/ContestOfferSubmissionDialog';
 import { fetchTenderBidOfferState } from '../lib/database/contest-offers';
 
@@ -1993,6 +1996,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
       <VerificationRequiredApplyDialog
         open={verificationApplyDialogOpen}
         onOpenChange={setVerificationApplyDialogOpen}
+        ocSubmitted={isVerificationPendingReview(user)}
       />
 
       {/* Company Required Dialog */}

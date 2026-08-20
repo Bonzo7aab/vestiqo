@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { AuthPromptPopover, AUTH_PROMPT_APPLY_OFFER } from '../AuthPromptPopover';
 import { VerificationRequiredApplyDialog } from '../VerificationRequiredApplyDialog';
-import { needsVerificationAttention } from '../../lib/verification/needs-verification-attention';
+import {
+  isVerificationPendingReview,
+  needsVerificationAttention,
+} from '../../lib/verification/needs-verification-attention';
 import type { AuthUser } from '../../types/auth';
 import { cn } from '../ui/utils';
 import { useState } from 'react';
@@ -85,6 +88,7 @@ export function ContestApplyOfferButton({
         <VerificationRequiredApplyDialog
           open={verificationDialogOpen}
           onOpenChange={setVerificationDialogOpen}
+          ocSubmitted={isVerificationPendingReview(user)}
         />
       </>
     );
@@ -124,6 +128,7 @@ export function ContestApplyOfferButton({
       <VerificationRequiredApplyDialog
         open={verificationDialogOpen}
         onOpenChange={setVerificationDialogOpen}
+        ocSubmitted={isVerificationPendingReview(user)}
       />
     </>
   );

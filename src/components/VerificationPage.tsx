@@ -1164,7 +1164,9 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       toast.success(
         embedded && status === 'approved'
           ? 'Dokumenty zostały zapisane'
-          : 'Dokumenty zostały przesłane do weryfikacji',
+          : isContractor
+            ? 'Polisa OC została przesłana do weryfikacji'
+            : 'Dokumenty zostały przesłane do weryfikacji',
       );
       await refreshSession();
       router.refresh();

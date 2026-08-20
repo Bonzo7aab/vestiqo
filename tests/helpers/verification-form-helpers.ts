@@ -105,7 +105,7 @@ export async function submitVerificationDocuments(page: Page): Promise<void> {
   await expect(submitButton).toBeEnabled({ timeout: 20000 });
   await submitButton.click();
 
-  await expect(page.getByText('Dokumenty zostały przesłane do weryfikacji')).toBeVisible({
+  await expect(page.getByText('Polisa OC została przesłana do weryfikacji')).toBeVisible({
     timeout: 30000,
   });
 

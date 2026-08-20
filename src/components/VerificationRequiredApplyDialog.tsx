@@ -17,6 +17,8 @@ import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../lib/verification/docu
 interface VerificationRequiredApplyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** True when the contractor already submitted OC and is waiting for admin. */
+  ocSubmitted?: boolean;
 }
 
 /**
@@ -25,6 +27,7 @@ interface VerificationRequiredApplyDialogProps {
 export function VerificationRequiredApplyDialog({
   open,
   onOpenChange,
+  ocSubmitted = false,
 }: VerificationRequiredApplyDialogProps) {
   const router = useRouter();
 
@@ -34,7 +37,7 @@ export function VerificationRequiredApplyDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <FileWarning className="h-5 w-5 text-amber-600" />
-            Uzupełnij dokumenty weryfikacyjne
+            {ocSubmitted ? 'Polisa OC oczekuje na akceptację' : 'Dodaj polisę OC'}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2 text-sm text-muted-foreground">
@@ -42,10 +45,17 @@ export function VerificationRequiredApplyDialog({
                 Twoje konto oczekuje na weryfikację przez administratora. Składanie ofert jest
                 tymczasowo zablokowane.
               </p>
-              <p>
-                Uzupełnij dokumenty (wypis z KRS/CEIDG, polisa OC), jeśli jeszcze tego nie zrobiłeś —
-                przyspieszy to proces weryfikacji.
-              </p>
+              {ocSubmitted ? (
+                <p>
+                  Polisa OC została przesłana. Konto czeka na akceptację administratora — po niej
+                  składanie ofert będzie odblokowane.
+                </p>
+              ) : (
+                <p>
+                  Dodaj polisę OC, jeśli jeszcze tego nie zrobiłeś — przyspieszy to proces
+                  weryfikacji.
+                </p>
+              )}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -57,7 +67,7 @@ export function VerificationRequiredApplyDialog({
               router.push(CONTRACTOR_VERIFICATION_DOCUMENTS_PATH);
             }}
           >
-            Prześlij dokumenty
+            {ocSubmitted ? 'Zobacz dokumenty' : 'Dodaj polisę OC'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
