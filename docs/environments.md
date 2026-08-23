@@ -58,7 +58,14 @@ For **vestiqo-test** include Preview wildcards if available, e.g. `https://*-bon
 
 ### Sentry
 
-Org slug in env is still `domio-z0` (project display name set to `vestiqo`). To rename the org in Sentry: Settings → General → Organization slug. Then update Vercel `SENTRY_ORG`. Allowed domains are currently `*` (no block on `vestiqo.vercel.app`).
+Live org is `domio-ez`, project `vestiqo`. Dashboard: https://domio-ez.sentry.io. Vercel Production and Preview must use:
+
+- `SENTRY_ORG=domio-ez`
+- `SENTRY_PROJECT=vestiqo`
+- `NEXT_PUBLIC_SENTRY_DSN` for that same project (do not point at `domio-z0`)
+- `SENTRY_AUTH_TOKEN` created in org `domio-ez` (https://domio-ez.sentry.io/settings/auth-tokens/) with `org:read` and `project:releases`. A token from `domio-z0` returns `Invalid token` (401) on source-map upload.
+
+Allowed domains are currently `*` (no block on `vestiqo.vercel.app`). The unused `domio-z0` org can be archived later.
 
 After changing Preview env vars, redeploy the preview (or push a new commit) so the build picks them up.
 
