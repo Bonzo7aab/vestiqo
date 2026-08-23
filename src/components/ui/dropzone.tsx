@@ -66,7 +66,6 @@ export const Dropzone = ({
       if (fileRejections.length > 0) {
         const message = fileRejections.at(0)?.errors.at(0)?.message;
         onError?.(new Error(message));
-        return;
       }
       onDrop?.(acceptedFiles, fileRejections, event);
     },

@@ -21,6 +21,8 @@ import {
 } from '../../types/tender-contest';
 import { parseProfessionalLicenseTypes } from '../contractor/constants';
 import { formatFormalRequirementLines } from './format-formal-requirement-lines';
+import { canonicalContestFormCategories } from './contest-form-category';
+import { parseContestDocumentSize } from './contest-form-documents';
 
 export interface TenderContestCreatePayload {
   title: string;
@@ -150,6 +152,7 @@ export async function buildCreateTenderPayload(
     type: d.type,
     url: d.url,
     path: d.path,
+    ...(d.size != null ? { size: d.size } : {}),
   }));
 
   const payload: TenderContestCreatePayload = {
@@ -218,6 +221,13 @@ export function mapTenderRowToContestForm(
   categoryName?: string,
   subcategoryName?: string,
 ): TenderContestFormData {
+  const { category, subcategory } = canonicalContestFormCategories(
+    tender.category,
+    tender.subcategory,
+    categoryName,
+    subcategoryName,
+  );
+
   const formal = (tender.formal_requirements as FormalRequirements | null) ?? {
     ...DEFAULT_FORMAL_REQUIREMENTS,
   };
@@ -242,8 +252,8 @@ export function mapTenderRowToContestForm(
     title: (tender.title as string) ?? '',
     description: (tender.description as string) ?? '',
     managedEntityId,
-    category: categoryName ?? '',
-    subcategory: subcategoryName ?? '',
+    category,
+    subcategory,
     submissionDeadline,
     evaluationDeadline,
     completionDate,
@@ -280,11 +290,15 @@ export function parseExistingTenderDocuments(
   if (!Array.isArray(documents)) return [];
   return documents
     .filter((d): d is Record<string, unknown> => typeof d === 'object' && d !== null)
-    .map((d) => ({
-      id: String(d.id ?? crypto.randomUUID()),
-      name: String(d.name ?? 'dokument'),
-      url: String(d.url ?? ''),
-      path: String(d.path ?? ''),
-      type: (d.type as TenderContestDocumentMeta['type']) ?? 'other',
-    }));
+    .map((d) => {
+      const size = parseContestDocumentSize(d.size);
+      return {
+        id: String(d.id ?? crypto.randomUUID()),
+        name: String(d.name ?? 'dokument'),
+        url: String(d.url ?? ''),
+        path: String(d.path ?? ''),
+        type: (d.type as TenderContestDocumentMeta['type']) ?? 'other',
+        ...(size != null ? { size } : {}),
+      };
+    });
 }

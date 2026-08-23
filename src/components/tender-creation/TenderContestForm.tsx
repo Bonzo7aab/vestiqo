@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { File, FileText, Loader2, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
+import { FileText, Loader2, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
 import type { FileRejection } from 'react-dropzone';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -40,6 +41,16 @@ import {
   type TenderContestFormFieldErrors,
 } from '../../lib/contest/contest-form-validation';
 import {
+  CONTEST_DOCUMENT_MAX_BYTES,
+  CONTEST_DOCUMENT_MAX_FILES,
+  contestDocumentCapMessage,
+  contestDocumentRejectionMessage,
+  contestDocumentTruncateWarning,
+  formatContestFileSize,
+  remainingContestDocumentSlots,
+  takeAcceptedContestFiles,
+} from '../../lib/contest/contest-form-documents';
+import {
   applyTechParamsToDescription,
   buildPrzegladyTechParamsBlock,
   isPrzegladyCategory,
@@ -48,6 +59,7 @@ import {
 } from '../../lib/contest/przeglady-tech-params';
 import {
   ContestOfferFieldError,
+  ContestOfferOptionalLabel,
   fieldErrorInputClass,
 } from '../contest-offer/ContestOfferFieldError';
 import { buildFilterCategoryTree, getCategoryDisplayName, getSubcategoryDisplayName } from '../../lib/config/categoryConfig';
@@ -154,12 +166,13 @@ const PERIOD_OPTIONS: { value: WarrantyGuaranteePeriod; label: string }[] = [
 ];
 
 function toDatetimeLocalValue(date: Date): string {
+  if (Number.isNaN(date.getTime())) return '';
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function toDateInputValue(date: Date | null): string {
-  if (!date) return '';
+  if (!date || Number.isNaN(date.getTime())) return '';
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
@@ -197,9 +210,16 @@ export function TenderContestForm({
   );
   const [fieldErrors, setFieldErrors] = useState<TenderContestFormFieldErrors>({});
   const [showFieldErrors, setShowFieldErrors] = useState(false);
+  const [submitIntent, setSubmitIntent] = useState<'draft' | 'active' | null>(null);
   const [entityBuildings, setEntityBuildings] = useState<ManagedBuilding[]>([]);
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
   const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+
+  const documentRemainingSlots = remainingContestDocumentSlots(
+    pendingFiles.length,
+    keptDocuments.length,
+  );
+  const dropzoneDisabled = isSubmitting || documentRemainingSlots <= 0;
 
   const showPrzegladyBuildings =
     isPrzegladyCategory(form.category) && Boolean(form.managedEntityId);
@@ -421,17 +441,50 @@ export function TenderContestForm({
   };
 
   const handleFileUpload = (accepted: File[], rejections: FileRejection[]): void => {
+    const remainingSlots = remainingContestDocumentSlots(
+      pendingFiles.length,
+      keptDocuments.length,
+    );
+    let keepDocumentsError = false;
+
     if (rejections.length > 0) {
+      const firstRejection = rejections[0];
+      const message = firstRejection
+        ? contestDocumentRejectionMessage(firstRejection)
+        : 'Nieprawidłowy plik';
       setShowFieldErrors(true);
-      setFieldErrors((prev) => ({
-        ...prev,
-        documents: rejections[0].errors[0]?.message ?? 'Nieprawidłowy plik',
-      }));
+      setFieldErrors((prev) => ({ ...prev, documents: message }));
+      toast.error(message);
+      keepDocumentsError = true;
+    }
+
+    if (accepted.length === 0) {
       return;
     }
-    setPendingFiles((prev) => [...prev, ...accepted].slice(0, 20));
-    if (showFieldErrors) {
+
+    if (remainingSlots <= 0) {
+      const message = contestDocumentCapMessage();
+      setShowFieldErrors(true);
+      setFieldErrors((prev) => ({ ...prev, documents: message }));
+      toast.error(message);
+      return;
+    }
+
+    const { filesToAdd, truncated } = takeAcceptedContestFiles(accepted, remainingSlots);
+    setPendingFiles((prev) => [...prev, ...filesToAdd]);
+    if (truncated) {
+      const warning = contestDocumentTruncateWarning(filesToAdd.length, accepted.length);
+      toast.warning(warning);
+      if (!keepDocumentsError) {
+        setShowFieldErrors(true);
+        setFieldErrors((prev) => ({ ...prev, documents: warning }));
+        keepDocumentsError = true;
+      }
+    }
+
+    if (!keepDocumentsError && showFieldErrors) {
       setFieldErrors((prev) => {
+        if (!prev.documents) return prev;
         const next = { ...prev };
         delete next.documents;
         return next;
@@ -455,6 +508,7 @@ export function TenderContestForm({
     }
     setShowFieldErrors(false);
     setFieldErrors({});
+    setSubmitIntent(status);
     await onSubmit(form, pendingFiles, keptDocuments, status, selectedBuildingIds);
   };
 
@@ -596,7 +650,7 @@ export function TenderContestForm({
         icon={!isCreateLayout ? <FileText className="h-5 w-5" /> : undefined}
       >
           <div>
-            <Label htmlFor="contest-title">Tytuł konkursu *</Label>
+            <Label htmlFor="contest-title">Tytuł konkursu</Label>
             <Input
               id="contest-title"
               maxLength={75}
@@ -611,7 +665,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label htmlFor="contest-desc">Szczegółowy zakres i uwagi *</Label>
+            <Label htmlFor="contest-desc">Szczegółowy zakres i uwagi</Label>
             <Textarea
               id="contest-desc"
               rows={6}
@@ -625,7 +679,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label>Nieruchomość *</Label>
+            <Label>Nieruchomość</Label>
             {isLoadingMeta ? (
               <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
             ) : managedEntities.length === 0 ? (
@@ -658,7 +712,7 @@ export function TenderContestForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>Kategoria *</Label>
+              <Label>Kategoria</Label>
               <Select
                 value={form.category || undefined}
                 onValueChange={(v) => patchForm({ category: v, subcategory: '' })}
@@ -682,7 +736,7 @@ export function TenderContestForm({
               <ContestOfferFieldError message={displayedErrors.category} />
             </div>
             <div>
-              <Label>Podkategoria *</Label>
+              <Label>Podkategoria</Label>
               <Select
                 value={form.subcategory || undefined}
                 onValueChange={(v) => patchForm({ subcategory: v })}
@@ -711,7 +765,7 @@ export function TenderContestForm({
 
           {showPrzegladyBuildings ? (
             <div>
-              <Label>Budynki do parametrów technicznych</Label>
+              <ContestOfferOptionalLabel>Budynki do parametrów technicznych</ContestOfferOptionalLabel>
               {isLoadingBuildings ? (
                 <div className="h-10 bg-muted rounded-md animate-pulse mt-1" />
               ) : entityBuildings.length === 0 ? (
@@ -771,22 +825,32 @@ export function TenderContestForm({
           ) : null}
 
           <div id="contest-documents">
-            <Label className="text-base font-medium">Dokumentacja konkursowa *</Label>
+            <div className="flex items-baseline justify-between gap-3">
+              <Label className="text-base font-medium">Dokumentacja konkursowa</Label>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {keptDocuments.length + pendingFiles.length}/{CONTEST_DOCUMENT_MAX_FILES}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Wymagane przy publikacji.</p>
 
             {(keptDocuments.length > 0 || pendingFiles.length > 0) && (
               <ul className="mt-2 mb-3 space-y-2">
-                {keptDocuments.map((doc) => (
+                {keptDocuments.map((doc, keptIndex) => (
                   <li
                     key={doc.id}
                     className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm"
                   >
                     <span className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
-                        <File className="h-4 w-4" />
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-sm font-semibold tabular-nums text-primary">
+                        {keptIndex + 1}.
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate font-medium text-foreground">{doc.name}</span>
-                        <span className="text-xs text-muted-foreground">Zapisany w szkicu</span>
+                        <span className="text-xs text-muted-foreground">
+                          {doc.size != null && doc.size > 0
+                            ? `${formatContestFileSize(doc.size)} — zapisany w szkicu`
+                            : 'Zapisany w szkicu'}
+                        </span>
                       </span>
                     </span>
                     <Button
@@ -810,13 +874,13 @@ export function TenderContestForm({
                     className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/25 bg-primary/5 px-3.5 py-3 text-sm shadow-sm"
                   >
                     <span className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
-                        <Upload className="h-4 w-4" />
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/15 text-sm font-semibold tabular-nums text-primary">
+                        {keptDocuments.length + i + 1}.
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate font-medium text-foreground">{file.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          Nowy plik — zostanie wysłany przy zapisie
+                          {formatContestFileSize(file.size)} — nowy plik, zostanie wysłany przy zapisie
                         </span>
                       </span>
                     </span>
@@ -847,10 +911,11 @@ export function TenderContestForm({
                 'application/vnd.ms-excel': ['.xls'],
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
               }}
-              maxFiles={20}
-              maxSize={10 * 1024 * 1024}
+              maxFiles={0}
+              minSize={1}
+              maxSize={CONTEST_DOCUMENT_MAX_BYTES}
               onDrop={handleFileUpload}
-              disabled={isSubmitting}
+              disabled={dropzoneDisabled}
               className={cn(
                 'mt-2',
                 (keptDocuments.length > 0 || pendingFiles.length > 0) && 'py-6',
@@ -871,12 +936,16 @@ export function TenderContestForm({
                     )}
                   />
                   <span className="text-lg font-semibold text-primary">
-                    {keptDocuments.length > 0 || pendingFiles.length > 0
-                      ? 'Dodaj kolejne pliki'
-                      : 'Dodaj pliki'}
+                    {documentRemainingSlots <= 0
+                      ? 'Osiągnięto limit plików'
+                      : keptDocuments.length > 0 || pendingFiles.length > 0
+                        ? 'Dodaj kolejne pliki'
+                        : 'Dodaj pliki'}
                   </span>
                   <p className="text-sm text-muted-foreground text-center max-w-md mt-2">
-                    PDF, DOC, DOCX, XLS, XLSX, obrazy — min. 1 plik, max 10&nbsp;MB każdy.
+                    {documentRemainingSlots <= 0
+                      ? `Maksymalnie ${CONTEST_DOCUMENT_MAX_FILES} plików łącznie.`
+                      : `PDF, DOC, DOCX, XLS, XLSX, obrazy — max 10\u00a0MB każdy, maks. ${CONTEST_DOCUMENT_MAX_FILES} łącznie (min. 1 przy publikacji).`}
                   </p>
                 </div>
               </DropzoneEmptyState>
@@ -888,7 +957,7 @@ export function TenderContestForm({
 
       <ContestFormSection step={2} layout={layout} title="Harmonogram">
           <div>
-            <Label htmlFor="submission-deadline">Zakończenie przyjmowania ofert *</Label>
+            <Label htmlFor="submission-deadline">Zakończenie przyjmowania ofert</Label>
             <Input
               id="submission-deadline"
               type="datetime-local"
@@ -904,7 +973,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label htmlFor="evaluation-deadline">Rozstrzygnięcia konkursu *</Label>
+            <Label htmlFor="evaluation-deadline">Rozstrzygnięcia konkursu</Label>
             <Input
               id="evaluation-deadline"
               type="date"
@@ -935,7 +1004,7 @@ export function TenderContestForm({
           </div>
 
           <div>
-            <Label htmlFor="completion-date">Termin wykonania</Label>
+            <ContestOfferOptionalLabel htmlFor="completion-date">Termin wykonania</ContestOfferOptionalLabel>
             <Input
               id="completion-date"
               type="date"
@@ -968,7 +1037,7 @@ export function TenderContestForm({
           </div>
 
           <div className="space-y-3">
-            <Label>Wizja lokalna *</Label>
+            <Label>Wizja lokalna</Label>
             <RadioGroup
               value={form.siteVisitType}
               onValueChange={(v) =>
@@ -1020,7 +1089,7 @@ export function TenderContestForm({
         step={3}
         layout={layout}
         title="Wymogi"
-        description="Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty."
+        description="Wszystkie pozycje są opcjonalne. Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty."
       >
           <div className="flex items-start gap-3">
             <Checkbox
@@ -1042,7 +1111,7 @@ export function TenderContestForm({
                   type="number"
                   min={0}
                   className="max-w-xs"
-                  placeholder="Min. suma gwarancyjna (zł)"
+                  placeholder="Min. suma gwarancyjna (zł), opcjonalnie"
                   value={form.formalRequirements.insuranceOcMinAmount ?? ''}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -1271,7 +1340,7 @@ export function TenderContestForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>Wymagany okres gwarancji</Label>
+              <ContestOfferOptionalLabel>Wymagany okres gwarancji</ContestOfferOptionalLabel>
               <Select
                 value={form.warrantyPeriod || undefined}
                 onValueChange={(v) =>
@@ -1291,7 +1360,7 @@ export function TenderContestForm({
               </Select>
             </div>
             <div>
-              <Label>Rękojmia</Label>
+              <ContestOfferOptionalLabel>Rękojmia</ContestOfferOptionalLabel>
               <Select
                 value={form.guaranteePeriod || undefined}
                 onValueChange={(v) =>
@@ -1313,7 +1382,7 @@ export function TenderContestForm({
           </div>
 
           <div className="space-y-3">
-            <Label>Wadium</Label>
+            <ContestOfferOptionalLabel>Wadium</ContestOfferOptionalLabel>
             <RadioGroup
               value={form.depositRequired ? 'required' : 'none'}
               onValueChange={(v) =>
@@ -1460,22 +1529,33 @@ export function TenderContestForm({
             className={cn(isCreateLayout && 'h-11 w-full sm:w-auto')}
             onClick={() => void handleSubmit('draft')}
           >
-            <Save className="h-4 w-4 mr-2" />
-            Zapisz jako szkic
+            {isSubmitting && submitIntent === 'draft' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Zapisywanie…
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Zapisz jako szkic
+              </>
+            )}
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
             className={cn(isCreateLayout && 'h-11 w-full sm:w-auto')}
           >
-            <Send className="h-4 w-4 mr-2" />
-            {isSubmitting ? (
+            {isSubmitting && submitIntent === 'active' ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Publikowanie…
               </>
             ) : (
-              'Opublikuj konkurs'
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Opublikuj konkurs
+              </>
             )}
           </Button>
         </div>

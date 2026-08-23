@@ -42,6 +42,10 @@ export function getTenderContestFormFieldErrors(
     errors.title = 'Tytuł może mieć maksymalnie 75 znaków';
   }
 
+  if (status === 'draft') {
+    return errors;
+  }
+
   if (
     form.evaluationDeadline &&
     form.submissionDeadline &&
@@ -91,10 +95,6 @@ export function getTenderContestFormFieldErrors(
     }
   }
 
-  if (status === 'draft') {
-    return errors;
-  }
-
   if (!form.title.trim()) {
     errors.title = 'Podaj tytuł konkursu';
   }
@@ -115,6 +115,8 @@ export function getTenderContestFormFieldErrors(
   }
   if (!form.submissionDeadline || Number.isNaN(form.submissionDeadline.getTime())) {
     errors.submissionDeadline = 'Podaj datę i godzinę zakończenia przyjmowania ofert';
+  } else if (form.submissionDeadline.getTime() <= Date.now()) {
+    errors.submissionDeadline = 'Termin przyjmowania ofert musi być w przyszłości';
   }
   if (!form.evaluationDeadline || Number.isNaN(form.evaluationDeadline.getTime())) {
     errors.evaluationDeadline = errors.evaluationDeadline ?? 'Podaj datę rozstrzygnięcia konkursu';

@@ -138,6 +138,7 @@ export async function uploadContestDocument(
         url: signedUrl,
         path: filePath,
         type: inferDocumentType(file.name),
+        size: file.size,
       },
       error: null,
     };

@@ -20,6 +20,7 @@ import {
   mapTenderRowToContestForm,
   parseExistingTenderDocuments,
 } from '../lib/contest/build-tender-payload';
+import { contestUploadFailureMessage } from '../lib/contest/contest-form-documents';
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/tender-contest';
 import { createEmptyTenderContestForm } from '../types/tender-contest';
 import { toast } from 'sonner';
@@ -242,21 +243,8 @@ export default function TenderCreationPage({
         uploaded = uploadResult.data;
 
         if (uploadResult.errors.length > 0) {
-          if (uploadResult.data.length === 0 && keptDocuments.length === 0) {
-            toast.error(
-              'Nie udało się wgrać dokumentów. Sprawdź format plików (PDF, DOC, DOCX, XLS, XLSX, obrazy) i spróbuj ponownie.',
-            );
-            return;
-          }
-          if (uploadResult.data.length > 0 && uploadResult.data.length < newFiles.length) {
-            toast.warning(
-              `Wgrano ${uploadResult.data.length} z ${newFiles.length} plików.`,
-            );
-          } else if (uploadResult.data.length === 0 && keptDocuments.length > 0) {
-            toast.warning(
-              'Nie udało się wgrać nowych plików. Zapisano z istniejącą dokumentacją.',
-            );
-          }
+          toast.error(contestUploadFailureMessage(uploadResult.errors));
+          return;
         }
       }
 

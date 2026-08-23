@@ -47,6 +47,7 @@ export interface TenderContestDocumentMeta {
   url: string;
   path: string;
   type: 'specification' | 'requirements' | 'drawings' | 'other';
+  size?: number;
 }
 
 export interface TenderContestFormData {

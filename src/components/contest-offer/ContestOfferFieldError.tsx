@@ -62,9 +62,8 @@ export function ContestOfferOptionalLabel({
   className,
 }: ContestOfferOptionalLabelProps): ReactElement {
   return (
-    <Label htmlFor={htmlFor} className={cn('text-sm font-medium text-foreground', className)}>
-      {children}
-      <span className="ml-1.5 text-xs font-normal text-muted-foreground">(opcjonalnie)</span>
+    <Label htmlFor={htmlFor} className={cn('inline text-sm font-medium text-foreground', className)}>
+      {children} <span className="font-normal text-muted-foreground">(opcjonalne)</span>
     </Label>
   );
 }
