@@ -26,6 +26,11 @@ async function main(): Promise<void> {
   console.log(`  FLAGSHIP_APP_ID:              ${mask(appId)}`);
   console.log(`  CLOUDFLARE_ACCOUNT_ID:        ${mask(accountId)}`);
   console.log(`  CLOUDFLARE_FLAGSHIP_API_TOKEN: ${mask(authToken)}`);
+  if (authToken?.startsWith('cfat_')) {
+    console.log('  Token kind:                    Account API Token (cfat_) — evaluate only; flags list needs cfut_');
+  } else if (authToken?.startsWith('cfut_')) {
+    console.log('  Token kind:                    User API Token (cfut_)');
+  }
 
   const missing = [
     !appId && 'FLAGSHIP_APP_ID',
@@ -54,13 +59,13 @@ async function main(): Promise<void> {
   const status = provider.status;
   console.log(`  Provider status: ${status}`);
 
-  // Probe raw API (same GET + query params as @cloudflare/flagship SDK)
+  // Probe Cloudflare v4 evaluate API (path is /accounts/, not /kontos/).
   const probeParams = new URLSearchParams({
     flagKey: FLAGSHIP_FLAG_KEYS.NEW_TENDER_SYSTEM,
     targetingKey: 'flagship-connection-test',
   });
-  const probeUrl = `https://api.cloudflare.com/client/v4/kontos/${accountId}/flagship/apps/${appId}/evaluate?${probeParams}`;
-  console.log('\nRaw API probe (GET, SDK-style URL):');
+  const probeUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/flagship/apps/${appId}/evaluate?${probeParams}`;
+  console.log('\nRaw API probe (GET /accounts/.../evaluate):');
   let probeOk = false;
   try {
     const res = await fetch(probeUrl, {
@@ -79,13 +84,57 @@ async function main(): Promise<void> {
     if (res.status === 404) {
       console.log('\n  → 404 = wrong account ID, app ID, or flag key "new-tender-system".');
     }
+    if (res.status === 400 && body.includes('No route for that URI')) {
+      console.log('\n  → 400 No route = wrong API path. Use /client/v4/accounts/{id}/flagship/...');
+    }
   } catch (probeErr) {
     console.error('  Probe failed:', probeErr instanceof Error ? probeErr.message : probeErr);
   }
 
+  const flagsUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/flagship/apps/${appId}/flags`;
+  console.log('\nManagement API probe (GET /accounts/.../flags) — used by /administracja/flagi:');
+  let flagsOk = false;
+  try {
+    const res = await fetch(flagsUrl, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const body = await res.text();
+    console.log(`  HTTP ${res.status} ${res.statusText}`);
+    console.log(`  Body (first 400 chars): ${body.slice(0, 400)}`);
+    flagsOk = res.ok;
+    if (res.status === 401 || res.status === 403) {
+      if (authToken!.startsWith('cfat_')) {
+        console.log('\n  → This is an Account API Token (prefix cfat_). Evaluate is allowed,');
+        console.log('    but Flagship GET/PUT /flags is not — that needs a User API Token.');
+        console.log('    Create: dash.cloudflare.com → profile icon → My Profile → API Tokens');
+        console.log('    (not Manage Account → Account API Tokens). Custom token:');
+        console.log('    Account → Flagship → Read + Edit. New value starts with cfut_.');
+      } else {
+        console.log('\n  → Auth rejected. Create token (My Profile → API Tokens), copy the value once,');
+        console.log('    set CLOUDFLARE_FLAGSHIP_API_TOKEN, restart next dev / redeploy Vercel.');
+        console.log('    Permissions: Account → Flagship Read + Flagship Edit (not “Write”).');
+      }
+    }
+  } catch (flagsErr) {
+    console.error('  Flags probe failed:', flagsErr instanceof Error ? flagsErr.message : flagsErr);
+  }
+
   if (status !== 'READY' || !probeOk) {
-    console.error('\n❌ Flagship connection failed (provider not READY or API probe not 2xx).');
+    console.error('\n❌ Flagship connection failed (provider not READY or evaluate probe not 2xx).');
     process.exit(1);
+  }
+
+  if (!flagsOk) {
+    if (authToken!.startsWith('cfat_')) {
+      console.warn(
+        '\n⚠️  Evaluate OK, but GET /flags is forbidden because this is an Account API Token (cfat_).',
+      );
+      console.warn('    Admin toggles need a User API Token from My Profile → API Tokens (prefix cfut_).');
+    } else {
+      console.warn(
+        '\n⚠️  Evaluate OK, but GET /flags is forbidden. Admin toggles need Flagship Read + Edit on this token.',
+      );
+    }
   }
 
   const client = OpenFeature.getClient();

@@ -6,7 +6,7 @@ import { getFlagshipConfig, isFlagshipConfigured } from '../../lib/flagship/conf
 import { loadAdminFeatureFlags, type AdminFeatureFlagsSnapshot } from '../../lib/flagship/admin-flags';
 import { getFlagshipDeploymentEnvironment } from '../../lib/flagship/environment';
 import { isFlagshipFlagKey } from '../../lib/flagship/keys';
-import { setFlagEnabled, UNKNOWN_FLAG_KEY_ERROR } from '../../lib/flagship/management';
+import { formatFlagshipHttpError, setFlagEnabled, UNKNOWN_FLAG_KEY_ERROR } from '../../lib/flagship/management';
 
 async function logFlagshipAdminAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,14 +50,14 @@ async function setAdminFeatureFlagActionImpl(
   const result = await setFlagEnabled(config, key, enabled);
 
   if (result.ok === false) {
-    const writeDenied = result.status === 403;
     return {
       ok: false,
-      error: writeDenied
-        ? 'Token nie ma uprawnienia Flagship Write. Dodaj Flagship Write w Cloudflare API token.'
-        : result.error === UNKNOWN_FLAG_KEY_ERROR
-          ? 'Nieznany klucz flagi'
-          : result.error,
+      error:
+        result.status === 401 || result.status === 403
+          ? formatFlagshipHttpError(result.status, result.error, { authToken: config.authToken })
+          : result.error === UNKNOWN_FLAG_KEY_ERROR
+            ? 'Nieznany klucz flagi'
+            : result.error,
     };
   }
 

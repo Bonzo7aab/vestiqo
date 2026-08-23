@@ -51,6 +51,37 @@ export async function isFeatureEnabled(
   return getBooleanFlag(flagKey, false, context);
 }
 
+export interface BooleanFlagInspection {
+  value: boolean;
+  missing: boolean;
+}
+
+export async function inspectBooleanFlag(
+  flagKey: FlagshipFlagKey,
+  context?: EvaluationContext,
+): Promise<BooleanFlagInspection> {
+  if (!isFlagshipConfigured()) {
+    return { value: false, missing: true };
+  }
+
+  try {
+    const client = await getOpenFeatureClient();
+    const details = await client.getBooleanDetails(flagKey, false, context);
+    if (isBenignFlagEvaluationError(details.errorCode)) {
+      return { value: false, missing: true };
+    }
+    if (details.reason === 'DISABLED') {
+      return { value: false, missing: false };
+    }
+    if (details.errorCode) {
+      return { value: false, missing: false };
+    }
+    return { value: details.value, missing: false };
+  } catch {
+    return { value: false, missing: true };
+  }
+}
+
 export async function getTestingFeatureFlags(
   context?: EvaluationContext,
 ): Promise<TestingFeatureFlags> {

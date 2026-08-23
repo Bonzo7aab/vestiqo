@@ -3,6 +3,38 @@ import { isFlagshipFlagKey, TESTING_FEATURE_FLAG_KEYS, type FlagshipFlagKey } fr
 export const UNKNOWN_FLAG_KEY_ERROR = 'Unknown flag key';
 export const MISSING_FLAGSHIP_TOKEN_ERROR = 'Flagship is not configured';
 
+export function isCloudflareAccountOwnedToken(token: string): boolean {
+  return token.startsWith('cfat_');
+}
+
+export function formatFlagshipHttpError(
+  status: number | undefined,
+  apiError: string,
+  options?: { authToken?: string },
+): string {
+  const detail = apiError.trim();
+  if (status === 401 || status === 403) {
+    if (options?.authToken && isCloudflareAccountOwnedToken(options.authToken)) {
+      return (
+        `Cloudflare odrzucił token konta (HTTP ${status}${detail ? `: ${detail}` : ''}). ` +
+        'CLOUDFLARE_FLAGSHIP_API_TOKEN zaczyna się od cfat_ — to Account API Token. ' +
+        'Evaluate działa, ale GET/PUT /flags nie przyjmuje tokenów konta. ' +
+        'Utwórz User API Token: dash.cloudflare.com → ikona profilu (nie konto) → My Profile → API Tokens → Create Token → Custom. ' +
+        'Permissions: Account → Flagship → Read oraz Edit. Wartość zaczyna się od cfut_. ' +
+        'Wklej ją do .env.local i do Vercel (Edit istniejących zmiennych Production/Preview), potem restart / redeploy.'
+      );
+    }
+    return (
+      `Cloudflare odrzucił token (HTTP ${status}${detail ? `: ${detail}` : ''}). ` +
+      'Wklej nowo wygenerowany User API Token (prefix cfut_, nie cfat_) do CLOUDFLARE_FLAGSHIP_API_TOKEN (.env.local i Vercel) i zrestartuj serwer albo zrób redeploy. ' +
+      'Ewaluacja flag może działać przy samym Flagship Read, ale lista i przełączanie w panelu wymagają też Flagship Edit. ' +
+      'Account resources musi obejmować konto z CLOUDFLARE_ACCOUNT_ID. ' +
+      'Na Vercel edytuj istniejące zmienne Production/Preview — nowy wiersz tylko dla Development nie nadpisze produkcji.'
+    );
+  }
+  return detail || `Flagship request failed (${status ?? 'unknown'})`;
+}
+
 export interface FlagshipManagementConfig {
   appId: string;
   accountId: string;
@@ -20,12 +52,13 @@ export interface FlagshipFlagRecord {
 }
 
 export interface FlagshipFlagPutBody {
+  key: string;
   enabled: boolean;
   default_variation: string;
   variations: Record<string, unknown>;
   rules: unknown[];
-  description?: string;
-  type?: string;
+  description: string;
+  type: string;
 }
 
 export interface KnownFlagState {
@@ -79,18 +112,14 @@ export function buildFlagPutBody(
   }
 
   const body: FlagshipFlagPutBody = {
+    key: current.key,
     enabled,
     default_variation: defaultVariation,
     variations: current.variations,
     rules,
+    description: current.description ?? '',
+    type: current.type ?? 'boolean',
   };
-
-  if (typeof current.description === 'string') {
-    body.description = current.description;
-  }
-  if (typeof current.type === 'string') {
-    body.type = current.type;
-  }
 
   return body;
 }
@@ -170,7 +199,6 @@ export async function listKnownFlags(
       method: 'GET',
       headers: {
         Authorization: `Bearer ${config.authToken}`,
-        'Content-Type': 'application/json',
       },
       cache: 'no-store',
     });
@@ -232,7 +260,9 @@ export async function setFlagEnabled(
   try {
     const getResponse = await fetchImpl(flagshipFlagsUrl(config, key), {
       method: 'GET',
-      headers,
+      headers: {
+        Authorization: `Bearer ${config.authToken}`,
+      },
       cache: 'no-store',
     });
     const getPayload = await parseCloudflareJson(getResponse);

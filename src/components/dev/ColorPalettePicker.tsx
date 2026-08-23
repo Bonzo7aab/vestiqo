@@ -19,7 +19,7 @@ import {
 } from '../../lib/theme/palette';
 
 export function ColorPalettePicker() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Record<PaletteSlot, string>>({ ...DEFAULT_PALETTE_HEX });
   const [pasteValue, setPasteValue] = useState('');
 

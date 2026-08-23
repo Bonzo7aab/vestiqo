@@ -40,7 +40,7 @@ async function main(): Promise<void> {
   }
 
   const res = await fetch(
-    `https://api.cloudflare.com/client/v4/kontos/${accountId}/iam/permission_groups`,
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/iam/permission_groups`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
 

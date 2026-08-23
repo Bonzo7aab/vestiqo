@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {
   buildFlagPutBody,
+  formatFlagshipHttpError,
   listKnownFlags,
   MISSING_FLAGSHIP_TOKEN_ERROR,
   setFlagEnabled,
@@ -45,12 +46,39 @@ async function main(): Promise<void> {
   assert.equal(getFlagshipDeploymentEnvironment(undefined), 'development');
 
   {
+    const message = formatFlagshipHttpError(403, 'Authentication error');
+    assert.match(message, /HTTP 403/);
+    assert.match(message, /Authentication error/);
+    assert.match(message, /CLOUDFLARE_FLAGSHIP_API_TOKEN/);
+  }
+
+  {
+    const message = formatFlagshipHttpError(403, 'Forbidden', { authToken: 'cfat_exampletokenvalue' });
+    assert.match(message, /token konta/);
+    assert.match(message, /cfat_/);
+    assert.match(message, /cfut_/);
+    assert.match(message, /My Profile/);
+  }
+
+  {
     const body = buildFlagPutBody(ordersFlag, true);
+    assert.equal(body.key, ordersFlag.key);
     assert.equal(body.enabled, true);
     assert.deepEqual(body.rules, ordersFlag.rules);
     assert.equal(body.default_variation, 'off');
     assert.deepEqual(body.variations, ordersFlag.variations);
     assert.equal(body.description, 'Orders module');
+    assert.equal(body.type, 'boolean');
+  }
+
+  {
+    const body = buildFlagPutBody(
+      { ...ordersFlag, description: undefined, type: undefined },
+      false,
+    );
+    assert.equal(body.key, ordersFlag.key);
+    assert.equal(body.description, '');
+    assert.equal(body.type, 'boolean');
   }
 
   {
@@ -130,6 +158,9 @@ async function main(): Promise<void> {
     const putBody = calls[1]?.body as FlagshipFlagPutBody | undefined;
     assert.deepEqual(putBody?.rules, ordersFlag.rules);
     assert.equal(putBody?.enabled, true);
+    assert.equal(putBody?.key, ordersFlag.key);
+    assert.equal(putBody?.type, 'boolean');
+    assert.equal(putBody?.description, 'Orders module');
   }
 
   {

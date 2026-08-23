@@ -7,9 +7,9 @@ import {
   getFlagshipDeploymentEnvironment,
   type FlagshipDeploymentEnvironment,
 } from './environment';
-import { isFeatureEnabled } from './evaluate';
+import { inspectBooleanFlag, isFeatureEnabled } from './evaluate';
 import { TESTING_FEATURE_FLAG_KEYS, type FlagshipFlagKey } from './keys';
-import { listKnownFlags } from './management';
+import { formatFlagshipHttpError, listKnownFlags } from './management';
 
 export interface AdminFeatureFlagView {
   key: FlagshipFlagKey;
@@ -61,30 +61,43 @@ export async function loadAdminFeatureFlags(user: {
     };
   }
 
+  const evaluationContext = buildEvaluationContext({
+    id: user.id,
+    email: user.email,
+    platformRole: 'platform_admin',
+  });
+
   const config = getFlagshipConfig();
   const listed = await listKnownFlags(config);
 
   if (listed.ok === false) {
+    const flags = await Promise.all(
+      TESTING_FEATURE_FLAG_KEYS.map(async (key) => {
+        const inspection = await inspectBooleanFlag(key, evaluationContext);
+        return {
+          key,
+          enabled: inspection.value,
+          missing: inspection.missing,
+          evaluated: inspection.value,
+          evaluationMismatch: false,
+        };
+      }),
+    );
+
     return {
       configured: true,
       canWrite: false,
       environment,
       environmentLabel: FLAGSHIP_ENVIRONMENT_LABELS[environment],
       appId: config.appId,
-      flags: emptyFlags(),
+      flags,
       error:
-        listed.status === 403
-          ? 'Token nie ma uprawnienia Flagship Read. Dodaj Flagship Read (i Write do przełączania) w Cloudflare.'
+        listed.status === 401 || listed.status === 403
+          ? formatFlagshipHttpError(listed.status, listed.error, { authToken: config.authToken })
           : listed.error,
       evaluatedAt,
     };
   }
-
-  const evaluationContext = buildEvaluationContext({
-    id: user.id,
-    email: user.email,
-    platformRole: 'platform_admin',
-  });
 
   const flags = await Promise.all(
     listed.data.map(async (item) => {

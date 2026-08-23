@@ -13,7 +13,7 @@ import {
   FLAGSHIP_FLAG_LABELS,
   type FlagshipFlagKey,
 } from '../../lib/flagship/keys';
-import { Alert, AlertDescription } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,17 +86,32 @@ export function AdminFeatureFlagsPanel({ initial }: AdminFeatureFlagsPanelProps)
 
   return (
     <div className="space-y-4">
-      <Alert variant={isProduction ? 'destructive' : 'default'}>
-        {isProduction ? <AlertTriangle className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+      <Alert
+        className={cn(
+          isProduction
+            ? 'border-amber-200/80 bg-amber-50/70 text-amber-950 [&>svg]:text-amber-800'
+            : 'border-primary/15 bg-primary/5 [&>svg]:text-primary',
+        )}
+      >
+        {isProduction ? <AlertTriangle /> : <Info />}
+        <AlertTitle className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1.5 line-clamp-none">
+          <span className="mr-1">Edytujesz flagi środowiska</span>
+          <Badge
+            variant="outline"
+            className={cn(
+              'font-medium',
+              isProduction
+                ? 'border-amber-200 bg-amber-100 text-amber-900'
+                : 'border-primary/20 bg-background text-primary',
+            )}
+          >
+            {snapshot.environmentLabel}
+          </Badge>
+        </AlertTitle>
         <AlertDescription>
-          Edytujesz flagi środowiska <strong>{snapshot.environmentLabel}</strong>
-          {snapshot.appId ? (
-            <>
-              {' '}
-              (app <code className="text-xs">{snapshot.appId}</code>)
-            </>
-          ) : null}
-          . Zmiana dotyczy tylko tej aplikacji Flagship — Preview i produkcja mają osobne appy.
+          {isProduction
+            ? 'Zmiany są widoczne dla użytkowników vestiqo.pl. Preview ma osobny zestaw flag.'
+            : 'Zmiana dotyczy tylko tego środowiska. Preview i produkcja mają osobne zestawy flag.'}
         </AlertDescription>
       </Alert>
 

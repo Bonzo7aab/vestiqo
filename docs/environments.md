@@ -131,7 +131,7 @@ Resend and PostHog may still be shared with prod. Avoid bulk mail from Preview; 
 | **Production** | existing prod app (e.g. `vestiqo`) |
 | **Preview / Development / local** | `vestiqo-preview` (create in Cloudflare if missing) |
 
-Set `FLAGSHIP_APP_ID` per Vercel environment. The API token needs **Flagship Read** (evaluate) and **Flagship Write** (admin toggles on `/administracja/flagi`). Admins toggle only the app wired to that deployment — Preview cannot change production flags.
+Set `FLAGSHIP_APP_ID` per Vercel environment. Use a **User API Token** from **My Profile → API Tokens** (value starts with `cfut_`), not an **Account API Token** from Manage Account → Account API Tokens (`cfat_`). Account tokens can evaluate flags but Cloudflare returns 403 on `GET/PUT /flags`, so `/administracja/flagi` cannot list or toggle. The user token needs **Flagship Read** and **Flagship Edit** (dashboard has no “Write” row; IAM calls the write group Flagship Write). After creating a token, paste it into `CLOUDFLARE_FLAGSHIP_API_TOKEN` and restart/redeploy — the dashboard does not push it to the app.
 
 Boolean flags (`orders`, `contractor-services`, `calendar`, and the others in `src/lib/flagship/keys.ts`): variants `on=true` / `off=false`. When enabled with no targeting rules, `default_variation` must be `on`. Changes can take up to ~30 seconds to propagate.
 
