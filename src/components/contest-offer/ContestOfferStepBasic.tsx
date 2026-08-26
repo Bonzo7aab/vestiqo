@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef, type ReactElement } from 'react';
-import { FileText, Upload, X } from 'lucide-react';
+import { type ReactElement } from 'react';
+import type { FileRejection } from 'react-dropzone';
+import { toast } from 'sonner';
+import { X } from 'lucide-react';
 import type { ContestOfferFormData } from '../../types/contest-offer';
-import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
+import type { ContestOfferFieldErrors } from '../../lib/contest-offer/offer-form-validation';
 import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOfferFieldError';
@@ -13,12 +15,24 @@ import {
   contestOfferUploadedFileRowClass,
 } from './ContestOfferFormalDocBlock';
 import { cn } from '../ui/utils';
+import {
+  OFFER_DOCUMENTATION_ACCEPT,
+  OFFER_DOCUMENT_MAX_BYTES,
+  OFFER_DOCUMENT_MAX_FILES,
+  contestOfferDocumentCapMessage,
+  contestOfferDocumentRejectionMessage,
+  contestOfferDocumentTruncateWarning,
+  formatContestFileSize,
+  remainingOfferDocumentSlots,
+  takeAcceptedContestFiles,
+} from '../../lib/contest-offer/contest-offer-form-documents';
 
 interface ContestOfferStepBasicProps {
   form: ContestOfferFormData;
   onStageFiles: (files: File[]) => void;
   onRemoveExtra: (id: string) => void;
   onRemoveStaged: (index: number) => void;
+  onFileIssue?: (message: string | null) => void;
   fieldErrors?: Pick<ContestOfferFieldErrors, 'offerDocumentation'>;
 }
 
@@ -27,18 +41,66 @@ export function ContestOfferStepBasic({
   onStageFiles,
   onRemoveExtra,
   onRemoveStaged,
+  onFileIssue,
   fieldErrors,
 }: ContestOfferStepBasicProps): ReactElement {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const offerDocs = form.extraAttachments.filter((a) => a.requirementKey === 'offerDocumentation');
   const stagedFiles = form.stagedFiles.offerDocumentation ?? [];
-  const hasFiles = offerDocs.length > 0 || stagedFiles.length > 0;
+  const totalFiles = offerDocs.length + stagedFiles.length;
+  const remainingSlots = remainingOfferDocumentSlots(stagedFiles.length, offerDocs.length);
+  const dropzoneDisabled = remainingSlots <= 0;
+  const hasFiles = totalFiles > 0;
   const hasError = Boolean(fieldErrors?.offerDocumentation);
+
+  const handleDrop = (accepted: File[], rejections: FileRejection[]): void => {
+    let keepError = false;
+
+    if (rejections.length > 0) {
+      const firstRejection = rejections[0];
+      const message = firstRejection
+        ? contestOfferDocumentRejectionMessage(firstRejection, 'offerDocumentation')
+        : 'Nieprawidłowy plik';
+      toast.error(message);
+      onFileIssue?.(message);
+      keepError = true;
+    }
+
+    if (accepted.length === 0) {
+      return;
+    }
+
+    if (remainingSlots <= 0) {
+      const message = contestOfferDocumentCapMessage();
+      toast.error(message);
+      onFileIssue?.(message);
+      return;
+    }
+
+    const { filesToAdd, truncated } = takeAcceptedContestFiles(accepted, remainingSlots);
+    if (filesToAdd.length > 0) {
+      onStageFiles(filesToAdd);
+    }
+
+    if (truncated) {
+      const warning = contestOfferDocumentTruncateWarning(filesToAdd.length, accepted.length);
+      toast.warning(warning);
+      if (!keepError) {
+        onFileIssue?.(warning);
+      }
+    } else if (!keepError) {
+      onFileIssue?.(null);
+    }
+  };
 
   return (
     <div className="space-y-4" id="contest-offer-offerDocumentation">
       <div>
-        <ContestOfferRequiredLabel>Dokumentacja ofertowa</ContestOfferRequiredLabel>
+        <div className="flex items-baseline justify-between gap-3">
+          <ContestOfferRequiredLabel>Dokumentacja ofertowa</ContestOfferRequiredLabel>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {totalFiles}/{OFFER_DOCUMENT_MAX_FILES}
+          </span>
+        </div>
         <p className="mb-3 mt-1 text-sm text-muted-foreground">
           Dodaj pliki oferty — kosztorys, opis techniczny, załączniki wymagane w konkursie.
         </p>
@@ -52,11 +114,15 @@ export function ContestOfferStepBasic({
               >
                 <span className="flex min-w-0 items-center gap-3">
                   <span className={contestOfferFileIconWrapClass} aria-hidden>
-                    <FileText className="h-4 w-4" />
+                    <span className="text-sm font-semibold tabular-nums">{index + 1}.</span>
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-foreground">{att.name}</span>
-                    <span className="text-xs text-muted-foreground">Dołączony do oferty</span>
+                    <span className="text-xs text-muted-foreground">
+                      {att.size != null && att.size > 0
+                        ? `${formatContestFileSize(att.size)} — dołączony do oferty`
+                        : 'Dołączony do oferty'}
+                    </span>
                   </span>
                 </span>
                 <Button
@@ -78,12 +144,14 @@ export function ContestOfferStepBasic({
               >
                 <span className="flex min-w-0 items-center gap-3">
                   <span className={contestOfferFileIconWrapClass} aria-hidden>
-                    <Upload className="h-4 w-4" />
+                    <span className="text-sm font-semibold tabular-nums">
+                      {offerDocs.length + index + 1}.
+                    </span>
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-foreground">{file.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      Nowy plik — zostanie wysłany przy zapisie
+                      {formatContestFileSize(file.size)} — nowy plik, zostanie wysłany przy zapisie
                     </span>
                   </span>
                 </span>
@@ -103,16 +171,12 @@ export function ContestOfferStepBasic({
         ) : null}
 
         <Dropzone
-          accept={{
-            'application/pdf': ['.pdf'],
-            'application/msword': ['.doc'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-            'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
-          }}
-          maxFiles={10}
-          onDrop={(files) => {
-            if (files.length > 0) onStageFiles(files);
-          }}
+          accept={OFFER_DOCUMENTATION_ACCEPT}
+          maxFiles={0}
+          minSize={1}
+          maxSize={OFFER_DOCUMENT_MAX_BYTES}
+          disabled={dropzoneDisabled}
+          onDrop={handleDrop}
           className={cn(
             'min-h-[140px] border-dashed p-5',
             hasFiles && 'min-h-[88px]',
@@ -121,31 +185,22 @@ export function ContestOfferStepBasic({
         >
           <DropzoneEmptyState>
             <p className="text-sm font-medium">
-              {hasFiles
-                ? 'Dodaj kolejne pliki — przeciągnij lub kliknij'
-                : 'Przeciągnij pliki tutaj lub kliknij, aby wybrać'}
+              {dropzoneDisabled
+                ? 'Osiągnięto limit plików'
+                : hasFiles
+                  ? 'Dodaj kolejne pliki — przeciągnij lub kliknij'
+                  : 'Przeciągnij pliki tutaj lub kliknij, aby wybrać'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              PDF, DOC, DOCX lub obrazy — możesz dodać wiele plików naraz
+              {dropzoneDisabled
+                ? `Maksymalnie ${OFFER_DOCUMENT_MAX_FILES} plików łącznie.`
+                : `PDF, DOC, DOCX, XLS, XLSX lub obrazy — max 10\u00a0MB każdy, maks. ${OFFER_DOCUMENT_MAX_FILES} łącznie`}
             </p>
           </DropzoneEmptyState>
           <DropzoneContent />
         </Dropzone>
         <ContestOfferFieldError message={fieldErrors?.offerDocumentation} />
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.doc,.docx,image/*"
-        className="sr-only"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length > 0) onStageFiles(files);
-          e.target.value = '';
-        }}
-      />
     </div>
   );
 }

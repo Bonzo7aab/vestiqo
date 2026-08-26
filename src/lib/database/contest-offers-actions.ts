@@ -7,11 +7,11 @@ import type { ContestOfferFormData } from '../../types/contest-offer';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { instrumentServerAction } from '../sentry/instrument-server-action';
 import { cancelTenderBid } from './jobs';
+import type { ContestOfferWizardStep } from '../contest-offer/offer-form-validation';
 import {
   deleteTenderBidDraft as deleteTenderBidDraftWithClient,
   submitTenderBid as submitTenderBidWithClient,
   upsertTenderBidDraft as upsertTenderBidDraftWithClient,
-  type ContestOfferWizardStep,
   type TenderBidRowLite,
 } from './contest-offers';
 

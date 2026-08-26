@@ -2,6 +2,21 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 import type { ContractorFormalProfileSnapshot } from './validate-profile-formal-requirements';
 
+export function asIsoDateOnly(value: unknown): string | null {
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+    return match?.[1] ?? null;
+  }
+  return null;
+}
+
 function asAmount(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
   if (typeof value === 'string') {
@@ -33,12 +48,14 @@ export function formalSnapshotFromSources(
 ): ContractorFormalProfileSnapshot {
   return {
     ocGuaranteeAmount: settings.ocGuaranteeAmount,
-    ocValidUntil: settings.ocValidUntil,
+    ocValidUntil: asIsoDateOnly(settings.ocValidUntil),
     hasOcScan: Boolean(settings.ocPolicyScanPath ?? verificationPaths.insurance),
     hasCertificatesDoc: Boolean(verificationPaths.certifications),
     professionalQualificationTypes: settings.professionalQualificationTypes,
     professionalQualificationsScanPath: settings.professionalQualificationsScanPath,
-    professionalQualificationsValidUntil: settings.professionalQualificationsValidUntil,
+    professionalQualificationsValidUntil: asIsoDateOnly(
+      settings.professionalQualificationsValidUntil,
+    ),
   };
 }
 
@@ -84,11 +101,13 @@ export async function loadContractorFormalProfileSnapshot(
   return formalSnapshotFromSources(
     {
       ocGuaranteeAmount: asAmount(record.oc_guarantee_amount),
-      ocValidUntil: asString(record.oc_valid_until),
+      ocValidUntil: asIsoDateOnly(record.oc_valid_until),
       ocPolicyScanPath: asString(record.oc_policy_scan_path),
       professionalQualificationTypes: asStringArray(record.professional_qualification_types),
       professionalQualificationsScanPath: asString(record.professional_qualifications_scan_path),
-      professionalQualificationsValidUntil: asString(record.professional_qualifications_valid_until),
+      professionalQualificationsValidUntil: asIsoDateOnly(
+        record.professional_qualifications_valid_until,
+      ),
     },
     verificationPaths,
   );

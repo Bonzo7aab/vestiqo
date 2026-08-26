@@ -34,15 +34,17 @@ import {
   fetchTenderBidOfferState,
   hydrateContestOfferFormFromBid,
   migrateLegacyOfferAttachments,
-  firstContestOfferStepWithErrors,
+  toSerializableContestOfferForm,
+} from '../../lib/database/contest-offers';
+import {
   filterFieldErrorsForStep,
+  firstContestOfferStepWithErrors,
   getContestOfferAllFieldErrors,
   getContestOfferStepFieldErrors,
   hasContestOfferFieldErrors,
-  toSerializableContestOfferForm,
   type ContestOfferFieldErrors,
   type ContestOfferWizardStep,
-} from '../../lib/database/contest-offers';
+} from '../../lib/contest-offer/offer-form-validation';
 import { submitTenderBid, upsertTenderBidDraft, abandonTenderBidDraftAction } from '../../lib/database/contest-offers-actions';
 import {
   AlertDialog,
@@ -67,6 +69,10 @@ import {
 import { uploadContestOfferStagedFiles } from '../../lib/contest-offer/upload-staged-offer-files';
 import { contestOfferErrorFromUnknown, CONTEST_OFFER_ERRORS } from '../../lib/contest-offer/error-messages';
 import { resolveContractorDocuments } from '../../lib/contest-offer/resolve-contractor-documents-actions';
+import {
+  remainingOfferDocumentSlots,
+  takeAcceptedContestFiles,
+} from '../../lib/contest-offer/contest-offer-form-documents';
 import { ContestOfferWizardStepper } from './ContestOfferWizardStepper';
 import { ContestOfferContextPanel } from './ContestOfferContextPanel';
 import { ContestOfferStepBasic } from './ContestOfferStepBasic';
@@ -300,7 +306,8 @@ export function ContestOfferSubmissionDialog({
         form,
       );
       if (uploadError) {
-        setFormError(contestOfferErrorFromUnknown(uploadError));
+        toast.error(uploadError);
+        setFormError(uploadError);
         return;
       }
       setForm(uploadedForm);
@@ -366,7 +373,8 @@ export function ContestOfferSubmissionDialog({
         form,
       );
       if (uploadError) {
-        setFormError(contestOfferErrorFromUnknown(uploadError));
+        toast.error(uploadError);
+        setFormError(uploadError);
         return;
       }
       setForm(uploadedForm);
@@ -434,20 +442,65 @@ export function ContestOfferSubmissionDialog({
 
   const stageOfferDocumentationFiles = (files: File[]): void => {
     if (files.length === 0) return;
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.offerDocumentation;
-      return next;
-    });
     setForm((prev) => {
       const migrated = migrateLegacyOfferAttachments(prev);
+      const keptCount = migrated.extraAttachments.filter(
+        (a) => a.requirementKey === 'offerDocumentation',
+      ).length;
+      const pendingCount = migrated.stagedFiles.offerDocumentation?.length ?? 0;
+      const remaining = remainingOfferDocumentSlots(pendingCount, keptCount);
+      const { filesToAdd } = takeAcceptedContestFiles(files, remaining);
+      if (filesToAdd.length === 0) return prev;
       return {
         ...migrated,
         stagedFiles: {
           ...migrated.stagedFiles,
-          offerDocumentation: [...(migrated.stagedFiles.offerDocumentation ?? []), ...files],
+          offerDocumentation: [
+            ...(migrated.stagedFiles.offerDocumentation ?? []),
+            ...filesToAdd,
+          ],
         },
       };
+    });
+  };
+
+  const reportOfferDocumentationIssue = (message: string | null): void => {
+    setValidatedSteps((prev) => new Set(prev).add(1));
+    setFieldErrors((prev) => {
+      if (!message) {
+        const next = { ...prev };
+        delete next.offerDocumentation;
+        return next;
+      }
+      return { ...prev, offerDocumentation: message };
+    });
+  };
+
+  const reportFormalFileIssue = (
+    key: FormalRequirementKey,
+    message: string | null,
+  ): void => {
+    setValidatedSteps((prev) => new Set(prev).add(3));
+    setFieldErrors((prev) => {
+      if (!message) {
+        return clearContestOfferFormalFieldError(prev, key);
+      }
+      return {
+        ...prev,
+        formal: { ...prev.formal, [key]: message },
+      };
+    });
+  };
+
+  const reportDepositFileIssue = (message: string | null): void => {
+    setValidatedSteps((prev) => new Set(prev).add(4));
+    setFieldErrors((prev) => {
+      if (!message) {
+        const next = { ...prev };
+        delete next.deposit;
+        return next;
+      }
+      return { ...prev, deposit: message };
     });
   };
 
@@ -627,6 +680,7 @@ export function ContestOfferSubmissionDialog({
                   onStageFiles={stageOfferDocumentationFiles}
                   onRemoveExtra={removeExtraAttachment}
                   onRemoveStaged={removeStagedOfferDocumentation}
+                  onFileIssue={reportOfferDocumentationIssue}
                 />
               )}
               {currentStep === 2 && (
@@ -646,6 +700,7 @@ export function ContestOfferSubmissionDialog({
                     onUseProfile={applyProfileDocument}
                     onUploadFormal={replaceFormalDocument}
                     onRemoveFormal={removeFormalDocument}
+                    onFileIssue={reportFormalFileIssue}
                   />
                 )}
               {currentStep === 4 && (
@@ -657,6 +712,7 @@ export function ContestOfferSubmissionDialog({
                   onPatch={patchForm}
                   onStageDeposit={(file) => stageFile('deposit', file)}
                   onRemoveDeposit={removeDeposit}
+                  onFileIssue={reportDepositFileIssue}
                 />
               )}
             </>

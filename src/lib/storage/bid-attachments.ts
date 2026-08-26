@@ -10,13 +10,62 @@ const ALLOWED_DOCUMENT_TYPES = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
+const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
+const ALLOWED_DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx'] as const;
+const ALLOWED_EXTENSIONS = [
+  ...ALLOWED_IMAGE_EXTENSIONS,
+  ...ALLOWED_DOCUMENT_EXTENSIONS,
+] as const;
 
 export interface BidUploadResult {
   url: string;
   path: string;
   type: 'image' | 'document';
+}
+
+function getFileExtension(fileName: string): string | null {
+  const parts = fileName.split('.');
+  if (parts.length < 2) return null;
+  return parts.pop()?.toLowerCase() ?? null;
+}
+
+function isAllowedBidFile(file: File): boolean {
+  const fileType = file.type.toLowerCase();
+  const allowed = ALLOWED_TYPES.map((t) => t.toLowerCase());
+  if (
+    allowed.includes(fileType) ||
+    (fileType === 'image/jpeg' && allowed.includes('image/jpg'))
+  ) {
+    return true;
+  }
+
+  const extension = getFileExtension(file.name);
+  return Boolean(
+    extension && (ALLOWED_EXTENSIONS as readonly string[]).includes(extension),
+  );
+}
+
+function inferBidAttachmentType(file: File): 'image' | 'document' {
+  const fileType = file.type.toLowerCase();
+  if (
+    ALLOWED_IMAGE_TYPES.some(
+      (type) => fileType === type || fileType.includes(type.split('/')[1]),
+    )
+  ) {
+    return 'image';
+  }
+  const extension = getFileExtension(file.name);
+  if (
+    extension &&
+    (ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(extension)
+  ) {
+    return 'image';
+  }
+  return 'document';
 }
 
 export async function uploadBidAttachment(
@@ -27,17 +76,17 @@ export async function uploadBidAttachment(
   try {
     await requireAuthenticatedUser(userId);
 
-    const fileType = file.type.toLowerCase();
-    const normalizedAllowed = ALLOWED_TYPES.map((t) => t.toLowerCase());
-    const isValid =
-      normalizedAllowed.includes(fileType) ||
-      (fileType === 'image/jpeg' && normalizedAllowed.includes('image/jpg'));
-
-    if (!isValid) {
+    if (!isAllowedBidFile(file)) {
       return {
         data: null,
-        error: new Error('Nieprawidłowy typ pliku. Dozwolone: JPG, PNG, WEBP, PDF, DOC, DOCX'),
+        error: new Error(
+          'Nieprawidłowy typ pliku. Dozwolone: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX',
+        ),
       };
+    }
+
+    if (file.size <= 0) {
+      return { data: null, error: new Error('Plik jest pusty lub uszkodzony') };
     }
 
     if (file.size > MAX_FILE_SIZE) {
@@ -47,12 +96,8 @@ export async function uploadBidAttachment(
       };
     }
 
-    const isImage = ALLOWED_IMAGE_TYPES.some(
-      (type) => fileType.includes(type.split('/')[1]) || fileType === type,
-    );
-    const attachmentType: 'image' | 'document' = isImage ? 'image' : 'document';
-
-    const fileExt = file.name.split('.').pop();
+    const attachmentType = inferBidAttachmentType(file);
+    const fileExt = getFileExtension(file.name) ?? 'bin';
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${userId}/tenders/${tenderId}/${fileName}`;
 

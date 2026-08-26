@@ -38,10 +38,23 @@ function formatPlDate(iso: string): string {
   });
 }
 
+function calendarDayUtc(iso: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso.trim());
+  if (match) {
+    return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  const parsed = new Date(ms);
+  return Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
 function daysUntil(iso: string, nowMs: number): number | null {
-  const validUntilMs = Date.parse(iso);
-  if (!Number.isFinite(validUntilMs)) return null;
-  return Math.ceil((validUntilMs - nowMs) / MS_PER_DAY);
+  const validUntilDay = calendarDayUtc(iso);
+  if (validUntilDay == null) return null;
+  const now = new Date(nowMs);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((validUntilDay - today) / MS_PER_DAY);
 }
 
 function isExpired(iso: string | null, nowMs: number): boolean {

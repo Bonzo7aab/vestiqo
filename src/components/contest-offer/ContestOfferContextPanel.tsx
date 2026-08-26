@@ -4,7 +4,7 @@ import { StorageDocumentLink } from '../storage/StorageDocumentLink';
 import { Building2, ChevronDown, FileText, Info, Tag } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import type { ContestInfo } from '../../types/job';
-import type { ContestOfferWizardStep } from '../../lib/database/contest-offers';
+import type { ContestOfferWizardStep } from '../../lib/contest-offer/offer-form-validation';
 import {
   Collapsible,
   CollapsibleContent,

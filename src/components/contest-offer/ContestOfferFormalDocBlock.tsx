@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { type ReactElement } from 'react';
+import type { FileRejection } from 'react-dropzone';
+import { toast } from 'sonner';
 import { ExternalLink, FileText, Upload, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
@@ -11,6 +13,12 @@ import type {
 } from '../../types/contest-offer';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../../lib/verification/documents-route';
 import { supportsContestOfferProfileAutofill } from '../../lib/contest-offer/build-profile-formal-attachment';
+import {
+  OFFER_DOCUMENT_MAX_BYTES,
+  OFFER_FORMAL_DOCUMENT_ACCEPT,
+  contestOfferDocumentRejectionMessage,
+  formatContestFileSize,
+} from '../../lib/contest-offer/contest-offer-form-documents';
 import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOfferFieldError';
 import { cn } from '../ui/utils';
 
@@ -29,31 +37,28 @@ export const contestOfferSectionCardClass =
 export const contestOfferSectionIconClass =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/30 text-muted-foreground';
 
-const FILE_ACCEPT = {
-  'application/pdf': ['.pdf'],
-  'application/msword': ['.doc'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
-} as const;
-
 interface ContestOfferFormalDocBlockProps {
   doc: ResolvedContractorDocument;
   attached?: ContestOfferAttachmentRef;
   stagedName?: string;
+  stagedSize?: number;
   fieldError?: string;
   onUseProfile: () => void;
   onUpload: (file: File) => void;
   onRemove: () => void;
+  onFileIssue?: (message: string | null) => void;
 }
 
 export function ContestOfferFormalDocBlock({
   doc,
   attached,
   stagedName,
+  stagedSize,
   fieldError,
   onUseProfile,
   onUpload,
   onRemove,
+  onFileIssue,
 }: ContestOfferFormalDocBlockProps): ReactElement {
   const displayName = stagedName ?? attached?.name;
   const isAttached = Boolean(displayName);
@@ -61,6 +66,26 @@ export function ContestOfferFormalDocBlock({
   const previewUrl = isStaged ? undefined : attached?.url;
   const showProfileOptions = supportsContestOfferProfileAutofill(doc.requirementKey);
   const showProfileCta = showProfileOptions && (doc.missing || doc.profileBlocked);
+  const displaySize = isStaged ? stagedSize : attached?.size;
+
+  const handleDrop = (accepted: File[], rejections: FileRejection[]): void => {
+    if (rejections.length > 0) {
+      const firstRejection = rejections[0];
+      const message = firstRejection
+        ? contestOfferDocumentRejectionMessage(firstRejection, 'formal')
+        : 'Nieprawidłowy plik';
+      toast.error(message);
+      onFileIssue?.(message);
+    }
+
+    const file = accepted[0];
+    if (file) {
+      onUpload(file);
+      if (rejections.length === 0) {
+        onFileIssue?.(null);
+      }
+    }
+  };
 
   return (
     <div
@@ -134,9 +159,17 @@ export function ContestOfferFormalDocBlock({
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-foreground">{displayName}</span>
                   {isStaged ? (
-                    <span className="text-xs text-muted-foreground">Nowy plik — zostanie wysłany przy zapisie</span>
+                    <span className="text-xs text-muted-foreground">
+                      {displaySize != null && displaySize > 0
+                        ? `${formatContestFileSize(displaySize)} — nowy plik, zostanie wysłany przy zapisie`
+                        : 'Nowy plik — zostanie wysłany przy zapisie'}
+                    </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Dołączony do oferty</span>
+                    <span className="text-xs text-muted-foreground">
+                      {displaySize != null && displaySize > 0
+                        ? `${formatContestFileSize(displaySize)} — dołączony do oferty`
+                        : 'Dołączony do oferty'}
+                    </span>
                   )}
                 </span>
                 {previewUrl ? (
@@ -166,12 +199,11 @@ export function ContestOfferFormalDocBlock({
         ) : null}
 
         <Dropzone
-          accept={FILE_ACCEPT}
+          accept={OFFER_FORMAL_DOCUMENT_ACCEPT}
           maxFiles={1}
-          onDrop={(files) => {
-            const file = files[0];
-            if (file) onUpload(file);
-          }}
+          minSize={1}
+          maxSize={OFFER_DOCUMENT_MAX_BYTES}
+          onDrop={handleDrop}
           className={cn(
             'min-h-[100px] border-dashed p-5',
             isAttached && 'min-h-[72px]',
@@ -182,7 +214,9 @@ export function ContestOfferFormalDocBlock({
             <p className="text-sm font-medium">
               {isAttached ? 'Zastąp plik — przeciągnij lub kliknij' : 'Przeciągnij plik tutaj lub kliknij, aby wybrać'}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX lub obrazy</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              PDF, DOC, DOCX lub obrazy — max 10&nbsp;MB
+            </p>
           </DropzoneEmptyState>
           <DropzoneContent />
         </Dropzone>

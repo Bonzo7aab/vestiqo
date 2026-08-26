@@ -3,7 +3,7 @@ export const CONTEST_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 
 export interface ContestFileRejectionLike {
   file: { name: string };
-  errors: Array<{ code: string; message: string }>;
+  errors: ReadonlyArray<{ code: string; message: string }>;
 }
 
 export function formatContestFileSize(bytes: number): string {

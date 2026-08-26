@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ContestOfferDetails, ContestOfferAttachmentRef, FormalRequirementKey } from '../../types/contest-offer';
-import { FORMAL_REQUIREMENT_LABELS } from '../../lib/database/contest-offers';
+import { FORMAL_REQUIREMENT_LABELS } from '../../lib/contest-offer/offer-form-validation';
 import { formatMonthsLabel } from '../../lib/contest-offer/warranty-period-options';
 import { getAttachmentDownloadUrl } from '../../lib/storage/bid-attachments';
 import { cn } from '../ui/utils';

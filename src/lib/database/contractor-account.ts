@@ -144,6 +144,21 @@ const normalizeGuaranteeAmount = (value: unknown): number | null => {
   return null;
 };
 
+const asDateOnly = (value: unknown): string | null => {
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+    return match?.[1] ?? null;
+  }
+  return null;
+};
+
 const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccountSettings => {
   if (!row) {
     return {
@@ -184,13 +199,10 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
       : {};
 
   return {
-    ocValidUntil: typeof row.oc_valid_until === 'string' ? row.oc_valid_until : null,
+    ocValidUntil: asDateOnly(row.oc_valid_until),
     ocPolicyScanPath: typeof row.oc_policy_scan_path === 'string' ? row.oc_policy_scan_path : null,
     ocGuaranteeAmount: normalizeGuaranteeAmount(row.oc_guarantee_amount),
-    professionalQualificationsValidUntil:
-      typeof row.professional_qualifications_valid_until === 'string'
-        ? row.professional_qualifications_valid_until
-        : null,
+    professionalQualificationsValidUntil: asDateOnly(row.professional_qualifications_valid_until),
     professionalQualificationsScanPath:
       typeof row.professional_qualifications_scan_path === 'string'
         ? row.professional_qualifications_scan_path
@@ -251,10 +263,12 @@ const isMissingContractorSettingsTableError = (error: unknown): boolean => {
   );
 };
 
-export async function getContractorAccountSettings(userId: string): Promise<ContractorAccountSettings> {
-  const supabase = createClient();
+export async function getContractorAccountSettingsWithClient(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  supabase: { from: (table: string) => any },
+  userId: string,
+): Promise<ContractorAccountSettings> {
+  const { data, error } = await supabase
     .from('contractor_account_settings')
     .select('*')
     .eq('user_id', userId)
@@ -268,6 +282,10 @@ export async function getContractorAccountSettings(userId: string): Promise<Cont
   }
 
   return normalizeSettings((data as Record<string, unknown> | null) || null);
+}
+
+export async function getContractorAccountSettings(userId: string): Promise<ContractorAccountSettings> {
+  return getContractorAccountSettingsWithClient(createClient(), userId);
 }
 
 /**

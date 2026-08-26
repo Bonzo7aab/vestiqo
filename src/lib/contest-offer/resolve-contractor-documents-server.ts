@@ -9,7 +9,7 @@ import type {
 } from '../../types/contest-offer';
 import { requiredFormalKeys } from '../../types/contest-offer';
 import {
-  getContractorAccountSettings,
+  getContractorAccountSettingsWithClient,
   type ContractorAccountSettings,
 } from '../database/contractor-account';
 import { DEFAULT_SERVICE_AREA, professionalQualificationLabel } from '../contractor/constants';
@@ -169,7 +169,7 @@ export async function resolveContractorDocumentsWithClient(
 
   let settings = emptySettings;
   try {
-    settings = await getContractorAccountSettings(userId);
+    settings = await getContractorAccountSettingsWithClient(supabase, userId);
   } catch {
     // Fall back to verification paths only when account settings are unavailable.
   }

@@ -6,7 +6,7 @@ import type {
   FormalRequirementKey,
   ResolvedContractorDocument,
 } from '../../types/contest-offer';
-import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
+import type { ContestOfferFieldErrors } from '../../lib/contest-offer/offer-form-validation';
 import { ContestOfferFormalDocBlock } from './ContestOfferFormalDocBlock';
 
 interface ContestOfferStepFormalProps {
@@ -16,6 +16,7 @@ interface ContestOfferStepFormalProps {
   onUseProfile: (doc: ResolvedContractorDocument) => void;
   onUploadFormal: (key: FormalRequirementKey, file: File) => void;
   onRemoveFormal: (key: FormalRequirementKey) => void;
+  onFileIssue?: (key: FormalRequirementKey, message: string | null) => void;
 }
 
 export function ContestOfferStepFormal({
@@ -25,6 +26,7 @@ export function ContestOfferStepFormal({
   onUseProfile,
   onUploadFormal,
   onRemoveFormal,
+  onFileIssue,
 }: ContestOfferStepFormalProps): ReactElement {
   return (
     <div className="space-y-6">
@@ -34,10 +36,12 @@ export function ContestOfferStepFormal({
           doc={doc}
           attached={form.formalAttachments[doc.requirementKey]}
           stagedName={form.stagedFiles[doc.requirementKey]?.[0]?.name}
+          stagedSize={form.stagedFiles[doc.requirementKey]?.[0]?.size}
           fieldError={fieldErrors.formal?.[doc.requirementKey]}
           onUseProfile={() => onUseProfile(doc)}
           onUpload={(file) => onUploadFormal(doc.requirementKey, file)}
           onRemove={() => onRemoveFormal(doc.requirementKey)}
+          onFileIssue={(message) => onFileIssue?.(doc.requirementKey, message)}
         />
       ))}
     </div>

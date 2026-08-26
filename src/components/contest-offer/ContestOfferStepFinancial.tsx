@@ -1,10 +1,12 @@
 'use client';
 
 import { type ReactElement } from 'react';
+import type { FileRejection } from 'react-dropzone';
+import { toast } from 'sonner';
 import { Banknote, FileText, Receipt, Shield, Upload, X } from 'lucide-react';
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
-import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
+import type { ContestOfferFieldErrors } from '../../lib/contest-offer/offer-form-validation';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -16,6 +18,13 @@ import {
   warrantyMonthsOptions,
 } from '../../lib/contest-offer/warranty-period-options';
 import {
+  OFFER_DEPOSIT_ACCEPT,
+  OFFER_DOCUMENT_MAX_BYTES,
+  contestOfferDocumentRejectionMessage,
+  formatContestFileSize,
+} from '../../lib/contest-offer/contest-offer-form-documents';
+import {
+  contestOfferFileIconWrapClass,
   contestOfferSectionCardClass,
   contestOfferSectionIconClass,
   contestOfferStagedFileRowClass,
@@ -35,12 +44,8 @@ interface ContestOfferStepFinancialProps {
   onPatch: (patch: Partial<ContestOfferFormData>) => void;
   onStageDeposit: (file: File) => void;
   onRemoveDeposit: () => void;
+  onFileIssue?: (message: string | null) => void;
 }
-
-const DEPOSIT_FILE_ACCEPT = {
-  'application/pdf': ['.pdf'],
-  'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
-} as const;
 
 export function ContestOfferStepFinancial({
   form,
@@ -50,6 +55,7 @@ export function ContestOfferStepFinancial({
   onPatch,
   onStageDeposit,
   onRemoveDeposit,
+  onFileIssue,
 }: ContestOfferStepFinancialProps): ReactElement {
   const warrantyOptions = warrantyMonthsOptions(contestInfo.warrantyPeriod);
   const guaranteeOptions = warrantyMonthsOptions(contestInfo.guaranteePeriod);
@@ -64,6 +70,26 @@ export function ContestOfferStepFinancial({
 
   const hasPricingError = Boolean(fieldErrors.netPrice);
   const hasWarrantyError = Boolean(fieldErrors.warrantyMonths || fieldErrors.guaranteeMonths);
+  const depositSize = stagedDeposit?.size ?? depositAttachment?.size;
+
+  const handleDepositDrop = (accepted: File[], rejections: FileRejection[]): void => {
+    if (rejections.length > 0) {
+      const firstRejection = rejections[0];
+      const message = firstRejection
+        ? contestOfferDocumentRejectionMessage(firstRejection, 'deposit')
+        : 'Nieprawidłowy plik';
+      toast.error(message);
+      onFileIssue?.(message);
+    }
+
+    const file = accepted[0];
+    if (file) {
+      onStageDeposit(file);
+      if (rejections.length === 0) {
+        onFileIssue?.(null);
+      }
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -229,17 +255,22 @@ export function ContestOfferStepFinancial({
               ) : null}
               <div className="mt-3">
                 <Dropzone
-                  accept={DEPOSIT_FILE_ACCEPT}
+                  accept={OFFER_DEPOSIT_ACCEPT}
                   maxFiles={1}
-                  onDrop={(files) => {
-                    const file = files[0];
-                    if (file) onStageDeposit(file);
-                  }}
+                  minSize={1}
+                  maxSize={OFFER_DOCUMENT_MAX_BYTES}
+                  onDrop={handleDepositDrop}
                   className={cn('min-h-[120px] border-dashed', fieldErrors.deposit && 'border-destructive')}
                 >
                   <DropzoneEmptyState>
-                    <p className="text-sm font-medium">Przeciągnij plik tutaj lub kliknij, aby wybrać</p>
-                    <p className="mt-1 text-xs text-muted-foreground">PDF lub obraz</p>
+                    <p className="text-sm font-medium">
+                      {hasDepositFile
+                        ? 'Zastąp plik — przeciągnij lub kliknij'
+                        : 'Przeciągnij plik tutaj lub kliknij, aby wybrać'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      PDF lub obraz — max 10&nbsp;MB
+                    </p>
                   </DropzoneEmptyState>
                   <DropzoneContent />
                 </Dropzone>
@@ -252,13 +283,28 @@ export function ContestOfferStepFinancial({
                       isDepositStaged ? contestOfferStagedFileRowClass : contestOfferUploadedFileRowClass
                     }
                   >
-                    <span className="flex min-w-0 items-center gap-2">
-                      {isDepositStaged ? (
-                        <Upload className="h-4 w-4 shrink-0" />
-                      ) : (
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <span className="truncate">{depositDisplayName}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className={contestOfferFileIconWrapClass} aria-hidden>
+                        {isDepositStaged ? (
+                          <Upload className="h-4 w-4" />
+                        ) : (
+                          <FileText className="h-4 w-4" />
+                        )}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-foreground">
+                          {depositDisplayName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {isDepositStaged
+                            ? depositSize != null && depositSize > 0
+                              ? `${formatContestFileSize(depositSize)} — nowy plik, zostanie wysłany przy zapisie`
+                              : 'Nowy plik — zostanie wysłany przy zapisie'
+                            : depositSize != null && depositSize > 0
+                              ? `${formatContestFileSize(depositSize)} — dołączony do oferty`
+                              : 'Dołączony do oferty'}
+                        </span>
+                      </span>
                     </span>
                     {onRemoveDeposit ? (
                       <Button

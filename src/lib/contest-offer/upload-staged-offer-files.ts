@@ -1,5 +1,6 @@
 import type { ContestOfferFormData, FormalRequirementKey } from '../../types/contest-offer';
 import { uploadBidAttachment } from '../storage/bid-attachments';
+import { contestOfferUploadFailureMessage } from './contest-offer-form-documents';
 
 function newAttachmentId(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -25,7 +26,10 @@ export async function uploadContestOfferStagedFiles(
         const file = files[i];
         const { data, error } = await uploadBidAttachment(file, userId, tenderId);
         if (error || !data) {
-          return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
+          return {
+            form: next,
+            error: contestOfferUploadFailureMessage([{ file: file.name, error }]),
+          };
         }
         next.extraAttachments = [
           ...next.extraAttachments,
@@ -47,7 +51,10 @@ export async function uploadContestOfferStagedFiles(
     const file = files[0];
     const { data, error } = await uploadBidAttachment(file, userId, tenderId);
     if (error || !data) {
-      return { form: next, error: error?.message ?? 'Nie udało się wgrać pliku' };
+      return {
+        form: next,
+        error: contestOfferUploadFailureMessage([{ file: file.name, error }]),
+      };
     }
 
     if (key === 'deposit') {

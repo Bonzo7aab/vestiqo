@@ -4,7 +4,8 @@ import { AlertTriangle, CalendarDays, MapPin } from 'lucide-react';
 import type { ReactElement } from 'react';
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData } from '../../types/contest-offer';
-import type { ContestOfferFieldErrors } from '../../lib/database/contest-offers';
+import type { ContestOfferFieldErrors } from '../../lib/contest-offer/offer-form-validation';
+import { localIsoDate } from '../../lib/contest-offer/offer-form-validation';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from '../ui/utils';
@@ -15,6 +16,7 @@ import {
 import {
   ContestOfferFieldError,
   ContestOfferRequiredLabel,
+  fieldErrorInputClass,
 } from './ContestOfferFieldError';
 
 interface ContestOfferStepScheduleProps {
@@ -33,6 +35,7 @@ export function ContestOfferStepSchedule({
   onPatch,
 }: ContestOfferStepScheduleProps): ReactElement {
   const showSiteVisit = contestInfo.siteVisitType === 'mandatory';
+  const minCompletionDate = localIsoDate();
 
   return (
     <div className="space-y-4">
@@ -60,9 +63,13 @@ export function ContestOfferStepSchedule({
               <Input
                 id="contest-offer-proposedCompletionDate"
                 type="date"
+                min={minCompletionDate}
                 value={form.proposedCompletionDate}
                 onChange={(e) => onPatch({ proposedCompletionDate: e.target.value })}
-                className="h-10 w-fit max-w-full border-border/60 bg-white pe-2 dark:bg-card [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:ms-1"
+                className={cn(
+                  'h-10 w-fit max-w-full border-border/60 bg-white pe-2 dark:bg-card [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:ms-1',
+                  fieldErrorInputClass(Boolean(fieldErrors.proposedCompletionDate)),
+                )}
                 aria-invalid={Boolean(fieldErrors.proposedCompletionDate)}
               />
             </div>

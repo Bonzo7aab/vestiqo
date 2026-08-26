@@ -1,7 +1,7 @@
 import type {
   ContestOfferFieldErrors,
   ContestOfferWizardStep,
-} from '../database/contest-offers';
+} from './offer-form-validation';
 import type { ContestOfferFormData, FormalRequirementKey } from '../../types/contest-offer';
 
 export function getContestOfferStepsWithErrors(

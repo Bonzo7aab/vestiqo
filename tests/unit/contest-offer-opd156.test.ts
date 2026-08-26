@@ -9,6 +9,10 @@ import {
   validateProfileFormalRequirements,
   type ContractorFormalProfileSnapshot,
 } from '../../src/lib/contest-offer/validate-profile-formal-requirements';
+import {
+  asIsoDateOnly,
+  formalSnapshotFromSources,
+} from '../../src/lib/contest-offer/load-formal-profile-snapshot';
 import { DEFAULT_FORMAL_REQUIREMENTS, type FormalRequirements } from '../../src/types/tender-contest';
 
 const NOW = Date.parse('2026-08-16T12:00:00.000Z');
@@ -82,7 +86,16 @@ assert.equal(
 assert.equal(
   validateProfileFormalRequirements(
     formal({ insuranceOc: true }),
-    snapshot({ hasOcScan: true, ocValidUntil: '2026-08-20' }),
+    snapshot({ hasOcScan: true, ocValidUntil: '2026-08-16' }),
+    NOW,
+  ).insuranceOc,
+  undefined,
+);
+
+assert.equal(
+  validateProfileFormalRequirements(
+    formal({ insuranceOc: true }),
+    snapshot({ hasOcScan: true, ocValidUntil: '2026-12-31T00:00:00.000Z' }),
     NOW,
   ).insuranceOc,
   undefined,
@@ -197,5 +210,28 @@ assert.equal(licenseLines.length, 1);
 assert.match(licenseLines[0] ?? '', /Uprawnienia zawodowe:/);
 assert.match(licenseLines[0] ?? '', /SEP G1/);
 assert.match(licenseLines[0] ?? '', /UDT/);
+
+// OPD-182: OC scan from verification docs + date from account settings
+assert.equal(asIsoDateOnly('2026-12-31T00:00:00.000Z'), '2026-12-31');
+assert.equal(asIsoDateOnly('2026-12-31'), '2026-12-31');
+
+const fromVerificationFile = formalSnapshotFromSources(
+  {
+    ocGuaranteeAmount: null,
+    ocValidUntil: '2026-12-31T00:00:00.000Z',
+    ocPolicyScanPath: null,
+    professionalQualificationTypes: [],
+    professionalQualificationsScanPath: null,
+    professionalQualificationsValidUntil: null,
+  },
+  { insurance: 'user/insurance.pdf' },
+);
+assert.equal(fromVerificationFile.hasOcScan, true);
+assert.equal(fromVerificationFile.ocValidUntil, '2026-12-31');
+assert.equal(
+  validateProfileFormalRequirements(formal({ insuranceOc: true }), fromVerificationFile, NOW)
+    .insuranceOc,
+  undefined,
+);
 
 console.log('contest-offer-opd156.test.ts: ok');
