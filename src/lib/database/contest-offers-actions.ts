@@ -14,6 +14,10 @@ import {
   upsertTenderBidDraft as upsertTenderBidDraftWithClient,
   type TenderBidRowLite,
 } from './contest-offers';
+import {
+  CONTEST_OFFER_ERRORS,
+  contestOfferErrorFromUnknown,
+} from '../contest-offer/error-messages';
 
 function revalidateContractorOffersPaths(tenderId?: string): void {
   revalidatePath('/panel-wykonawcy/aplikacje');
@@ -64,7 +68,7 @@ async function abandonTenderBidDraftActionImpl(input: {
   } = await supabase.auth.getUser();
 
   if (!user || user.id !== input.contractorId) {
-    return { success: false, error: 'Wymagane logowanie' };
+    return { success: false, error: CONTEST_OFFER_ERRORS.notLoggedIn };
   }
 
   const result = await deleteTenderBidDraftWithClient(supabase, input.contractorId, {
@@ -75,7 +79,9 @@ async function abandonTenderBidDraftActionImpl(input: {
   if (!result.success) {
     return {
       success: false,
-      error: result.error?.message ?? 'Nie udało się odrzucić szkicu oferty',
+      error: result.error
+        ? contestOfferErrorFromUnknown(result.error)
+        : CONTEST_OFFER_ERRORS.abandonFailed,
     };
   }
 
@@ -93,7 +99,7 @@ async function withdrawTenderBidActionImpl(input: {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: 'Wymagane logowanie' };
+    return { success: false, error: CONTEST_OFFER_ERRORS.notLoggedIn };
   }
 
   const result = await cancelTenderBid(supabase, input.bidId, user.id);
@@ -101,10 +107,7 @@ async function withdrawTenderBidActionImpl(input: {
   if (result.error) {
     return {
       success: false,
-      error:
-        result.error instanceof Error
-          ? result.error.message
-          : 'Nie udało się wycofać oferty',
+      error: contestOfferErrorFromUnknown(result.error),
     };
   }
 

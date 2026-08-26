@@ -342,7 +342,11 @@ export function ContestOfferSubmissionDialog({
         tenderId,
       });
       if (!result.success) {
-        toast.error(result.error ?? 'Nie udało się odrzucić szkicu oferty');
+        toast.error(
+          result.error
+            ? contestOfferErrorFromUnknown(result.error)
+            : CONTEST_OFFER_ERRORS.abandonFailed,
+        );
         return;
       }
       toast.success('Szkic oferty został odrzucony');

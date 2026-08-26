@@ -69,6 +69,13 @@ assert.equal(
   }),
   contestDocumentCapMessage(),
 );
+assert.equal(
+  contestDocumentRejectionMessage({
+    file: { name: 'weird.bin' },
+    errors: [{ code: 'unknown-dropzone-error', message: 'FileReader abort: NS_ERROR_FAILURE' }],
+  }),
+  'Nie udało się dodać pliku "weird.bin"',
+);
 
 assert.equal(
   contestDocumentTruncateWarning(1, 4),

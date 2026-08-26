@@ -86,6 +86,13 @@ assert.equal(
   ),
   'Można dodać tylko jeden plik. Plik "extra.pdf" nie został dodany',
 );
+assert.equal(
+  contestOfferDocumentRejectionMessage({
+    file: { name: 'weird.bin' },
+    errors: [{ code: 'unknown-dropzone-error', message: 'FileReader abort: NS_ERROR_FAILURE' }],
+  }),
+  'Nie udało się dodać pliku "weird.bin"',
+);
 
 assert.equal(
   contestOfferDocumentTruncateWarning(1, 4),

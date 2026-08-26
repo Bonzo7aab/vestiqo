@@ -58,7 +58,7 @@ export function contestDocumentRejectionMessage(
     case 'too-many-files':
       return contestDocumentCapMessage();
     default:
-      return `Błąd przy dodawaniu pliku "${name}": ${err.message}`;
+      return `Nie udało się dodać pliku "${name}"`;
   }
 }
 

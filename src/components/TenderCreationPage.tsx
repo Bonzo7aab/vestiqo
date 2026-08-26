@@ -21,6 +21,7 @@ import {
   parseExistingTenderDocuments,
 } from '../lib/contest/build-tender-payload';
 import { contestUploadFailureMessage } from '../lib/contest/contest-form-documents';
+import { CONTEST_ERRORS, contestErrorFromUnknown } from '../lib/contest/error-messages';
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/tender-contest';
 import { createEmptyTenderContestForm } from '../types/tender-contest';
 import { toast } from 'sonner';
@@ -220,7 +221,7 @@ export default function TenderCreationPage({
     buildingIds: string[],
   ): Promise<void> => {
     if (!user?.id) {
-      toast.error('Musisz być zalogowany, aby zapisać konkurs');
+      toast.error(CONTEST_ERRORS.notLoggedIn);
       return;
     }
 
@@ -231,7 +232,7 @@ export default function TenderCreationPage({
       const { data: company, error: companyError } = await fetchUserPrimaryCompany(supabase, user.id);
 
       if (companyError || !company) {
-        toast.error('Nie znaleziono firmy. Uzupełnij dane firmy w profilu.');
+        toast.error(CONTEST_ERRORS.missingCompany);
         return;
       }
 
@@ -262,7 +263,8 @@ export default function TenderCreationPage({
       );
 
       if (buildError || !payload) {
-        toast.error(buildError?.message ?? 'Nie udało się przygotować danych konkursu');
+        console.error('Error preparing contest:', buildError);
+        toast.error(CONTEST_ERRORS.prepareFailed);
         return;
       }
 
@@ -274,9 +276,8 @@ export default function TenderCreationPage({
         );
 
         if (saveError) {
-          toast.error(
-            'Nie udało się zapisać konkursu: ' + (saveError.message || 'Nieznany błąd'),
-          );
+          console.error('Error saving contest:', saveError);
+          toast.error(contestErrorFromUnknown(saveError));
           return;
         }
         const { error: buildingsError } = await replaceContestBuildings(
@@ -297,9 +298,8 @@ export default function TenderCreationPage({
         const { data: created, error: saveError } = await createTender(supabase, createPayload);
 
         if (saveError) {
-          toast.error(
-            'Nie udało się zapisać konkursu: ' + (saveError.message || 'Nieznany błąd'),
-          );
+          console.error('Error saving contest:', saveError);
+          toast.error(contestErrorFromUnknown(saveError));
           return;
         }
         if (created?.id) {
@@ -339,7 +339,7 @@ export default function TenderCreationPage({
       router.push('/panel-zarzadcy/konkursy');
     } catch (error) {
       console.error('Error saving contest:', error);
-      toast.error('Wystąpił błąd podczas zapisywania konkursu');
+      toast.error(contestErrorFromUnknown(error));
     } finally {
       if (!keepSubmittingOverlay) {
         setIsSubmitting(false);

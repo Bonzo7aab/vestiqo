@@ -72,7 +72,17 @@ assert.equal(isContestOfferUniqueConflict({ message: 'something else' }), false)
 
 assert.equal(
   translateContestOfferError('Uzupełnij wykaz zrealizowanych prac'),
-  'Uzupełnij wykaz zrealizowanych prac',
+  CONTEST_OFFER_ERRORS.generic,
+);
+
+assert.equal(
+  translateContestOfferError('Could not find the table \'public.contest_offers\' in the schema cache'),
+  CONTEST_OFFER_ERRORS.generic,
+);
+
+assert.equal(
+  translateContestOfferError(CONTEST_OFFER_ERRORS.abandonFailed),
+  CONTEST_OFFER_ERRORS.abandonFailed,
 );
 
 console.log('contest-offer-opd150.test.ts: ok');

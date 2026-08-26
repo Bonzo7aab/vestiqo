@@ -81,7 +81,7 @@ export function contestOfferDocumentRejectionMessage(
         ? contestOfferDocumentCapMessage()
         : `Można dodać tylko jeden plik. Plik "${name}" nie został dodany`;
     default:
-      return `Błąd przy dodawaniu pliku "${name}": ${err.message}`;
+      return `Nie udało się dodać pliku "${name}"`;
   }
 }
 
