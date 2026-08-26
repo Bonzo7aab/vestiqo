@@ -25,6 +25,7 @@ import type { ContractorFormalProfileSnapshot } from '../../lib/contest-offer/va
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
+  toSerializableContestOfferForm,
 } from '../../types/contest-offer';
 import { createClient } from '../../lib/supabase/client';
 import {
@@ -34,7 +35,6 @@ import {
   fetchTenderBidOfferState,
   hydrateContestOfferFormFromBid,
   migrateLegacyOfferAttachments,
-  toSerializableContestOfferForm,
 } from '../../lib/database/contest-offers';
 import {
   filterFieldErrorsForStep,

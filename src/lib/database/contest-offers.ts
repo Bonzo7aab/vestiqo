@@ -12,6 +12,7 @@ import {
   formDataToOfferDetails,
   mergeAttachmentsForBid,
   offerDetailsToFormData,
+  toSerializableContestOfferForm,
 } from '../../types/contest-offer';
 import type { SiteVisitType } from '../../types/tender-contest';
 import { uploadContestOfferStagedFiles } from '../contest-offer/upload-staged-offer-files';
@@ -122,10 +123,7 @@ export function migrateLegacyOfferAttachments(form: ContestOfferFormData): Conte
   return form;
 }
 
-/** Strip File objects so the form can be passed to server actions. */
-export function toSerializableContestOfferForm(form: ContestOfferFormData): ContestOfferFormData {
-  return { ...form, stagedFiles: {} };
-}
+export { toSerializableContestOfferForm };
 
 export async function fetchTenderBidOfferState(
   supabase: SupabaseClient<Database>,

@@ -17,15 +17,18 @@ export function buildFormalAttachmentFromProfile(
   doc: ResolvedContractorDocument,
 ): ContestOfferAttachmentRef | null {
   if (!doc.path) return null;
-  return {
+  const attachment: ContestOfferAttachmentRef = {
     id: `profile-${doc.requirementKey}`,
     name: doc.fileName ?? doc.label,
     path: doc.path,
-    url: doc.signedUrl ?? undefined,
     type: 'document',
     source: 'profile',
     requirementKey: doc.requirementKey as FormalRequirementKey,
   };
+  if (doc.signedUrl) {
+    attachment.url = doc.signedUrl;
+  }
+  return attachment;
 }
 
 export function applyProfileDocumentsToForm(

@@ -80,6 +80,16 @@ export function createEmptyContestOfferForm(): ContestOfferFormData {
   };
 }
 
+/**
+ * Strip File objects and `undefined` fields so the form can be passed to
+ * Next.js server actions (they reject undefined / non-plain values).
+ * Profile-prefilled Wymogi attachments often omit `url`/`size` (OPD-183).
+ */
+export function toSerializableContestOfferForm(form: ContestOfferFormData): ContestOfferFormData {
+  const withoutFiles: ContestOfferFormData = { ...form, stagedFiles: {} };
+  return JSON.parse(JSON.stringify(withoutFiles)) as ContestOfferFormData;
+}
+
 export function computeGrossFromNet(net: number, vatRate: ContestOfferVatRate): number {
   if (vatRate === 'zw') return net;
   const rate = vatRate === '8' ? 0.08 : 0.23;
