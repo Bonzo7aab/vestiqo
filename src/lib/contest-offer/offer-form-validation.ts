@@ -68,6 +68,13 @@ function hasOfferDocumentation(form: ContestOfferFormData): boolean {
   return offerDocs.length > 0 || staged > 0;
 }
 
+function hasFormalRequirementFile(
+  form: ContestOfferFormData,
+  key: FormalRequirementKey,
+): boolean {
+  return Boolean(form.formalAttachments[key] || form.stagedFiles[key]?.length);
+}
+
 export function getContestOfferStepFieldErrors(
   step: ContestOfferWizardStep,
   form: ContestOfferFormData,
@@ -109,9 +116,17 @@ export function getContestOfferStepFieldErrors(
       errors.formal = formal;
     }
     if (profileSnapshot) {
+      const snapshotForProfile =
+        hasFormalRequirementFile(form, 'professionalLicenses') &&
+        !profileSnapshot.professionalQualificationsScanPath
+          ? {
+              ...profileSnapshot,
+              professionalQualificationsScanPath: 'offer-local',
+            }
+          : profileSnapshot;
       const profileErrors = validateProfileFormalRequirements(
         contestInfo.formalRequirements,
-        profileSnapshot,
+        snapshotForProfile,
       );
       if (Object.keys(profileErrors).length > 0) {
         errors.formal = { ...formal, ...profileErrors };

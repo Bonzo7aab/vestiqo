@@ -14,7 +14,7 @@ import {
 } from '../database/contractor-account';
 import { DEFAULT_SERVICE_AREA, professionalQualificationLabel } from '../contractor/constants';
 import { createSignedUrlSafe } from '../storage/r2/operations';
-import { formalSnapshotFromSources } from './load-formal-profile-snapshot';
+import { formalSnapshotFromSources, professionalLicenseScanPath } from './load-formal-profile-snapshot';
 import {
   validateProfileFormalRequirements,
   type ContractorFormalProfileSnapshot,
@@ -95,7 +95,10 @@ function resolveDocumentPath(
       };
     case 'professionalLicenses':
       return {
-        path: settings.professionalQualificationsScanPath ?? null,
+        path: professionalLicenseScanPath(
+          settings.professionalQualificationsScanPath,
+          verificationPaths,
+        ),
         hint: formatLicensesHint(settings),
       };
     default:

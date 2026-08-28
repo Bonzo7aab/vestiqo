@@ -14,6 +14,9 @@ export interface ContractorFormalProfileSnapshot {
   professionalQualificationsValidUntil: string | null;
 }
 
+export const PROFILE_LICENSE_SCAN_MISSING =
+  'Uzupełnij skan uprawnień zawodowych w profilu';
+
 export const EMPTY_FORMAL_PROFILE_SNAPSHOT: ContractorFormalProfileSnapshot = {
   ocGuaranteeAmount: null,
   ocValidUntil: null,
@@ -102,7 +105,7 @@ export function validateProfileFormalRequirements(
     const requiredTypes = formal.professionalLicenseTypes ?? [];
     if (requiredTypes.length > 0) {
       if (!snapshot.professionalQualificationsScanPath) {
-        errors.professionalLicenses = 'Uzupełnij skan uprawnień zawodowych w profilu';
+        errors.professionalLicenses = PROFILE_LICENSE_SCAN_MISSING;
       } else if (isExpired(snapshot.professionalQualificationsValidUntil, nowMs)) {
         const until = snapshot.professionalQualificationsValidUntil
           ? formatPlDate(snapshot.professionalQualificationsValidUntil)

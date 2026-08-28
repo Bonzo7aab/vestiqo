@@ -141,6 +141,10 @@ export function ContestOfferSubmissionDialog({
   );
   const profileDocsAppliedRef = useRef(false);
   const shouldFocusFieldErrorRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const contestInfoRef = useRef(contestInfo);
+  contestInfoRef.current = contestInfo;
 
   const totalSteps = 4;
 
@@ -167,72 +171,84 @@ export function ContestOfferSubmissionDialog({
     contestInfo.completionDate,
   );
 
-  const loadInitial = useCallback(async () => {
-    if (!isOpen || !contractorId) return;
-    setIsLoading(true);
-    try {
-      const [{ state: offerState }, resolved] = await Promise.all([
-        fetchTenderBidOfferState(supabase, tenderId, contractorId),
-        resolveContractorDocuments(contractorId, contestInfo.formalRequirements),
-      ]);
-
-      if (offerState === 'submitted') {
-        toast.error(CONTEST_OFFER_ERRORS.alreadySubmitted);
-        onClose();
-        return;
-      }
-
-      const draft =
-        offerState === 'draft'
-          ? (await fetchTenderBidDraft(supabase, tenderId, contractorId)).data
-          : null;
-
-      const docs = resolved.documents;
-      setResolvedDocs(docs);
-      setFormalProfileSnapshot(resolved.snapshot);
-
-      if (draft) {
-        setHasExistingDraft(true);
-        const hydrated = hydrateContestOfferFormFromBid(draft);
-        if (draft.offer_details && typeof draft.offer_details === 'object') {
-          const step = (draft.offer_details as { currentStep?: number }).currentStep;
-          if (step && step >= 1 && step <= 4) {
-            setCurrentStep(step as ContestOfferWizardStep);
-          }
-        }
-        hydrated.formalAttachments = applyProfileDocumentsToForm(
-          docs,
-          hydrated.formalAttachments,
-        ) as ContestOfferFormData['formalAttachments'];
-        setForm(hydrated);
-      } else {
-        setHasExistingDraft(false);
-        const empty = createEmptyContestOfferForm();
-        if (contestInfo.paymentTerms.mode === 'standard_14') {
-          empty.paymentTermsAccepted = true;
-        }
-        empty.formalAttachments = applyProfileDocumentsToForm(
-          docs,
-          empty.formalAttachments,
-        ) as ContestOfferFormData['formalAttachments'];
-        setForm(empty);
-        setCurrentStep(1);
-        profileDocsAppliedRef.current = true;
-      }
-      setFormError(null);
-      setFieldErrors({});
-      setValidatedSteps(new Set());
-    } catch (e) {
-      console.error(e);
-      setFormError('Nie udało się załadować szkicu oferty');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isOpen, contractorId, supabase, tenderId, contestInfo, onClose]);
-
   useEffect(() => {
+    if (!isOpen || !contractorId) return;
+    let cancelled = false;
+
+    const loadInitial = async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const info = contestInfoRef.current;
+        const [{ state: offerState }, resolved] = await Promise.all([
+          fetchTenderBidOfferState(supabase, tenderId, contractorId),
+          resolveContractorDocuments(contractorId, info.formalRequirements),
+        ]);
+        if (cancelled) return;
+
+        if (offerState === 'submitted') {
+          toast.error(CONTEST_OFFER_ERRORS.alreadySubmitted);
+          onCloseRef.current();
+          return;
+        }
+
+        const draft =
+          offerState === 'draft'
+            ? (await fetchTenderBidDraft(supabase, tenderId, contractorId)).data
+            : null;
+        if (cancelled) return;
+
+        const docs = resolved.documents;
+        setResolvedDocs(docs);
+        setFormalProfileSnapshot(resolved.snapshot);
+
+        if (draft) {
+          setHasExistingDraft(true);
+          const hydrated = hydrateContestOfferFormFromBid(draft);
+          if (draft.offer_details && typeof draft.offer_details === 'object') {
+            const step = (draft.offer_details as { currentStep?: number }).currentStep;
+            if (step && step >= 1 && step <= 4) {
+              setCurrentStep(step as ContestOfferWizardStep);
+            }
+          }
+          hydrated.formalAttachments = applyProfileDocumentsToForm(
+            docs,
+            hydrated.formalAttachments,
+          ) as ContestOfferFormData['formalAttachments'];
+          setForm(hydrated);
+        } else {
+          setHasExistingDraft(false);
+          const empty = createEmptyContestOfferForm();
+          if (info.paymentTerms.mode === 'standard_14') {
+            empty.paymentTermsAccepted = true;
+          }
+          empty.formalAttachments = applyProfileDocumentsToForm(
+            docs,
+            empty.formalAttachments,
+          ) as ContestOfferFormData['formalAttachments'];
+          setForm(empty);
+          setCurrentStep(1);
+          profileDocsAppliedRef.current = true;
+        }
+        setFormError(null);
+        setFieldErrors({});
+        setValidatedSteps(new Set());
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) {
+          setFormError('Nie udało się załadować szkicu oferty');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
     void loadInitial();
-  }, [loadInitial]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, contractorId, supabase, tenderId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -607,6 +623,9 @@ export function ContestOfferSubmissionDialog({
       <DialogContent
         className="flex max-h-[92vh] min-h-0 flex-col gap-0 overflow-hidden rounded-2xl border border-border/60 bg-background p-0 shadow-lg lg:max-w-4xl"
         onOpenAutoFocus={(event) => event.preventDefault()}
+        onFocusOutside={(event) => event.preventDefault()}
+        onPointerDownOutside={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogHeader className="shrink-0 border-b bg-muted/20 px-6 py-5 pr-12 text-left">
           <div className="flex items-start gap-3">

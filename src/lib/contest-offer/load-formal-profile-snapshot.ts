@@ -30,6 +30,17 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+/**
+ * Dedicated qualifications scan wins; otherwise reuse the verification
+ * "certyfikaty i uprawnienia" file (OPD-184).
+ */
+export function professionalLicenseScanPath(
+  settingsPath: string | null | undefined,
+  verificationPaths: Record<string, string>,
+): string | null {
+  return asString(settingsPath) ?? asString(verificationPaths.certifications);
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
@@ -52,7 +63,10 @@ export function formalSnapshotFromSources(
     hasOcScan: Boolean(settings.ocPolicyScanPath ?? verificationPaths.insurance),
     hasCertificatesDoc: Boolean(verificationPaths.certifications),
     professionalQualificationTypes: settings.professionalQualificationTypes,
-    professionalQualificationsScanPath: settings.professionalQualificationsScanPath,
+    professionalQualificationsScanPath: professionalLicenseScanPath(
+      settings.professionalQualificationsScanPath,
+      verificationPaths,
+    ),
     professionalQualificationsValidUntil: asIsoDateOnly(
       settings.professionalQualificationsValidUntil,
     ),
