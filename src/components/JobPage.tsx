@@ -1235,7 +1235,7 @@ const JobPage: React.FC<JobPageProps> = ({ jobId, onBack, onJobSelect }) => {
                       job.contestInfo.managedEntityId ? (
                         <Link
                           href={routes.uzytkownik(job.contestInfo.managedEntityId)}
-                          className="mb-2 block text-xs font-medium text-gray-700 break-words underline-offset-2 hover:underline sm:text-sm md:text-base"
+                          className="mb-2 block text-xs font-medium text-primary break-words underline underline-offset-2 hover:text-primary/80 sm:text-sm md:text-base"
                         >
                           {job.contestInfo.entityName}
                         </Link>

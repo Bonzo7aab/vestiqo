@@ -57,6 +57,15 @@ export function HousingEntityProfilePage({
     };
   }, [entityId]);
 
+  useEffect(() => {
+    if (!entity) return;
+    const previousTitle = document.title;
+    document.title = `${entity.name} | Vestiqo`;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [entity]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">

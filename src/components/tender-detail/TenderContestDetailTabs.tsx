@@ -102,7 +102,7 @@ export function TenderContestDetailTabs({
                     contestInfo.managedEntityId ? (
                       <Link
                         href={routes.uzytkownik(contestInfo.managedEntityId)}
-                        className="underline-offset-2 hover:underline"
+                        className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
                       >
                         {contestInfo.entityName}
                       </Link>

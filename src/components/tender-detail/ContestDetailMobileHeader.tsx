@@ -106,7 +106,7 @@ export function ContestDetailMobileHeader({
             organizerHref ? (
               <Link
                 href={organizerHref}
-                className="mt-1 line-clamp-1 text-sm text-muted-foreground underline-offset-2 hover:underline"
+                className="mt-1 line-clamp-1 text-sm font-medium text-primary underline underline-offset-2 hover:text-primary/80"
               >
                 {organizerLabel}
               </Link>

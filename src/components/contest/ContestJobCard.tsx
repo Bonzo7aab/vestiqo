@@ -134,7 +134,7 @@ function ContestMetaRow({
             href={href}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'mt-0.5 block text-sm leading-snug text-foreground underline-offset-2 hover:underline',
+              'mt-0.5 block text-sm leading-snug text-primary underline-offset-2 hover:underline',
               valueClassName,
             )}
             title={value}
@@ -415,7 +415,18 @@ export function ContestJobCard({
                 <div className="mt-4 space-y-2 text-sm">
                   <div className="flex min-w-0 items-center gap-2">
                     <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="truncate font-medium">{job.company}</span>
+                    {organizerHref ? (
+                      <a
+                        href={organizerHref}
+                        onClick={(e) => e.stopPropagation()}
+                        className="truncate font-medium text-primary underline-offset-2 hover:underline"
+                        title={organizerLabel}
+                      >
+                        {organizerLabel}
+                      </a>
+                    ) : (
+                      <span className="truncate font-medium">{organizerLabel}</span>
+                    )}
                   </div>
                   <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                     <MapPin className="h-4 w-4 shrink-0" aria-hidden />
