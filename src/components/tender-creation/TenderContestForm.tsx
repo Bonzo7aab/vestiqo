@@ -77,6 +77,9 @@ import {
   minEvaluationDateAfterSubmission,
 } from '../../lib/contest/contest-schedule-dates';
 
+const CONTEST_SELECT_CONTENT_CLASS =
+  '[&_[data-slot=select-item]]:justify-center [&_[data-slot=select-item]]:pl-8 [&_[data-slot=select-item]]:text-center';
+
 interface ContestFormSectionProps {
   title: string;
   description?: string;
@@ -635,6 +638,7 @@ export function TenderContestForm({
       noValidate
       className={cn(
         isCreateLayout ? 'divide-y divide-border' : 'space-y-8',
+        '[&_[data-slot=select-trigger]]:relative [&_[data-slot=select-trigger]_svg]:absolute [&_[data-slot=select-trigger]_svg]:right-3 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:w-full [&_[data-slot=select-value]]:text-center [&_[data-slot=select-value]]:pr-6',
         isCreateLayout &&
           '[&_input]:h-11 [&_[data-slot=select-trigger]]:h-11 [&_textarea]:min-h-[8.5rem] [&_label]:text-sm [&_label]:font-medium',
       )}
@@ -698,7 +702,7 @@ export function TenderContestForm({
                 >
                   <SelectValue placeholder="Wybierz wspólnotę lub spółdzielnię" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={CONTEST_SELECT_CONTENT_CLASS}>
                   {sortedManagedEntities.map((entity) => (
                     <SelectItem key={entity.id} value={entity.id}>
                       {formatManagedHousingEntitySelectLabel(entity)}
@@ -725,7 +729,7 @@ export function TenderContestForm({
                 >
                   <SelectValue placeholder="Wybierz kategorię" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={CONTEST_SELECT_CONTENT_CLASS}>
                   {filterCategoryTree.map((c) => (
                     <SelectItem key={c.id} value={c.filterKey}>
                       {c.label}
@@ -749,7 +753,7 @@ export function TenderContestForm({
                 >
                   <SelectValue placeholder="Wybierz podkategorię" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={CONTEST_SELECT_CONTENT_CLASS}>
                   {filterCategoryTree
                     .find((c) => c.filterKey === form.category)
                     ?.subcategories.map((sub) => (
@@ -1350,7 +1354,7 @@ export function TenderContestForm({
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Wybierz" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={CONTEST_SELECT_CONTENT_CLASS}>
                   {PERIOD_OPTIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
@@ -1370,7 +1374,7 @@ export function TenderContestForm({
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Wybierz" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={CONTEST_SELECT_CONTENT_CLASS}>
                   {PERIOD_OPTIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
