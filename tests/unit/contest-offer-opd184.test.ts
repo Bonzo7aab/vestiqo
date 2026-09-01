@@ -14,11 +14,16 @@ import {
   PROFILE_LICENSE_SCAN_MISSING,
   validateProfileFormalRequirements,
 } from '../../src/lib/contest-offer/validate-profile-formal-requirements';
-import { createEmptyContestOfferForm } from '../../src/types/contest-offer';
+import {
+  createEmptyContestOfferForm,
+  toSerializableClientData,
+} from '../../src/types/contest-offer';
 import type { ContestInfo } from '../../src/types/job';
 import {
   DEFAULT_FORMAL_REQUIREMENTS,
+  DEFAULT_PAYMENT_TERMS,
   DEFAULT_SELECTION_CRITERIA,
+  parseSelectionCriteria,
   type FormalRequirements,
 } from '../../src/types/tender-contest';
 
@@ -171,5 +176,42 @@ assert.match(
   }).formal?.professionalLicenses ?? '',
   /brakuje wymaganych uprawnień/,
 );
+
+function hasUndefined(value: unknown, path = 'root'): string | null {
+  if (value === undefined) return path;
+  if (value === null || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i += 1) {
+      const found = hasUndefined(value[i], `${path}[${i}]`);
+      if (found) return found;
+    }
+    return null;
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    const found = hasUndefined(nested, `${path}.${key}`);
+    if (found) return found;
+  }
+  return null;
+}
+
+assert.equal(hasUndefined(DEFAULT_FORMAL_REQUIREMENTS), null);
+assert.equal(hasUndefined(DEFAULT_PAYMENT_TERMS), null);
+assert.equal('customDays' in DEFAULT_PAYMENT_TERMS, false);
+assert.equal('insuranceOcMinAmount' in DEFAULT_FORMAL_REQUIREMENTS, false);
+
+const criteriaWithoutDescription = parseSelectionCriteria({
+  items: [{ id: 'price', name: 'Cena', weight: 100, type: 'price' }],
+});
+assert.equal('description' in (criteriaWithoutDescription.items[0] ?? {}), false);
+assert.equal(hasUndefined(criteriaWithoutDescription), null);
+
+const submitPayload = toSerializableClientData({
+  ...info,
+  formalRequirements: { ...DEFAULT_FORMAL_REQUIREMENTS, professionalLicenses: true },
+  paymentTerms: { ...DEFAULT_PAYMENT_TERMS },
+  selectionCriteria: DEFAULT_SELECTION_CRITERIA,
+});
+assert.equal(hasUndefined(submitPayload), null);
+assert.deepEqual(JSON.parse(JSON.stringify(submitPayload)), submitPayload);
 
 console.log('contest-offer-opd184.test.ts: ok');

@@ -31,12 +31,25 @@ function revalidateContractorOffersPaths(tenderId?: string): void {
   }
 }
 
+function toClientOfferResult<T>(result: {
+  data: T | null;
+  error: PostgrestError | null;
+}): { data: T | null; error: { message: string } | null } {
+  if (result.error) {
+    return { data: null, error: { message: contestOfferErrorFromUnknown(result.error) } };
+  }
+  return {
+    data: result.data ? (JSON.parse(JSON.stringify(result.data)) as T) : null,
+    error: null,
+  };
+}
+
 async function submitTenderBidImpl(
   tenderId: string,
   contractorId: string,
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
-): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
+): Promise<{ data: TenderBidRowLite | null; error: { message: string } | null }> {
   const supabase = await createClient();
   const result = await submitTenderBidWithClient(supabase, tenderId, contractorId, form, contestInfo);
 
@@ -44,7 +57,7 @@ async function submitTenderBidImpl(
     revalidateContractorOffersPaths(tenderId);
   }
 
-  return result;
+  return toClientOfferResult(result);
 }
 
 async function upsertTenderBidDraftImpl(
@@ -52,9 +65,11 @@ async function upsertTenderBidDraftImpl(
   contractorId: string,
   form: ContestOfferFormData,
   currentStep: ContestOfferWizardStep,
-): Promise<{ data: TenderBidRowLite | null; error: PostgrestError | null }> {
+): Promise<{ data: TenderBidRowLite | null; error: { message: string } | null }> {
   const supabase = await createClient();
-  return upsertTenderBidDraftWithClient(supabase, tenderId, contractorId, form, currentStep);
+  return toClientOfferResult(
+    await upsertTenderBidDraftWithClient(supabase, tenderId, contractorId, form, currentStep),
+  );
 }
 
 async function abandonTenderBidDraftActionImpl(input: {

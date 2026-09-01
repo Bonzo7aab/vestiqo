@@ -81,13 +81,22 @@ export function createEmptyContestOfferForm(): ContestOfferFormData {
 }
 
 /**
+ * Strip `undefined`, Dates, and class instances so a value can be passed to
+ * Next.js server actions (they reject undefined / non-plain values).
+ * ContestInfo spreads defaults that used to include `customDays: undefined`
+ * and criterion `description: undefined` (OPD-184 submit).
+ */
+export function toSerializableClientData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/**
  * Strip File objects and `undefined` fields so the form can be passed to
  * Next.js server actions (they reject undefined / non-plain values).
  * Profile-prefilled Wymogi attachments often omit `url`/`size` (OPD-183).
  */
 export function toSerializableContestOfferForm(form: ContestOfferFormData): ContestOfferFormData {
-  const withoutFiles: ContestOfferFormData = { ...form, stagedFiles: {} };
-  return JSON.parse(JSON.stringify(withoutFiles)) as ContestOfferFormData;
+  return toSerializableClientData({ ...form, stagedFiles: {} });
 }
 
 export function computeGrossFromNet(net: number, vatRate: ContestOfferVatRate): number {

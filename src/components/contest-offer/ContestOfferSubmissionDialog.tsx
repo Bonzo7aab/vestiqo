@@ -25,6 +25,7 @@ import type { ContractorFormalProfileSnapshot } from '../../lib/contest-offer/va
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
+  toSerializableClientData,
   toSerializableContestOfferForm,
 } from '../../types/contest-offer';
 import { createClient } from '../../lib/supabase/client';
@@ -181,7 +182,10 @@ export function ContestOfferSubmissionDialog({
         const info = contestInfoRef.current;
         const [{ state: offerState }, resolved] = await Promise.all([
           fetchTenderBidOfferState(supabase, tenderId, contractorId),
-          resolveContractorDocuments(contractorId, info.formalRequirements),
+          resolveContractorDocuments(
+            contractorId,
+            toSerializableClientData(info.formalRequirements),
+          ),
         ]);
         if (cancelled) return;
 
@@ -403,7 +407,7 @@ export function ContestOfferSubmissionDialog({
         tenderId,
         contractorId,
         toSerializableContestOfferForm(uploadedForm),
-        contestInfo,
+        toSerializableClientData(contestInfo),
       );
       if (error) {
         const inlineErrors = getContestOfferAllFieldErrors(

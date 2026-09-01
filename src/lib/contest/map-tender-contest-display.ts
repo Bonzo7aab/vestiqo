@@ -91,7 +91,7 @@ export function mapTenderRowToContestDisplay(
       ? form.completionDate.toISOString().split('T')[0]
       : null;
 
-  return {
+  const result = {
     managedEntityId: tender.managed_entity_id ?? entity?.id ?? null,
     entityName: entity?.name ?? null,
     entityAddress: entity?.address ?? tender.address ?? null,
@@ -110,9 +110,13 @@ export function mapTenderRowToContestDisplay(
     warrantyPeriod: tender.warranty_period ?? null,
     guaranteePeriod: tender.guarantee_period ?? null,
     depositRequired: form.depositRequired,
-    depositAmount: form.depositAmount,
+    depositAmount: form.depositAmount ?? null,
     depositInstructions: form.depositInstructions.trim() || null,
     paymentTerms: payment,
     paymentTermsLabel: formatPaymentTermsLabel(payment),
   };
+
+  // Next.js server actions reject `undefined` (defaults used to set customDays /
+  // insuranceOcMinAmount / criterion description to undefined).
+  return JSON.parse(JSON.stringify(result)) as ContestDisplayInfo;
 }

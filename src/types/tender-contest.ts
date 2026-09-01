@@ -73,7 +73,6 @@ export interface TenderContestFormData {
 
 export const DEFAULT_FORMAL_REQUIREMENTS: FormalRequirements = {
   insuranceOc: false,
-  insuranceOcMinAmount: undefined,
   zusUsCertificates: false,
   references: false,
   referencesMinCount: 2,
@@ -119,13 +118,18 @@ export function parseSelectionCriteria(
       return {
         items: record.items
           .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
-          .map((entry, index) => ({
-            id: String(entry.id ?? `criterion-${index}`),
-            name: String(entry.name ?? ''),
-            weight: Number(entry.weight) || 0,
-            type: (entry.type as SelectionCriterionType) ?? 'other',
-            description: entry.description != null ? String(entry.description) : undefined,
-          })),
+          .map((entry, index) => {
+            const item: SelectionCriterionItem = {
+              id: String(entry.id ?? `criterion-${index}`),
+              name: String(entry.name ?? ''),
+              weight: Number(entry.weight) || 0,
+              type: (entry.type as SelectionCriterionType) ?? 'other',
+            };
+            if (entry.description != null && String(entry.description).length > 0) {
+              item.description = String(entry.description);
+            }
+            return item;
+          }),
       };
     }
     if (
@@ -174,7 +178,6 @@ export function parseSelectionCriteria(
 
 export const DEFAULT_PAYMENT_TERMS: PaymentTerms = {
   mode: 'standard_14',
-  customDays: undefined,
 };
 
 export function createEmptyTenderContestForm(): TenderContestFormData {
