@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Button } from '../ui/button';
 import { cn } from '../ui/utils';
+import { MarketingReveal } from './MarketingReveal';
 
 interface MarketingCtaProps {
   label: string;
@@ -29,6 +30,7 @@ interface MarketingPageLayoutProps {
   children: ReactNode;
   cta?: MarketingCtaProps;
   className?: string;
+  animate?: boolean;
 }
 
 export function MarketingPageLayout({
@@ -37,16 +39,21 @@ export function MarketingPageLayout({
   children,
   cta,
   className,
+  animate = false,
 }: MarketingPageLayoutProps) {
+  const header = (
+    <header className="space-y-3">
+      <h1 className="text-3xl font-bold text-brand-navy md:text-4xl">
+        {title}
+      </h1>
+      <p className="text-lg text-muted-foreground">{description}</p>
+    </header>
+  );
+
   return (
     <div className={cn('min-h-screen bg-muted/40 py-12 md:py-16', className)}>
       <div className="container mx-auto max-w-4xl space-y-10 px-4">
-        <header className="space-y-3">
-          <h1 className="text-3xl font-bold text-brand-navy md:text-4xl">
-            {title}
-          </h1>
-          <p className="text-lg text-muted-foreground">{description}</p>
-        </header>
+        {animate ? <MarketingReveal>{header}</MarketingReveal> : header}
         <div className="space-y-10">{children}</div>
         {cta ? (
           <div className="rounded-lg border border-border bg-card p-6 text-center shadow-sm">

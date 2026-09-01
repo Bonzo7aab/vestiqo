@@ -36,7 +36,11 @@ export default function PilotProgramPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
       />
-      <MarketingPageLayout title={content.title} description={content.description}>
+      <MarketingPageLayout
+        title={content.title}
+        description={content.description}
+        animate
+      >
         <PilotProgramPageContent />
       </MarketingPageLayout>
     </>

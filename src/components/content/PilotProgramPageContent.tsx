@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   Building2,
   Clock,
@@ -9,14 +8,19 @@ import {
   Wrench,
 } from 'lucide-react';
 import {
-  PILOT_APPLICATION_ANCHOR,
+  PILOT_JOIN_ANCHOR,
   pilotProgramContent,
 } from '../../lib/content/program-pilotazowy';
-import { routes } from '../../lib/routes';
 import { ContentSection } from './ContentSection';
 import { FaqAccordion } from './FaqAccordion';
 import { HelpTimeline } from './MarketingPageLayout';
-import { PilotApplicationForm, PilotJoinCta } from './PilotApplicationForm';
+import {
+  MarketingReveal,
+  MarketingStagger,
+  MarketingStaggerItem,
+} from './MarketingReveal';
+import { PilotJoinCta } from './PilotJoinCta';
+import { PilotUsefulLinks } from './PilotUsefulLinks';
 import {
   AudienceCard,
   BenefitList,
@@ -63,108 +67,107 @@ export function PilotProgramPageContent() {
 
   return (
     <>
-      <MarketingHeroIntro
-        icon={Handshake}
-        chips={[
-          { icon: Building2, label: 'Dla zarządców' },
-          { icon: Wrench, label: 'Dla wykonawców' },
-          { icon: Sparkles, label: 'Bezpłatny dostęp' },
-        ]}
-      >
-        {content.intro}
-      </MarketingHeroIntro>
-      <PilotJoinCta />
+      <MarketingReveal>
+        <MarketingHeroIntro
+          icon={Handshake}
+          chips={[
+            { icon: Building2, label: 'Dla zarządców' },
+            { icon: Wrench, label: 'Dla wykonawców' },
+            { icon: Sparkles, label: 'Bezpłatny dostęp' },
+          ]}
+        >
+          {content.intro}
+        </MarketingHeroIntro>
+      </MarketingReveal>
+      <MarketingReveal delay={0.08}>
+        <PilotJoinCta />
+      </MarketingReveal>
 
-      <ContentSection title={content.goalsTitle} variant="muted">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {content.goals.map((goal, index) => {
-            const Icon = GOAL_ICONS[index] ?? Sparkles;
-            return (
-              <FeatureCard key={goal.title} icon={Icon} title={goal.title}>
-                {goal.text}
-              </FeatureCard>
-            );
-          })}
-        </div>
-      </ContentSection>
+      <MarketingReveal>
+        <ContentSection title={content.goalsTitle} variant="muted">
+          <MarketingStagger className="grid gap-4 sm:grid-cols-2">
+            {content.goals.map((goal, index) => {
+              const Icon = GOAL_ICONS[index] ?? Sparkles;
+              return (
+                <MarketingStaggerItem key={goal.title} className="h-full" hoverLift>
+                  <FeatureCard icon={Icon} title={goal.title}>
+                    {goal.text}
+                  </FeatureCard>
+                </MarketingStaggerItem>
+              );
+            })}
+          </MarketingStagger>
+        </ContentSection>
+      </MarketingReveal>
 
-      <ContentSection title={content.participantsTitle}>
-        {hasNamedPartners ? (
-          <div className="grid gap-6 sm:grid-cols-2">
-            <PartnerList title={content.managersTitle} partners={content.managers} />
-            <PartnerList
-              title={content.contractorsTitle}
-              partners={content.contractors}
-            />
+      <MarketingReveal>
+        <ContentSection title={content.participantsTitle}>
+          {hasNamedPartners ? (
+            <div className="grid gap-6 sm:grid-cols-2">
+              <PartnerList title={content.managersTitle} partners={content.managers} />
+              <PartnerList
+                title={content.contractorsTitle}
+                partners={content.contractors}
+              />
+            </div>
+          ) : null}
+          <HighlightCallout>{content.recruitmentTitle}</HighlightCallout>
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {content.recruitmentText}
+          </p>
+        </ContentSection>
+      </MarketingReveal>
+
+      <MarketingStagger className="grid gap-4 md:grid-cols-2">
+        <MarketingStaggerItem hoverLift>
+          <div className="space-y-4">
+            <AudienceCard icon={Building2} title={content.managersAudience.title}>
+              {content.managersAudience.forWhom}
+            </AudienceCard>
+            <BenefitList items={[...content.managersAudience.benefits]} />
           </div>
-        ) : null}
-        <HighlightCallout>{content.recruitmentTitle}</HighlightCallout>
-        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-          {content.recruitmentText}
-        </p>
-      </ContentSection>
+        </MarketingStaggerItem>
+        <MarketingStaggerItem hoverLift>
+          <div className="space-y-4">
+            <AudienceCard icon={Wrench} title={content.contractorsAudience.title}>
+              {content.contractorsAudience.forWhom}
+            </AudienceCard>
+            <BenefitList items={[...content.contractorsAudience.benefits]} />
+          </div>
+        </MarketingStaggerItem>
+      </MarketingStagger>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-4">
-          <AudienceCard icon={Building2} title={content.managersAudience.title}>
-            {content.managersAudience.forWhom}
-          </AudienceCard>
-          <BenefitList items={[...content.managersAudience.benefits]} />
-        </div>
-        <div className="space-y-4">
-          <AudienceCard icon={Wrench} title={content.contractorsAudience.title}>
-            {content.contractorsAudience.forWhom}
-          </AudienceCard>
-          <BenefitList items={[...content.contractorsAudience.benefits]} />
-        </div>
-      </div>
+      <MarketingReveal>
+        <ContentSection title={content.stepsTitle}>
+          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
+            <HelpTimeline steps={[...content.steps]} />
+          </div>
+        </ContentSection>
+      </MarketingReveal>
 
-      <ContentSection title={content.stepsTitle}>
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
-          <HelpTimeline steps={[...content.steps]} />
-        </div>
-      </ContentSection>
+      <MarketingReveal>
+        <ContentSection title={content.faqTitle}>
+          <FaqAccordion items={[...content.faqItems]} />
+        </ContentSection>
+      </MarketingReveal>
 
-      <ContentSection title={content.faqTitle}>
-        <FaqAccordion items={[...content.faqItems]} />
-      </ContentSection>
+      <MarketingReveal>
+        <ContentSection
+          id={PILOT_JOIN_ANCHOR}
+          title={content.joinTitle}
+          variant="accent-border"
+          className="scroll-mt-24"
+        >
+          <p className="text-sm text-muted-foreground sm:text-base">{content.joinIntro}</p>
+          <PilotJoinCta />
+        </ContentSection>
+      </MarketingReveal>
 
-      <ContentSection
-        id={PILOT_APPLICATION_ANCHOR}
-        title={content.formTitle}
-        variant="accent-border"
-        className="scroll-mt-24"
-      >
-        <p className="text-sm text-muted-foreground sm:text-base">{content.formIntro}</p>
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
-          <PilotApplicationForm />
-        </div>
-      </ContentSection>
-
-      <ContentSection title="Przydatne strony">
-        <ul className="grid gap-3 sm:grid-cols-2">
-          <li>
-            <Link href={routes.dlaWspolnot} className="text-primary hover:underline">
-              Dla Wspólnot i Spółdzielni — jak wygląda konkurs ofert
-            </Link>
-          </li>
-          <li>
-            <Link href={routes.dlaWykonawcow} className="text-primary hover:underline">
-              Dla Wykonawców — zlecenia B2B bez zgadywania
-            </Link>
-          </li>
-          <li>
-            <Link href={routes.faq} className="text-primary hover:underline">
-              FAQ platformy Vestiqo
-            </Link>
-          </li>
-          <li>
-            <Link href={routes.kontakt} className="text-primary hover:underline">
-              Kontakt z zespołem
-            </Link>
-          </li>
-        </ul>
-      </ContentSection>
+      <MarketingReveal>
+        <ContentSection title="Przydatne strony">
+          <PilotUsefulLinks />
+        </ContentSection>
+      </MarketingReveal>
     </>
   );
 }

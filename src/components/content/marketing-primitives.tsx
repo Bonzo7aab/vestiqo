@@ -56,7 +56,7 @@ export function FeatureCard({
   return (
     <article
       className={cn(
-        'rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6',
+        'h-full rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6',
         accent === 'navy' && 'border-brand-navy/15',
       )}
     >

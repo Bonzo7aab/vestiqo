@@ -11,14 +11,7 @@ export interface PilotAudience {
   benefits: string[];
 }
 
-export const pilotRoleOptions = [
-  { value: 'manager', label: 'Zarządcą nieruchomości lub Zarządem Wspólnoty' },
-  { value: 'contractor', label: 'Wykonawcą (Firmą)' },
-] as const;
-
-export type PilotRole = (typeof pilotRoleOptions)[number]['value'];
-
-export const PILOT_APPLICATION_ANCHOR = 'zgloszenie';
+export const PILOT_JOIN_ANCHOR = 'dolacz';
 
 export const pilotProgramContent = {
   title: 'Program Pilotażowy Vestiqo',
@@ -78,14 +71,14 @@ export const pilotProgramContent = {
   stepsTitle: 'Zasady i przebieg uczestnictwa',
   steps: [
     {
-      title: 'Zgłoszenie do programu — około 2 minuty',
+      title: 'Rejestracja na Vestiqo — około 2 minuty',
       description:
-        'Wypełniasz krótki formularz na dole strony, określając swoją rolę (Zarządca lub Wykonawca).',
+        'Zakładasz konto na oficjalnej stronie rejestracji, wybierając rolę zarządcy lub wykonawcy.',
     },
     {
       title: 'Konfiguracja i krótkie wdrożenie — 15 minut',
       description:
-        'Pomagamy Ci założyć konto, wprowadzić pierwszy budynek lub skonfigurować profil wykonawcy oraz pokazujemy najszybszą ścieżkę obsługi.',
+        'Pomagamy Ci wprowadzić pierwszy budynek lub skonfigurować profil wykonawcy oraz pokazujemy najszybszą ścieżkę obsługi.',
     },
     {
       title: 'Aktywne korzystanie — w trakcie pilotażu',
@@ -119,10 +112,7 @@ export const pilotProgramContent = {
         'Wszystkie dane przechowywane są na bezpiecznych, polskich serwerach zgodnie z wymogami RODO. Dane techniczne obiektów wykorzystywane są wyłącznie do celów przygotowania precyzyjnej wyceny wewnątrz platformy.',
     },
   ] satisfies FaqItem[],
-  formTitle: 'Zgłoszenie do programu',
-  formIntro:
-    'Wypełnij krótki formularz — skontaktujemy się, aby pomóc Ci dołączyć do pilotażu.',
-  formSuccessMessage:
-    'Dziękujemy za zgłoszenie do programu pilotażowego! Skontaktujemy się z Tobą w ciągu 24 godzin, aby umówić krótkie wdrożenie.',
-  emailSubject: 'Zgłoszenie do programu pilotażowego',
+  joinTitle: 'Dołącz do programu',
+  joinIntro:
+    'Zarejestruj się na oficjalnej stronie Vestiqo — to ta sama ścieżka, z której korzystają wszyscy użytkownicy. Po założeniu konta pomożemy Ci we wdrożeniu.',
 } as const;
