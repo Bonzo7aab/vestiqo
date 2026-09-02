@@ -11,6 +11,7 @@ import type {
   ContestOfferAttachmentRef,
   ResolvedContractorDocument,
 } from '../../types/contest-offer';
+import { contestOfferDocumentSlotKey } from '../../types/contest-offer';
 import { CONTRACTOR_VERIFICATION_DOCUMENTS_PATH } from '../../lib/verification/documents-route';
 import { supportsContestOfferProfileAutofill } from '../../lib/contest-offer/build-profile-formal-attachment';
 import {
@@ -89,7 +90,7 @@ export function ContestOfferFormalDocBlock({
 
   return (
     <div
-      data-contest-offer-formal={doc.requirementKey}
+      data-contest-offer-formal={contestOfferDocumentSlotKey(doc)}
       className="space-y-3 border-b pb-6 last:border-b-0 last:pb-0"
     >
       <div>

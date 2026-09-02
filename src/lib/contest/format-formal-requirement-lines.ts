@@ -1,4 +1,9 @@
 import { professionalQualificationLabel } from '../contractor/constants';
+import {
+  CERTIFICATES_AND_LICENSES_LABEL,
+  requiredQualificationTypeIds,
+  requiresCertificatesAndLicenses,
+} from '../contractor/professional-qualification-documents';
 import type { FormalRequirements } from '../../types/tender-contest';
 
 export function formatFormalRequirementLines(formal: FormalRequirements): string[] {
@@ -17,16 +22,13 @@ export function formatFormalRequirementLines(formal: FormalRequirements): string
     const years = formal.referencesYears ?? 3;
     lines.push(`Referencje – min. ${min} podobne realizacje z ostatnich ${years} lat`);
   }
-  if (formal.professionalCertificates) {
-    lines.push('Certyfikaty zawodowe');
-  }
-  if (formal.professionalLicenses) {
-    const types = formal.professionalLicenseTypes ?? [];
+  if (requiresCertificatesAndLicenses(formal)) {
+    const types = requiredQualificationTypeIds(formal);
     if (types.length === 0) {
-      lines.push('Uprawnienia zawodowe');
+      lines.push(CERTIFICATES_AND_LICENSES_LABEL);
     } else {
       const labels = types.map(professionalQualificationLabel);
-      lines.push(`Uprawnienia zawodowe: ${labels.join(', ')}`);
+      lines.push(`${CERTIFICATES_AND_LICENSES_LABEL}: ${labels.join(', ')}`);
     }
   }
   return lines;

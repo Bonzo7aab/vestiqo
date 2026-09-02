@@ -141,10 +141,10 @@ export function getTenderContestFormFieldErrors(
     }
   }
 
-  if (form.formalRequirements.professionalLicenses) {
+  if (form.formalRequirements.professionalLicenses || form.formalRequirements.professionalCertificates) {
     const types = form.formalRequirements.professionalLicenseTypes ?? [];
     if (types.length === 0) {
-      errors.professionalLicenseTypes = 'Zaznacz wymagane typy uprawnień zawodowych';
+      errors.professionalLicenseTypes = 'Zaznacz wymagane typy certyfikatów i uprawnień';
     }
   }
 

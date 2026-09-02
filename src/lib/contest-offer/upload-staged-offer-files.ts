@@ -14,7 +14,11 @@ export async function uploadContestOfferStagedFiles(
   tenderId: string,
   form: ContestOfferFormData,
 ): Promise<{ form: ContestOfferFormData; error: string | null }> {
-  const next = { ...form, formalAttachments: { ...form.formalAttachments } };
+  const next = {
+    ...form,
+    formalAttachments: { ...form.formalAttachments },
+    qualificationAttachments: [...form.qualificationAttachments],
+  };
   const staged = form.stagedFiles;
 
   for (const [key, files] of Object.entries(staged)) {
@@ -58,7 +62,6 @@ export async function uploadContestOfferStagedFiles(
     }
 
     if (key === 'deposit') {
-      // Replace any existing deposit file instead of appending duplicates.
       next.extraAttachments = [
         ...next.extraAttachments.filter((a) => a.requirementKey !== 'deposit'),
         {
@@ -87,6 +90,33 @@ export async function uploadContestOfferStagedFiles(
     }
   }
 
+  for (const [typeId, file] of Object.entries(form.stagedQualificationFiles)) {
+    if (!file) continue;
+    const { data, error } = await uploadBidAttachment(file, userId, tenderId);
+    if (error || !data) {
+      return {
+        form: next,
+        error: contestOfferUploadFailureMessage([{ file: file.name, error }]),
+      };
+    }
+    next.qualificationAttachments = [
+      ...next.qualificationAttachments.filter((item) => item.qualificationTypeId !== typeId),
+      {
+        id: newAttachmentId(`qualification-${typeId}`),
+        name: file.name,
+        path: data.path,
+        url: data.url,
+        type: data.type === 'image' ? ('image' as const) : ('document' as const),
+        source: 'override' as const,
+        requirementKey: 'professionalLicenses',
+        qualificationTypeId: typeId,
+        size: file.size,
+      },
+    ];
+  }
+
   next.stagedFiles = {};
+  next.stagedQualificationFiles = {};
   return { form: next, error: null };
 }
+

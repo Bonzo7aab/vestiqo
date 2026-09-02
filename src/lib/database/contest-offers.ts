@@ -5,7 +5,6 @@ import type { ContestInfo } from '../../types/job';
 import type {
   ContestOfferDetails,
   ContestOfferFormData,
-  FormalRequirementKey,
 } from '../../types/contest-offer';
 import {
   computeGrossFromNet,
@@ -21,6 +20,7 @@ import {
   contestOfferErrorFromUnknown,
   isContestOfferUniqueConflict,
 } from '../contest-offer/error-messages';
+import { mergeFlatAttachmentsIntoForm } from '../contest-offer/merge-flat-attachments';
 import { loadContractorFormalProfileSnapshot } from '../contest-offer/load-formal-profile-snapshot';
 import { validateContestOfferSubmit } from '../contest-offer/offer-form-validation';
 
@@ -449,7 +449,9 @@ export function hydrateContestOfferFormFromBid(bid: TenderBidRowLite | null): Co
   }
 
   const hasDetailsAttachments =
-    Object.keys(form.formalAttachments).length > 0 || form.extraAttachments.length > 0;
+    Object.keys(form.formalAttachments).length > 0 ||
+    form.qualificationAttachments.length > 0 ||
+    form.extraAttachments.length > 0;
   if (!hasDetailsAttachments) {
     mergeFlatAttachmentsIntoForm(form, bid.attachments);
   }
@@ -470,61 +472,6 @@ function dedupeExtraAttachments(
     result.push(att);
   }
   return result;
-}
-
-function mergeFlatAttachmentsIntoForm(
-  form: ContestOfferFormData,
-  attachments: unknown,
-): void {
-  if (!attachments || !Array.isArray(attachments)) return;
-
-  for (const att of attachments as Array<{
-    requirementKey?: string;
-    source?: string;
-    name: string;
-    path: string;
-    url?: string;
-    type: string;
-    id: string;
-    size?: number;
-  }>) {
-    if (
-      att.requirementKey &&
-      att.requirementKey !== 'deposit' &&
-      att.requirementKey !== 'other' &&
-      att.requirementKey !== 'offerDocumentation'
-    ) {
-      form.formalAttachments[att.requirementKey as FormalRequirementKey] = {
-        id: att.id,
-        name: att.name,
-        path: att.path,
-        url: att.url,
-        type: att.type === 'image' ? 'image' : 'document',
-        source: att.source === 'profile' ? 'profile' : 'override',
-        requirementKey: att.requirementKey as FormalRequirementKey,
-        size: att.size,
-      };
-    } else {
-      const alreadyPresent = form.extraAttachments.some(
-        (existing) => existing.id === att.id || (att.path && existing.path === att.path),
-      );
-      if (alreadyPresent) continue;
-      form.extraAttachments.push({
-        id: att.id,
-        name: att.name,
-        path: att.path,
-        url: att.url,
-        type: att.type === 'image' ? 'image' : 'document',
-        source: 'extra',
-        requirementKey: att.requirementKey as
-          | 'deposit'
-          | 'offerDocumentation'
-          | 'other'
-          | undefined,
-        size: att.size,
-      });
-    }
-  }
 }
 
 export function contestCountdownLabel(deadlineIso: string): string {

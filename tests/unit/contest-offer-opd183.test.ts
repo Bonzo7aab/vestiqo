@@ -77,6 +77,7 @@ form.extraAttachments.push({
 
 const serializable = toSerializableContestOfferForm(form);
 assert.deepEqual(serializable.stagedFiles, {});
+assert.deepEqual(serializable.stagedQualificationFiles, {});
 assert.equal('url' in (serializable.formalAttachments.insuranceOc ?? {}), false);
 assert.equal('size' in (serializable.formalAttachments.insuranceOc ?? {}), false);
 assert.equal('url' in (serializable.extraAttachments[0] ?? {}), false);

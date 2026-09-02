@@ -122,7 +122,7 @@ const autofilled = applyProfileDocumentsToForm(
   [
     {
       requirementKey: 'professionalLicenses',
-      label: 'Uprawnienia zawodowe',
+      label: 'Certyfikaty i uprawnienia',
       path: CERT_PATH,
       fileName: '1787741835708-Uprawnienia_SEP.pdf',
       signedUrl: null,
@@ -131,16 +131,18 @@ const autofilled = applyProfileDocumentsToForm(
       profileBlocked: false,
     },
   ],
-  {},
+  { formalAttachments: {}, qualificationAttachments: [] },
 );
-assert.equal(autofilled.professionalLicenses?.path, CERT_PATH);
-assert.equal(autofilled.professionalLicenses?.source, 'profile');
+assert.equal(autofilled.formalAttachments.professionalLicenses?.path, CERT_PATH);
+assert.equal(autofilled.formalAttachments.professionalLicenses?.source, 'profile');
 
 const info = contestInfo({ formalRequirements: licenseFormal });
 const formWithStaged = createEmptyContestOfferForm();
-formWithStaged.stagedFiles.professionalLicenses = [
-  { name: 'Uprawnienia_SEP.pdf', size: 12 } as File,
-];
+formWithStaged.stagedQualificationFiles = {
+  building_exec_unlimited: { name: 'Uprawnienia_SEP.pdf', size: 12 } as File,
+  extinguisher_hydrant: { name: 'hydrant.pdf', size: 12 } as File,
+  f_gas: { name: 'fgaz.pdf', size: 12 } as File,
+};
 
 assert.equal(
   getContestOfferStepFieldErrors(3, createEmptyContestOfferForm(), info, {

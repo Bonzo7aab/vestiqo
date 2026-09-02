@@ -89,6 +89,11 @@ function parseWinnerBid(raw: Record<string, unknown>): WinnerBidView {
       if (ref?.name) docs.push({ name: ref.name, url: ref.url });
     }
   }
+  if (offerDetails?.qualificationAttachments) {
+    for (const ref of offerDetails.qualificationAttachments) {
+      if (ref?.name) docs.push({ name: ref.name, url: ref.url });
+    }
+  }
   if (offerDetails?.extraAttachments) {
     for (const ref of offerDetails.extraAttachments) {
       if (ref?.name) docs.push({ name: ref.name, url: ref.url });

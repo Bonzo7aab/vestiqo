@@ -254,6 +254,7 @@ async function removeAccountVerificationDocumentActionImpl(
     | { kind: 'zus_certificate' }
     | { kind: 'tax_certificate' }
     | { kind: 'professional_qualifications_scan' }
+    | { kind: 'professional_qualification_document'; typeId: string }
 ): Promise<{ ok: boolean; error?: string; verificationReset?: boolean }> {
   const supabase = await createClient();
   const {

@@ -32,7 +32,7 @@ async function collectStoragePathsByBucket(
   const { data: settingsRow, error: settingsError } = await admin
     .from('contractor_account_settings')
     .select(
-      'oc_policy_scan_path, professional_qualifications_scan_path, zus_certificate_path, tax_certificate_path, reference_document_paths',
+      'oc_policy_scan_path, professional_qualifications_scan_path, professional_qualification_documents, zus_certificate_path, tax_certificate_path, reference_document_paths',
     )
     .eq('user_id', userId)
     .maybeSingle();
@@ -53,6 +53,11 @@ async function collectStoragePathsByBucket(
     }
   }
   collectStoragePathsFromUnknown(settingsRow?.reference_document_paths ?? null, userId, collected);
+  collectStoragePathsFromUnknown(
+    settingsRow?.professional_qualification_documents ?? null,
+    userId,
+    collected,
+  );
 
   const { data: fileUploads, error: fileUploadsError } = await admin
     .from('file_uploads')

@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import type { ContestOfferDetails, ContestOfferAttachmentRef, FormalRequirementKey } from '../../types/contest-offer';
 import { FORMAL_REQUIREMENT_LABELS } from '../../lib/contest-offer/offer-form-validation';
+import { professionalQualificationLabel } from '../../lib/contractor/constants';
 import { formatMonthsLabel } from '../../lib/contest-offer/warranty-period-options';
 import { getAttachmentDownloadUrl } from '../../lib/storage/bid-attachments';
 import { cn } from '../ui/utils';
@@ -155,7 +156,9 @@ function FormalAttachmentRow({
   requirementKey: string;
   attachment: ContestOfferAttachmentRef;
 }): ReactElement {
-  const label = FORMAL_REQUIREMENT_LABELS[requirementKey as FormalRequirementKey] ?? requirementKey;
+  const label = attachment.qualificationTypeId
+    ? professionalQualificationLabel(attachment.qualificationTypeId)
+    : (FORMAL_REQUIREMENT_LABELS[requirementKey as FormalRequirementKey] ?? requirementKey);
 
   return (
     <div className="space-y-1.5">
@@ -183,6 +186,9 @@ export function ContestOfferDetailView({
         (entry): entry is [string, ContestOfferAttachmentRef] => Boolean(entry[1]?.name),
       )
     : [];
+  const qualificationDocs = (details?.qualificationAttachments ?? []).filter((ref) =>
+    Boolean(ref?.name),
+  );
   const offerDocs = (details?.extraAttachments ?? []).filter(
     (ref) =>
       ref.requirementKey === 'offerDocumentation' ||
@@ -289,11 +295,18 @@ export function ContestOfferDetailView({
         <TextBlock title="Opis techniczny" content={bid.technicalProposal} />
       ) : null}
 
-      {formalDocs.length > 0 ? (
+      {formalDocs.length > 0 || qualificationDocs.length > 0 ? (
         <SectionCard icon={Shield} title="Dokumenty formalne">
           <div className="space-y-3">
             {formalDocs.map(([key, ref]) => (
               <FormalAttachmentRow key={key} requirementKey={key} attachment={ref} />
+            ))}
+            {qualificationDocs.map((ref) => (
+              <FormalAttachmentRow
+                key={ref.qualificationTypeId ?? ref.id}
+                requirementKey={ref.requirementKey ?? 'professionalLicenses'}
+                attachment={ref}
+              />
             ))}
           </div>
         </SectionCard>

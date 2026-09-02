@@ -51,6 +51,20 @@ export async function uploadProfessionalQualificationsScan(
   return uploadVerificationScan(userId, file, 'professional-qualifications');
 }
 
+export async function uploadProfessionalQualificationTypeScan(
+  userId: string,
+  typeId: string,
+  file: File,
+): Promise<{ path: string }> {
+  const { isAllowedQualificationTypeId } = await import(
+    '../contractor/professional-qualification-documents'
+  );
+  if (!isAllowedQualificationTypeId(typeId)) {
+    throw new Error('Nieznany typ uprawnienia');
+  }
+  return uploadVerificationScan(userId, file, `qualifications/${typeId}`);
+}
+
 async function uploadVerificationScan(
   userId: string,
   file: File,

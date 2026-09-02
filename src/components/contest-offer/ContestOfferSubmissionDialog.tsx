@@ -64,6 +64,7 @@ import {
 import {
   clearContestOfferFieldErrorsForPatch,
   clearContestOfferFormalFieldError,
+  clearContestOfferQualificationFieldError,
   getContestOfferStepsWithErrors,
   scrollToFirstContestOfferError,
 } from '../../lib/contest-offer/form-validation-ui';
@@ -214,10 +215,9 @@ export function ContestOfferSubmissionDialog({
               setCurrentStep(step as ContestOfferWizardStep);
             }
           }
-          hydrated.formalAttachments = applyProfileDocumentsToForm(
-            docs,
-            hydrated.formalAttachments,
-          ) as ContestOfferFormData['formalAttachments'];
+          const applied = applyProfileDocumentsToForm(docs, hydrated);
+          hydrated.formalAttachments = applied.formalAttachments;
+          hydrated.qualificationAttachments = applied.qualificationAttachments;
           setForm(hydrated);
         } else {
           setHasExistingDraft(false);
@@ -225,10 +225,9 @@ export function ContestOfferSubmissionDialog({
           if (info.paymentTerms.mode === 'standard_14') {
             empty.paymentTermsAccepted = true;
           }
-          empty.formalAttachments = applyProfileDocumentsToForm(
-            docs,
-            empty.formalAttachments,
-          ) as ContestOfferFormData['formalAttachments'];
+          const applied = applyProfileDocumentsToForm(docs, empty);
+          empty.formalAttachments = applied.formalAttachments;
+          empty.qualificationAttachments = applied.qualificationAttachments;
           setForm(empty);
           setCurrentStep(1);
           profileDocsAppliedRef.current = true;
@@ -268,13 +267,14 @@ export function ContestOfferSubmissionDialog({
   useEffect(() => {
     if (currentStep !== 3 || isLoading || profileDocsAppliedRef.current) return;
     profileDocsAppliedRef.current = true;
-    setForm((prev) => ({
-      ...prev,
-      formalAttachments: applyProfileDocumentsToForm(
-        resolvedDocs,
-        prev.formalAttachments,
-      ) as ContestOfferFormData['formalAttachments'],
-    }));
+    setForm((prev) => {
+      const applied = applyProfileDocumentsToForm(resolvedDocs, prev);
+      return {
+        ...prev,
+        formalAttachments: applied.formalAttachments,
+        qualificationAttachments: applied.qualificationAttachments,
+      };
+    });
   }, [currentStep, isLoading, resolvedDocs]);
 
   const displayedFieldErrors = useMemo(() => {
@@ -501,17 +501,29 @@ export function ContestOfferSubmissionDialog({
   };
 
   const reportFormalFileIssue = (
-    key: FormalRequirementKey,
+    doc: ResolvedContractorDocument,
     message: string | null,
   ): void => {
     setValidatedSteps((prev) => new Set(prev).add(3));
     setFieldErrors((prev) => {
+      if (doc.qualificationTypeId) {
+        if (!message) {
+          return clearContestOfferQualificationFieldError(prev, doc.qualificationTypeId);
+        }
+        return {
+          ...prev,
+          qualificationFiles: {
+            ...prev.qualificationFiles,
+            [doc.qualificationTypeId]: message,
+          },
+        };
+      }
       if (!message) {
-        return clearContestOfferFormalFieldError(prev, key);
+        return clearContestOfferFormalFieldError(prev, doc.requirementKey);
       }
       return {
         ...prev,
-        formal: { ...prev.formal, [key]: message },
+        formal: { ...prev.formal, [doc.requirementKey]: message },
       };
     });
   };
@@ -560,31 +572,76 @@ export function ContestOfferSubmissionDialog({
     }));
   };
 
-  const removeFormalDocument = (key: FormalRequirementKey): void => {
+  const removeFormalDocument = (doc: ResolvedContractorDocument): void => {
     setForm((prev) => {
-      const { [key]: _attachment, ...formalAttachments } = prev.formalAttachments;
-      const { [key]: _staged, ...stagedFiles } = prev.stagedFiles;
+      if (doc.qualificationTypeId) {
+        const { [doc.qualificationTypeId]: _staged, ...stagedQualificationFiles } =
+          prev.stagedQualificationFiles;
+        return {
+          ...prev,
+          qualificationAttachments: prev.qualificationAttachments.filter(
+            (item) => item.qualificationTypeId !== doc.qualificationTypeId,
+          ),
+          stagedQualificationFiles,
+        };
+      }
+      const { [doc.requirementKey]: _attachment, ...formalAttachments } = prev.formalAttachments;
+      const { [doc.requirementKey]: _staged, ...stagedFiles } = prev.stagedFiles;
       return { ...prev, formalAttachments, stagedFiles };
     });
-    setFieldErrors((prev) => clearContestOfferFormalFieldError(prev, key));
+    setFieldErrors((prev) =>
+      doc.qualificationTypeId
+        ? clearContestOfferQualificationFieldError(prev, doc.qualificationTypeId)
+        : clearContestOfferFormalFieldError(prev, doc.requirementKey),
+    );
   };
 
-  const replaceFormalDocument = (key: FormalRequirementKey, file: File): void => {
+  const replaceFormalDocument = (doc: ResolvedContractorDocument, file: File): void => {
     setForm((prev) => {
-      const { [key]: _attachment, ...formalAttachments } = prev.formalAttachments;
+      if (doc.qualificationTypeId) {
+        return {
+          ...prev,
+          qualificationAttachments: prev.qualificationAttachments.filter(
+            (item) => item.qualificationTypeId !== doc.qualificationTypeId,
+          ),
+          stagedQualificationFiles: {
+            ...prev.stagedQualificationFiles,
+            [doc.qualificationTypeId]: file,
+          },
+        };
+      }
+      const { [doc.requirementKey]: _attachment, ...formalAttachments } = prev.formalAttachments;
       return {
         ...prev,
         formalAttachments,
-        stagedFiles: { ...prev.stagedFiles, [key]: [file] },
+        stagedFiles: { ...prev.stagedFiles, [doc.requirementKey]: [file] },
       };
     });
-    setFieldErrors((prev) => clearContestOfferFormalFieldError(prev, key));
+    setFieldErrors((prev) =>
+      doc.qualificationTypeId
+        ? clearContestOfferQualificationFieldError(prev, doc.qualificationTypeId)
+        : clearContestOfferFormalFieldError(prev, doc.requirementKey),
+    );
   };
 
   const applyProfileDocument = (doc: ResolvedContractorDocument): void => {
     const attachment = buildFormalAttachmentFromProfile(doc);
     if (!attachment) return;
     setForm((prev) => {
+      if (doc.qualificationTypeId) {
+        const { [doc.qualificationTypeId]: _staged, ...stagedQualificationFiles } =
+          prev.stagedQualificationFiles;
+        return {
+          ...prev,
+          qualificationAttachments: [
+            ...prev.qualificationAttachments.filter(
+              (item) => item.qualificationTypeId !== doc.qualificationTypeId,
+            ),
+            attachment,
+          ],
+          stagedQualificationFiles,
+        };
+      }
       const { [doc.requirementKey]: _staged, ...stagedFiles } = prev.stagedFiles;
       return {
         ...prev,
@@ -595,7 +652,11 @@ export function ContestOfferSubmissionDialog({
         stagedFiles,
       };
     });
-    setFieldErrors((prev) => clearContestOfferFormalFieldError(prev, doc.requirementKey));
+    setFieldErrors((prev) =>
+      doc.qualificationTypeId
+        ? clearContestOfferQualificationFieldError(prev, doc.qualificationTypeId)
+        : clearContestOfferFormalFieldError(prev, doc.requirementKey),
+    );
   };
 
   const removeExtraAttachment = (id: string): void => {

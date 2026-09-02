@@ -5,6 +5,12 @@ import type {
 } from '../contractor/constants';
 import { DEFAULT_SERVICE_AREA } from '../contractor/constants';
 import { normalizeIbanInput } from '../contractor/iban';
+import {
+  isAllowedQualificationTypeId,
+  parseProfessionalQualificationDocuments,
+  type ProfessionalQualificationDocument,
+  type ProfessionalQualificationDocuments,
+} from '../contractor/professional-qualification-documents';
 
 export {
   getOcPolicyAllowedFormatsLabel,
@@ -16,6 +22,7 @@ export {
   removeVerificationDocumentsFromBucket,
   uploadOcPolicyScan,
   uploadProfessionalQualificationsScan,
+  uploadProfessionalQualificationTypeScan,
   uploadReferenceDocumentScan,
   uploadTaxCertificateScan,
   uploadZusCertificateScan,
@@ -41,6 +48,7 @@ export interface ContractorAccountSettings {
   professionalQualificationsValidUntil: string | null;
   professionalQualificationsScanPath: string | null;
   professionalQualificationTypes: string[];
+  professionalQualificationDocuments: ProfessionalQualificationDocuments;
   bankAccountIban: string | null;
   vatStatus: ContractorVatStatus | null;
   vatWhitelistVerifiedAt: string | null;
@@ -168,6 +176,7 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
       professionalQualificationsValidUntil: null,
       professionalQualificationsScanPath: null,
       professionalQualificationTypes: [],
+      professionalQualificationDocuments: {},
       bankAccountIban: null,
       vatStatus: null,
       vatWhitelistVerifiedAt: null,
@@ -208,6 +217,9 @@ const normalizeSettings = (row: Record<string, unknown> | null): ContractorAccou
         ? row.professional_qualifications_scan_path
         : null,
     professionalQualificationTypes: normalizeStringArray(row.professional_qualification_types),
+    professionalQualificationDocuments: parseProfessionalQualificationDocuments(
+      row.professional_qualification_documents,
+    ),
     bankAccountIban:
       typeof row.bank_account_iban === 'string' ? normalizeIbanInput(row.bank_account_iban) || null : null,
     vatStatus: normalizeVatStatus(row.vat_status),
@@ -362,6 +374,9 @@ export async function upsertContractorAccountSettings(
   if (payload.professionalQualificationTypes !== undefined) {
     patch.professional_qualification_types = payload.professionalQualificationTypes;
   }
+  if (payload.professionalQualificationDocuments !== undefined) {
+    patch.professional_qualification_documents = payload.professionalQualificationDocuments;
+  }
   if (payload.bankAccountIban !== undefined) {
     patch.bank_account_iban = payload.bankAccountIban
       ? normalizeIbanInput(payload.bankAccountIban)
@@ -496,5 +511,48 @@ export async function upsertContractorAccountSettings(
   }
 
   return normalizeSettings((data as Record<string, unknown>) || null);
+}
+
+const qualificationDocumentWriteChains = new Map<string, Promise<void>>();
+
+/**
+ * Merge one catalog type into `professional_qualification_documents` without
+ * replacing sibling types (parallel per-type uploads must not overwrite each other).
+ */
+export async function mergeProfessionalQualificationDocument(
+  userId: string,
+  typeId: string,
+  document: ProfessionalQualificationDocument | null,
+): Promise<ProfessionalQualificationDocuments> {
+  if (!isAllowedQualificationTypeId(typeId)) {
+    throw new Error('Nieznany typ uprawnienia');
+  }
+
+  const previous = qualificationDocumentWriteChains.get(userId) ?? Promise.resolve();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  qualificationDocumentWriteChains.set(
+    userId,
+    previous.then(() => gate, () => gate),
+  );
+  await previous.catch(() => undefined);
+
+  try {
+    const settings = await getContractorAccountSettings(userId);
+    const next = { ...settings.professionalQualificationDocuments };
+    if (document) {
+      next[typeId] = document;
+    } else {
+      delete next[typeId];
+    }
+    const saved = await upsertContractorAccountSettings(userId, {
+      professionalQualificationDocuments: next,
+    });
+    return saved.professionalQualificationDocuments;
+  } finally {
+    release();
+  }
 }
 

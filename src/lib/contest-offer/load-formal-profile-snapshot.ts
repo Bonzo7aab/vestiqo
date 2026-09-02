@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
+import {
+  parseProfessionalQualificationDocuments,
+  type ProfessionalQualificationDocuments,
+} from '../contractor/professional-qualification-documents';
 import type { ContractorFormalProfileSnapshot } from './validate-profile-formal-requirements';
 
 export function asIsoDateOnly(value: unknown): string | null {
@@ -54,6 +58,7 @@ export function formalSnapshotFromSources(
     professionalQualificationTypes: string[];
     professionalQualificationsScanPath: string | null;
     professionalQualificationsValidUntil: string | null;
+    professionalQualificationDocuments?: ProfessionalQualificationDocuments;
   },
   verificationPaths: Record<string, string>,
 ): ContractorFormalProfileSnapshot {
@@ -70,6 +75,7 @@ export function formalSnapshotFromSources(
     professionalQualificationsValidUntil: asIsoDateOnly(
       settings.professionalQualificationsValidUntil,
     ),
+    professionalQualificationDocuments: settings.professionalQualificationDocuments ?? {},
   };
 }
 
@@ -92,7 +98,7 @@ export async function loadContractorFormalProfileSnapshot(
   const { data: row, error } = await client
     .from('contractor_account_settings')
     .select(
-      'oc_valid_until, oc_policy_scan_path, oc_guarantee_amount, professional_qualification_types, professional_qualifications_scan_path, professional_qualifications_valid_until',
+      'oc_valid_until, oc_policy_scan_path, oc_guarantee_amount, professional_qualification_types, professional_qualifications_scan_path, professional_qualifications_valid_until, professional_qualification_documents',
     )
     .eq('user_id', userId)
     .maybeSingle();
@@ -106,6 +112,7 @@ export async function loadContractorFormalProfileSnapshot(
         professionalQualificationTypes: [],
         professionalQualificationsScanPath: null,
         professionalQualificationsValidUntil: null,
+        professionalQualificationDocuments: {},
       },
       verificationPaths,
     );
@@ -121,6 +128,9 @@ export async function loadContractorFormalProfileSnapshot(
       professionalQualificationsScanPath: asString(record.professional_qualifications_scan_path),
       professionalQualificationsValidUntil: asIsoDateOnly(
         record.professional_qualifications_valid_until,
+      ),
+      professionalQualificationDocuments: parseProfessionalQualificationDocuments(
+        record.professional_qualification_documents,
       ),
     },
     verificationPaths,

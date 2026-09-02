@@ -56,7 +56,6 @@ import type {
   DocumentReviewMap,
   VerificationDocumentEntry,
 } from '../lib/database/admin-verification';
-import { ContractorProfessionalQualificationsSettings } from './ContractorProfessionalQualificationsSettings';
 import { ContractorProfessionalQualificationsChecklist } from './ContractorProfessionalQualificationsChecklist';
 
 interface VerificationPageProps {
@@ -967,12 +966,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       required: true,
     },
     {
-      type: 'certifications',
-      name: 'Certyfikaty zawodowe',
-      description: 'Skany certyfikatów i uprawnień zawodowych',
-      required: false,
-    },
-    {
       type: 'references',
       name: 'Referencje',
       description: 'Opinie z poprzednich projektów, rekomendacje klientów',
@@ -1605,29 +1598,16 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                 <ContractorDocumentPanel
                   nested
                   heading="Certyfikaty i uprawnienia"
-                  description="Skany certyfikatów oraz deklaracja typów uprawnień"
+                  description="Typy uprawnień z katalogu i skan przypisany do każdego typu"
                   icon={<Award className="h-5 w-5" />}
-                  highlightStatus={getDocHighlightStatus(
-                    documents.find(d => d.type === 'certifications') ?? {
-                      type: 'certifications',
-                      required: false,
-                    },
-                  )}
+                  highlightStatus={null}
                 >
-                  {visibleDocuments
-                    .filter(doc => doc.type === 'certifications')
-                    .map(doc =>
-                      renderContractorDocumentRow(doc, {
-                        nestedInSectionShell: true,
-                        hideHeader: true,
-                      }),
-                    )}
                   <ContractorProfessionalQualificationsChecklist userId={userId} />
                 </ContractorDocumentPanel>
                 <ContractorDocumentPanel
                   nested
                   heading="Referencje"
-                  description="Rekomendacje od klientów i dodatkowy skan licencji"
+                  description="Rekomendacje od klientów"
                   icon={<Users className="h-5 w-5" />}
                   highlightStatus={getDocHighlightStatus(
                     documents.find(d => d.type === 'references') ?? {
@@ -1644,11 +1624,6 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
                         hideHeader: true,
                       }),
                     )}
-                  <ContractorProfessionalQualificationsSettings
-                    userId={userId}
-                    variant="section"
-                    hideSectionChrome
-                  />
                 </ContractorDocumentPanel>
               </div>
 

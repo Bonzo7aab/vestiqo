@@ -90,6 +90,11 @@ function collectContestDocuments(bid: TenderBidRow): Array<{ name: string; url?:
       if (ref?.name) docs.push({ name: ref.name, url: ref.url });
     }
   }
+  if (details?.qualificationAttachments) {
+    for (const ref of details.qualificationAttachments) {
+      if (ref?.name) docs.push({ name: ref.name, url: ref.url });
+    }
+  }
   if (details?.extraAttachments) {
     for (const ref of Object.values(details.extraAttachments)) {
       if (ref?.name) docs.push({ name: ref.name, url: ref.url });

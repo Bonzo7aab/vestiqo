@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '../../types/database';
 import { deleteVerificationDocument } from '../storage/verification-documents';
+import { parseProfessionalQualificationDocuments } from '../contractor/professional-qualification-documents';
 import { resetVerificationAfterDocumentRemoval } from './reset-after-document-removal';
 
 const VERIFICATION_DOC_KEYS = new Set([
@@ -16,7 +17,8 @@ export type RemoveAccountDocumentPayload =
   | { kind: 'verification'; documentKey: string }
   | { kind: 'zus_certificate' }
   | { kind: 'tax_certificate' }
-  | { kind: 'professional_qualifications_scan' };
+  | { kind: 'professional_qualifications_scan' }
+  | { kind: 'professional_qualification_document'; typeId: string };
 
 export interface RemoveAccountDocumentResult {
   ok: boolean;
@@ -136,6 +138,42 @@ export async function removeAccountDocumentForUser(
         ...(isZus
           ? { zus_certificate_path: null, zus_certificate_issued_at: null }
           : { tax_certificate_path: null, tax_certificate_issued_at: null }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    const reset = await resetVerificationAfterDocumentRemoval(supabase, userId);
+    return {
+      ok: true,
+      verificationReset:
+        reset.hadApprovedVerification || reset.clearedPendingSubmission,
+    };
+  }
+
+  if (payload.kind === 'professional_qualification_document') {
+    const { typeId } = payload;
+    const { data: settings } = await sb
+      .from('contractor_account_settings')
+      .select('professional_qualification_documents')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const documents = parseProfessionalQualificationDocuments(
+      settings?.professional_qualification_documents,
+    );
+    const current = documents[typeId];
+    if (!current?.path) {
+      return { ok: false, error: 'Brak zapisanego pliku do usunięcia.' };
+    }
+
+    await removeStoragePath(current.path);
+    const nextDocuments = { ...documents };
+    delete nextDocuments[typeId];
+
+    await sb
+      .from('contractor_account_settings')
+      .update({
+        professional_qualification_documents: nextDocuments,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);

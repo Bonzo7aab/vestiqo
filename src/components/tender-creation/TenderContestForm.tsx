@@ -1201,45 +1201,31 @@ export function TenderContestForm({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id="req-cert"
-              checked={form.formalRequirements.professionalCertificates}
-              onCheckedChange={(c) =>
-                setForm((prev) => ({
-                  ...prev,
-                  formalRequirements: {
-                    ...prev.formalRequirements,
-                    professionalCertificates: c === true,
-                  },
-                }))
-              }
-            />
-            <Label htmlFor="req-cert" className="font-normal">
-              Certyfikaty zawodowe
-            </Label>
-          </div>
-
           <div className="flex items-start gap-3">
             <Checkbox
-              id="req-lic"
-              checked={form.formalRequirements.professionalLicenses}
+              id="req-certs-licenses"
+              checked={
+                Boolean(form.formalRequirements.professionalLicenses) ||
+                Boolean(form.formalRequirements.professionalCertificates)
+              }
               onCheckedChange={(c) =>
                 patchFormalRequirements({
                   professionalLicenses: c === true,
+                  professionalCertificates: false,
                   professionalLicenseTypes:
                     c === true ? (form.formalRequirements.professionalLicenseTypes ?? []) : [],
                 })
               }
             />
             <div className="flex-1 space-y-3">
-              <Label htmlFor="req-lic" className="font-normal">
-                Uprawnienia zawodowe
+              <Label htmlFor="req-certs-licenses" className="font-normal">
+                Certyfikaty i uprawnienia
               </Label>
-              {form.formalRequirements.professionalLicenses ? (
+              {form.formalRequirements.professionalLicenses ||
+              form.formalRequirements.professionalCertificates ? (
                 <div id="contest-professional-license-types" className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    Zaznacz typy uprawnień wymagane od wykonawców składających oferty.
+                    Zaznacz typy certyfikatów i uprawnień wymagane od wykonawców składających oferty.
                   </p>
                   <ProfessionalQualificationTypePicker
                     selected={form.formalRequirements.professionalLicenseTypes ?? []}

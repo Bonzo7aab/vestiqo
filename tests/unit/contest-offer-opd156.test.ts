@@ -197,7 +197,7 @@ assert.equal(
 );
 
 assert.deepEqual(formatFormalRequirementLines(formal({ professionalLicenses: true })), [
-  'Uprawnienia zawodowe',
+  'Certyfikaty i uprawnienia',
 ]);
 
 const licenseLines = formatFormalRequirementLines(
@@ -207,7 +207,7 @@ const licenseLines = formatFormalRequirementLines(
   }),
 );
 assert.equal(licenseLines.length, 1);
-assert.match(licenseLines[0] ?? '', /Uprawnienia zawodowe:/);
+assert.match(licenseLines[0] ?? '', /Certyfikaty i uprawnienia:/);
 assert.match(licenseLines[0] ?? '', /SEP G1/);
 assert.match(licenseLines[0] ?? '', /UDT/);
 

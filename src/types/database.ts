@@ -889,6 +889,7 @@ export type Database = {
           oc_guarantee_amount: number | null
           oc_policy_scan_path: string | null
           oc_valid_until: string | null
+          professional_qualification_documents: Json
           professional_qualification_types: Json
           professional_qualifications_scan_path: string | null
           professional_qualifications_valid_until: string | null
@@ -913,6 +914,7 @@ export type Database = {
           oc_guarantee_amount?: number | null
           oc_policy_scan_path?: string | null
           oc_valid_until?: string | null
+          professional_qualification_documents?: Json
           professional_qualification_types?: Json
           professional_qualifications_scan_path?: string | null
           professional_qualifications_valid_until?: string | null
@@ -937,6 +939,7 @@ export type Database = {
           oc_guarantee_amount?: number | null
           oc_policy_scan_path?: string | null
           oc_valid_until?: string | null
+          professional_qualification_documents?: Json
           professional_qualification_types?: Json
           professional_qualifications_scan_path?: string | null
           professional_qualifications_valid_until?: string | null

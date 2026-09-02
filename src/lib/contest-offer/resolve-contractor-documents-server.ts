@@ -13,6 +13,12 @@ import {
   type ContractorAccountSettings,
 } from '../database/contractor-account';
 import { DEFAULT_SERVICE_AREA, professionalQualificationLabel } from '../contractor/constants';
+import {
+  CERTIFICATES_AND_LICENSES_LABEL,
+  requiredQualificationTypeIds,
+  resolveQualificationDocumentPath,
+  resolveQualificationValidUntil,
+} from '../contractor/professional-qualification-documents';
 import { createSignedUrlSafe } from '../storage/r2/operations';
 import { formalSnapshotFromSources, professionalLicenseScanPath } from './load-formal-profile-snapshot';
 import {
@@ -24,8 +30,8 @@ const REQUIREMENT_LABELS: Record<FormalRequirementKey, string> = {
   insuranceOc: 'Polisa OC',
   zusUsCertificates: 'Zaświadczenia ZUS/US',
   references: 'Referencje – wykaz zrealizowanych prac',
-  professionalCertificates: 'Certyfikaty zawodowe',
-  professionalLicenses: 'Uprawnienia zawodowe',
+  professionalCertificates: CERTIFICATES_AND_LICENSES_LABEL,
+  professionalLicenses: CERTIFICATES_AND_LICENSES_LABEL,
 };
 
 function fileNameFromPath(path: string): string {
@@ -52,6 +58,15 @@ function formatOcHint(settings: ContractorAccountSettings): string | null {
     }
   }
   return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function formatTypeHint(typeId: string, settings: ContractorAccountSettings): string | null {
+  const until = resolveQualificationValidUntil(
+    typeId,
+    settings.professionalQualificationDocuments,
+    settings.professionalQualificationsValidUntil,
+  );
+  return formatDateHint(until);
 }
 
 function formatLicensesHint(settings: ContractorAccountSettings): string | null {
@@ -89,10 +104,6 @@ function resolveDocumentPath(
       return { path: fromVerification ?? fromSettings ?? null, hint: null };
     }
     case 'professionalCertificates':
-      return {
-        path: verificationPaths.certifications ?? null,
-        hint: null,
-      };
     case 'professionalLicenses':
       return {
         path: professionalLicenseScanPath(
@@ -128,6 +139,7 @@ export async function resolveContractorDocumentsWithClient(
           professionalQualificationTypes: [],
           professionalQualificationsScanPath: null,
           professionalQualificationsValidUntil: null,
+          professionalQualificationDocuments: {},
         },
         {},
       ),
@@ -151,6 +163,7 @@ export async function resolveContractorDocumentsWithClient(
     professionalQualificationsValidUntil: null,
     professionalQualificationsScanPath: null,
     professionalQualificationTypes: [],
+    professionalQualificationDocuments: {},
     bankAccountIban: null,
     vatStatus: null,
     vatWhitelistVerifiedAt: null,
@@ -182,6 +195,37 @@ export async function resolveContractorDocumentsWithClient(
   const results: ResolvedContractorDocument[] = [];
 
   for (const key of keys) {
+    if (key === 'professionalLicenses') {
+      const typeIds = requiredQualificationTypeIds(formal);
+      if (typeIds.length > 0) {
+        for (const typeId of typeIds) {
+          const path = resolveQualificationDocumentPath(
+            typeId,
+            settings.professionalQualificationDocuments,
+            settings.professionalQualificationsScanPath,
+            verificationPaths.certifications ?? null,
+          );
+          let signedUrl: string | null = null;
+          if (path) {
+            signedUrl = await createSignedUrlSafe(path);
+          }
+          const dedicatedName = settings.professionalQualificationDocuments[typeId]?.fileName;
+          results.push({
+            requirementKey: key,
+            qualificationTypeId: typeId,
+            label: professionalQualificationLabel(typeId),
+            path,
+            fileName: dedicatedName ?? (path ? fileNameFromPath(path) : null),
+            signedUrl,
+            hint: formatTypeHint(typeId, settings),
+            missing: !path,
+            profileBlocked: Boolean(profileErrors.professionalLicenses),
+          });
+        }
+        continue;
+      }
+    }
+
     const { path, hint } = resolveDocumentPath(key, verificationPaths, settings);
     let signedUrl: string | null = null;
     if (path) {

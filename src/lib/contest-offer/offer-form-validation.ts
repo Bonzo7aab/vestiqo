@@ -2,6 +2,11 @@ import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData, FormalRequirementKey } from '../../types/contest-offer';
 import { requiredFormalKeys } from '../../types/contest-offer';
 import {
+  requiredQualificationTypeIds,
+  requiresCertificatesAndLicenses,
+} from '../contractor/professional-qualification-documents';
+import { professionalQualificationLabel } from '../contractor/constants';
+import {
   validateProfileFormalRequirements,
   type ContractorFormalProfileSnapshot,
 } from './validate-profile-formal-requirements';
@@ -19,14 +24,15 @@ export interface ContestOfferFieldErrors {
   paymentTermsAccepted?: string;
   deposit?: string;
   formal?: Partial<Record<FormalRequirementKey, string>>;
+  qualificationFiles?: Record<string, string>;
 }
 
 export const FORMAL_REQUIREMENT_LABELS: Record<FormalRequirementKey, string> = {
   insuranceOc: 'Polisa OC',
   zusUsCertificates: 'Zaświadczenia ZUS/US',
   references: 'Referencje – wykaz zrealizowanych prac',
-  professionalCertificates: 'Certyfikaty zawodowe',
-  professionalLicenses: 'Uprawnienia zawodowe',
+  professionalCertificates: 'Certyfikaty i uprawnienia',
+  professionalLicenses: 'Certyfikaty i uprawnienia',
 };
 
 export function localIsoDate(date: Date = new Date()): string {
@@ -59,7 +65,10 @@ export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boo
   ) {
     return true;
   }
-  return Boolean(errors.formal && Object.keys(errors.formal).length > 0);
+  return Boolean(
+    (errors.formal && Object.keys(errors.formal).length > 0) ||
+      (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0),
+  );
 }
 
 function hasOfferDocumentation(form: ContestOfferFormData): boolean {
@@ -68,10 +77,21 @@ function hasOfferDocumentation(form: ContestOfferFormData): boolean {
   return offerDocs.length > 0 || staged > 0;
 }
 
+function hasQualificationTypeFile(form: ContestOfferFormData, typeId: string): boolean {
+  return Boolean(
+    form.qualificationAttachments.some((item) => item.qualificationTypeId === typeId) ||
+      form.stagedQualificationFiles[typeId],
+  );
+}
+
 function hasFormalRequirementFile(
   form: ContestOfferFormData,
   key: FormalRequirementKey,
 ): boolean {
+  if (key === 'professionalLicenses' || key === 'professionalCertificates') {
+    if (Object.keys(form.stagedQualificationFiles).length > 0) return true;
+    if (form.qualificationAttachments.length > 0) return true;
+  }
   return Boolean(form.formalAttachments[key] || form.stagedFiles[key]?.length);
 }
 
@@ -104,21 +124,47 @@ export function getContestOfferStepFieldErrors(
 
   if (step === 3) {
     const formal: Partial<Record<FormalRequirementKey, string>> = {};
+    const qualificationFiles: Record<string, string> = {};
     const required = requiredFormalKeys(contestInfo.formalRequirements);
+    const typeIds = requiredQualificationTypeIds(contestInfo.formalRequirements);
+
     for (const key of required) {
+      if (key === 'professionalLicenses' || key === 'professionalCertificates') {
+        continue;
+      }
       const attached = form.formalAttachments[key];
       const staged = form.stagedFiles[key]?.length;
       if (!attached && !staged) {
         formal[key] = `Wgraj lub wybierz z profilu: ${FORMAL_REQUIREMENT_LABELS[key]}`;
       }
     }
+
+    if (typeIds.length > 0) {
+      for (const typeId of typeIds) {
+        if (!hasQualificationTypeFile(form, typeId)) {
+          qualificationFiles[typeId] =
+            `Wgraj lub wybierz z profilu: ${professionalQualificationLabel(typeId)}`;
+        }
+      }
+    } else if (requiresCertificatesAndLicenses(contestInfo.formalRequirements)) {
+      if (!hasFormalRequirementFile(form, 'professionalLicenses')) {
+        formal.professionalLicenses = `Wgraj lub wybierz z profilu: ${FORMAL_REQUIREMENT_LABELS.professionalLicenses}`;
+      }
+    }
+
     if (Object.keys(formal).length > 0) {
       errors.formal = formal;
     }
+    if (Object.keys(qualificationFiles).length > 0) {
+      errors.qualificationFiles = qualificationFiles;
+    }
     if (profileSnapshot) {
+      const offerCoversLicenses =
+        typeIds.length > 0
+          ? typeIds.every((typeId) => hasQualificationTypeFile(form, typeId))
+          : hasFormalRequirementFile(form, 'professionalLicenses');
       const snapshotForProfile =
-        hasFormalRequirementFile(form, 'professionalLicenses') &&
-        !profileSnapshot.professionalQualificationsScanPath
+        offerCoversLicenses && !profileSnapshot.professionalQualificationsScanPath
           ? {
               ...profileSnapshot,
               professionalQualificationsScanPath: 'offer-local',
@@ -177,6 +223,7 @@ export function getContestOfferAllFieldErrors(
   const step4 = getContestOfferStepFieldErrors(4, form, contestInfo, profileSnapshot);
 
   const formal = { ...step3.formal };
+  const qualificationFiles = { ...step3.qualificationFiles };
 
   return {
     offerDocumentation: step1.offerDocumentation,
@@ -188,6 +235,7 @@ export function getContestOfferAllFieldErrors(
     paymentTermsAccepted: step4.paymentTermsAccepted,
     deposit: step4.deposit,
     ...(Object.keys(formal).length > 0 ? { formal } : {}),
+    ...(Object.keys(qualificationFiles).length > 0 ? { qualificationFiles } : {}),
   };
 }
 
@@ -206,6 +254,7 @@ export function filterFieldErrorsForStep(
     case 3:
       return {
         formal: errors.formal,
+        qualificationFiles: errors.qualificationFiles,
       };
     case 4:
       return {
@@ -228,6 +277,9 @@ export function firstContestOfferStepWithErrors(
   if (errors.formal && Object.keys(errors.formal).length > 0) {
     return 3;
   }
+  if (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0) {
+    return 3;
+  }
   if (
     errors.netPrice ||
     errors.warrantyMonths ||
@@ -248,6 +300,10 @@ function firstFieldErrorMessage(errors: ContestOfferFieldErrors): string | null 
     const first = Object.values(errors.formal)[0];
     if (first) return first;
   }
+  if (errors.qualificationFiles) {
+    const firstQual = Object.values(errors.qualificationFiles)[0];
+    if (firstQual) return firstQual;
+  }
   if (errors.netPrice) return errors.netPrice;
   if (errors.warrantyMonths) return errors.warrantyMonths;
   if (errors.guaranteeMonths) return errors.guaranteeMonths;
@@ -260,16 +316,29 @@ export function isFormalRequirementComplete(
   form: ContestOfferFormData,
   key: FormalRequirementKey,
 ): boolean {
-  return Boolean(form.formalAttachments[key] || form.stagedFiles[key]?.length);
+  return hasFormalRequirementFile(form, key);
 }
 
 export function countFormalRequirementsProgress(
   form: ContestOfferFormData,
   contestInfo: ContestInfo,
 ): { completed: number; total: number } {
-  const keys = requiredFormalKeys(contestInfo.formalRequirements);
-  const completed = keys.filter((key) => isFormalRequirementComplete(form, key)).length;
-  return { completed, total: keys.length };
+  const keys = requiredFormalKeys(contestInfo.formalRequirements).filter(
+    (key) => key !== 'professionalLicenses' && key !== 'professionalCertificates',
+  );
+  const typeIds = requiredQualificationTypeIds(contestInfo.formalRequirements);
+  const otherCompleted = keys.filter((key) => isFormalRequirementComplete(form, key)).length;
+  if (typeIds.length > 0) {
+    const typeCompleted = typeIds.filter((typeId) => hasQualificationTypeFile(form, typeId)).length;
+    return { completed: otherCompleted + typeCompleted, total: keys.length + typeIds.length };
+  }
+  if (requiresCertificatesAndLicenses(contestInfo.formalRequirements)) {
+    return {
+      completed: otherCompleted + (isFormalRequirementComplete(form, 'professionalLicenses') ? 1 : 0),
+      total: keys.length + 1,
+    };
+  }
+  return { completed: otherCompleted, total: keys.length };
 }
 
 export function validateContestOfferStep(

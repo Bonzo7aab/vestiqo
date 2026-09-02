@@ -17,6 +17,8 @@ export interface ContestOfferAttachmentRef {
   type: 'document' | 'image';
   source: 'profile' | 'override' | 'extra';
   requirementKey?: FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other';
+  /** Catalog id when this file belongs to a typed cert/license requirement (OPD-185). */
+  qualificationTypeId?: string;
   size?: number;
 }
 
@@ -33,6 +35,7 @@ export interface ContestOfferDetails {
   guaranteeMonths?: number | null;
   paymentTermsAccepted?: boolean;
   formalAttachments?: Partial<Record<FormalRequirementKey, ContestOfferAttachmentRef>>;
+  qualificationAttachments?: ContestOfferAttachmentRef[];
   extraAttachments?: ContestOfferAttachmentRef[];
 }
 
@@ -46,14 +49,18 @@ export interface ContestOfferFormData {
   guaranteeMonths: string;
   paymentTermsAccepted: boolean;
   formalAttachments: Partial<Record<FormalRequirementKey, ContestOfferAttachmentRef>>;
+  qualificationAttachments: ContestOfferAttachmentRef[];
   extraAttachments: ContestOfferAttachmentRef[];
   stagedFiles: Partial<
     Record<FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other', File[]>
   >;
+  stagedQualificationFiles: Record<string, File>;
 }
 
 export interface ResolvedContractorDocument {
   requirementKey: FormalRequirementKey;
+  /** Set when this slot is a typed cert/license from the catalog. */
+  qualificationTypeId?: string;
   label: string;
   path: string | null;
   fileName: string | null;
@@ -75,8 +82,10 @@ export function createEmptyContestOfferForm(): ContestOfferFormData {
     guaranteeMonths: '',
     paymentTermsAccepted: false,
     formalAttachments: {},
+    qualificationAttachments: [],
     extraAttachments: [],
     stagedFiles: {},
+    stagedQualificationFiles: {},
   };
 }
 
@@ -96,7 +105,11 @@ export function toSerializableClientData<T>(value: T): T {
  * Profile-prefilled Wymogi attachments often omit `url`/`size` (OPD-183).
  */
 export function toSerializableContestOfferForm(form: ContestOfferFormData): ContestOfferFormData {
-  return toSerializableClientData({ ...form, stagedFiles: {} });
+  return toSerializableClientData({
+    ...form,
+    stagedFiles: {},
+    stagedQualificationFiles: {},
+  });
 }
 
 export function computeGrossFromNet(net: number, vatRate: ContestOfferVatRate): number {
@@ -125,6 +138,7 @@ export function formDataToOfferDetails(
     guaranteeMonths: form.guaranteeMonths ? Number.parseInt(form.guaranteeMonths, 10) : null,
     paymentTermsAccepted: form.paymentTermsAccepted,
     formalAttachments: form.formalAttachments,
+    qualificationAttachments: form.qualificationAttachments,
     extraAttachments: form.extraAttachments,
   };
 }
@@ -146,6 +160,7 @@ export function offerDetailsToFormData(
     guaranteeMonths: details.guaranteeMonths != null ? String(details.guaranteeMonths) : '',
     paymentTermsAccepted: details.paymentTermsAccepted ?? false,
     formalAttachments: details.formalAttachments ?? {},
+    qualificationAttachments: details.qualificationAttachments ?? [],
     extraAttachments: details.extraAttachments ?? [],
   };
 }
@@ -156,7 +171,7 @@ export function mergeAttachmentsForBid(
   const formal = Object.values(form.formalAttachments).filter(
     (a): a is ContestOfferAttachmentRef => Boolean(a),
   );
-  return [...formal, ...form.extraAttachments];
+  return [...formal, ...form.qualificationAttachments, ...form.extraAttachments];
 }
 
 export function requiredFormalKeys(formal: FormalRequirements): FormalRequirementKey[] {
@@ -164,7 +179,17 @@ export function requiredFormalKeys(formal: FormalRequirements): FormalRequiremen
   if (formal.insuranceOc) keys.push('insuranceOc');
   if (formal.zusUsCertificates) keys.push('zusUsCertificates');
   if (formal.references) keys.push('references');
-  if (formal.professionalCertificates) keys.push('professionalCertificates');
-  if (formal.professionalLicenses) keys.push('professionalLicenses');
+  if (formal.professionalCertificates || formal.professionalLicenses) {
+    keys.push('professionalLicenses');
+  }
   return keys;
+}
+
+export function contestOfferDocumentSlotKey(doc: {
+  requirementKey: FormalRequirementKey;
+  qualificationTypeId?: string;
+}): string {
+  return doc.qualificationTypeId
+    ? `${doc.requirementKey}:${doc.qualificationTypeId}`
+    : doc.requirementKey;
 }

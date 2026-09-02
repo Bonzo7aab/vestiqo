@@ -1,6 +1,12 @@
 import type { FormalRequirementKey } from '../../types/contest-offer';
 import type { FormalRequirements } from '../../types/tender-contest';
 import { professionalQualificationLabel } from '../contractor/constants';
+import {
+  requiredQualificationTypeIds,
+  resolveQualificationDocumentPath,
+  resolveQualificationValidUntil,
+  type ProfessionalQualificationDocuments,
+} from '../contractor/professional-qualification-documents';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -12,6 +18,7 @@ export interface ContractorFormalProfileSnapshot {
   professionalQualificationTypes: string[];
   professionalQualificationsScanPath: string | null;
   professionalQualificationsValidUntil: string | null;
+  professionalQualificationDocuments: ProfessionalQualificationDocuments;
 }
 
 export const PROFILE_LICENSE_SCAN_MISSING =
@@ -25,6 +32,7 @@ export const EMPTY_FORMAL_PROFILE_SNAPSHOT: ContractorFormalProfileSnapshot = {
   professionalQualificationTypes: [],
   professionalQualificationsScanPath: null,
   professionalQualificationsValidUntil: null,
+  professionalQualificationDocuments: {},
 };
 
 function formatPln(amount: number): string {
@@ -97,27 +105,62 @@ export function validateProfileFormalRequirements(
     }
   }
 
-  if (formal.professionalCertificates && !snapshot.hasCertificatesDoc) {
-    errors.professionalCertificates = 'Uzupełnij certyfikaty zawodowe w profilu';
+  if (formal.professionalCertificates && !formal.professionalLicenses && !snapshot.hasCertificatesDoc) {
+    const types = requiredQualificationTypeIds(formal);
+    if (types.length === 0) {
+      errors.professionalCertificates = 'Uzupełnij certyfikaty zawodowe w profilu';
+    }
   }
 
-  if (formal.professionalLicenses) {
-    const requiredTypes = formal.professionalLicenseTypes ?? [];
+  if (formal.professionalLicenses || (formal.professionalCertificates && requiredQualificationTypeIds(formal).length > 0)) {
+    const requiredTypes = requiredQualificationTypeIds(formal);
     if (requiredTypes.length > 0) {
-      if (!snapshot.professionalQualificationsScanPath) {
+      const owned = new Set(snapshot.professionalQualificationTypes);
+      const missingTypes = requiredTypes.filter((id) => !owned.has(id));
+      const missingFiles = requiredTypes.filter(
+        (id) =>
+          !resolveQualificationDocumentPath(
+            id,
+            snapshot.professionalQualificationDocuments,
+            snapshot.professionalQualificationsScanPath,
+            null,
+          ),
+      );
+      const expired = requiredTypes.filter((id) => {
+        const path = resolveQualificationDocumentPath(
+          id,
+          snapshot.professionalQualificationDocuments,
+          snapshot.professionalQualificationsScanPath,
+          null,
+        );
+        if (!path) return false;
+        const until = resolveQualificationValidUntil(
+          id,
+          snapshot.professionalQualificationDocuments,
+          snapshot.professionalQualificationsValidUntil,
+        );
+        return isExpired(until, nowMs);
+      });
+
+      if (
+        missingFiles.length === requiredTypes.length &&
+        !snapshot.professionalQualificationsScanPath
+      ) {
         errors.professionalLicenses = PROFILE_LICENSE_SCAN_MISSING;
-      } else if (isExpired(snapshot.professionalQualificationsValidUntil, nowMs)) {
-        const until = snapshot.professionalQualificationsValidUntil
-          ? formatPlDate(snapshot.professionalQualificationsValidUntil)
-          : '';
+      } else if (missingFiles.length > 0) {
+        const labels = missingFiles.map(professionalQualificationLabel).join(', ');
+        errors.professionalLicenses = `W profilu brakuje skanów: ${labels}. Uzupełnij w profilu.`;
+      } else if (expired.length > 0) {
+        const firstUntil = resolveQualificationValidUntil(
+          expired[0],
+          snapshot.professionalQualificationDocuments,
+          snapshot.professionalQualificationsValidUntil,
+        );
+        const until = firstUntil ? formatPlDate(firstUntil) : '';
         errors.professionalLicenses = `Uprawnienia zawodowe w profilu wygasły (ważne do: ${until}). Uzupełnij w profilu.`;
-      } else {
-        const owned = new Set(snapshot.professionalQualificationTypes);
-        const missing = requiredTypes.filter((id) => !owned.has(id));
-        if (missing.length > 0) {
-          const labels = missing.map(professionalQualificationLabel).join(', ');
-          errors.professionalLicenses = `W profilu brakuje wymaganych uprawnień: ${labels}. Uzupełnij w profilu.`;
-        }
+      } else if (missingTypes.length > 0) {
+        const labels = missingTypes.map(professionalQualificationLabel).join(', ');
+        errors.professionalLicenses = `W profilu brakuje wymaganych uprawnień: ${labels}. Uzupełnij w profilu.`;
       }
     }
   }
