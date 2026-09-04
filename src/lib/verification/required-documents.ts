@@ -16,7 +16,8 @@ export interface VerificationDocumentEntry {
   missing?: boolean;
 }
 
-export const CONTRACTOR_REQUIRED_DOC_KEYS = ['insurance'] as const;
+/** OPD-186: contractor OC is profile data, not an admin-reviewed required document. */
+export const CONTRACTOR_REQUIRED_DOC_KEYS = [] as const;
 export const MANAGER_REQUIRED_DOC_KEYS = ['company_registration', 'insurance'] as const;
 
 const DOC_LABELS: Record<string, string> = {

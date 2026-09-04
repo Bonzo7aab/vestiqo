@@ -10,7 +10,7 @@ import {
 import { resolveVerificationStatus } from '../../src/lib/verification/resolve-verification-state';
 import type { CompanyRegistrySnapshot } from '../../src/lib/registry/types';
 
-assert.deepEqual(getRequiredDocumentKeys('contractor'), ['insurance']);
+assert.deepEqual(getRequiredDocumentKeys('contractor'), []);
 assert.deepEqual(getRequiredDocumentKeys('manager'), [
   'company_registration',
   'insurance',
@@ -27,17 +27,14 @@ const insuranceDoc: VerificationDocumentEntry = {
 };
 
 const contractorMerged = mergeRequiredVerificationDocuments('contractor', [insuranceDoc]);
-assert.equal(contractorMerged.length, 1);
-assert.equal(contractorMerged[0]?.key, 'insurance');
+assert.equal(contractorMerged.length, 0);
 assert.equal(
-  contractorMerged.some((doc) => doc.key === 'company_registration'),
+  contractorMerged.some((doc) => doc.key === 'insurance'),
   false,
 );
 
 const contractorMissing = mergeRequiredVerificationDocuments('contractor', []);
-assert.equal(contractorMissing.length, 1);
-assert.equal(contractorMissing[0]?.key, 'insurance');
-assert.equal(contractorMissing[0]?.missing, true);
+assert.equal(contractorMissing.length, 0);
 
 const managerMerged = mergeRequiredVerificationDocuments('manager', [insuranceDoc]);
 assert.equal(managerMerged.length, 2);

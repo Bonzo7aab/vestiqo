@@ -51,7 +51,7 @@ export async function removeAccountDocumentForUser(
     const [{ data: profile }, { data: settings }] = await Promise.all([
       sb
         .from('user_profiles')
-        .select('verification_document_paths')
+        .select('verification_document_paths, user_type')
         .eq('id', userId)
         .maybeSingle(),
       sb
@@ -101,10 +101,13 @@ export async function removeAccountDocumentForUser(
         .eq('user_id', userId);
     }
 
+    const skipAccountReset =
+      documentKey === 'insurance' && profile?.user_type === 'contractor';
     const reset = await resetVerificationAfterDocumentRemoval(
       supabase,
       userId,
-      documentKey
+      documentKey,
+      { resetAccountVerification: !skipAccountReset },
     );
 
     return {

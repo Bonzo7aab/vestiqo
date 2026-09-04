@@ -105,28 +105,6 @@ function formatDate(value: string | null): string {
   }
 }
 
-function formatDateOnly(value: string | null): string {
-  if (!value) return '—';
-  try {
-    return new Date(value).toLocaleDateString('pl-PL', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return value;
-  }
-}
-
-function formatPlnAmount(value: number | null): string {
-  if (value == null || !Number.isFinite(value)) return '—';
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency',
-    currency: 'PLN',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function formatAddressLine(
   address: string | null,
   postalCode: string | null,
@@ -413,23 +391,15 @@ export function VerificationSubjectPanel({
                   label="Status VAT"
                   value={profileDetails.vatStatusLabel ?? '—'}
                 />
-                <MetaItem
-                  icon={ShieldCheck}
-                  label="Suma gwarancyjna OC"
-                  value={formatPlnAmount(profileDetails.ocGuaranteeAmountPln)}
-                />
-                <MetaItem
-                  icon={CalendarClock}
-                  label="Ważność OC"
-                  value={formatDateOnly(ocValidUntil)}
-                />
               </>
             ) : null}
-            <MetaItem
-              icon={FileStack}
-              label="Wymagane dokumenty"
-              value={`${documentsSubmitted} / ${documentsExpected} przesłanych`}
-            />
+            {documentsExpected > 0 ? (
+              <MetaItem
+                icon={FileStack}
+                label="Wymagane dokumenty"
+                value={`${documentsSubmitted} / ${documentsExpected} przesłanych`}
+              />
+            ) : null}
             <MetaItem icon={CalendarClock} label="Rozpoczęta" value={formatDate(createdAt)} />
             <MetaItem icon={CalendarClock} label="Zaktualizowana" value={formatDate(updatedAt)} />
             {submittedAt ? (
@@ -474,6 +444,7 @@ export function VerificationSubjectPanel({
               onCustomReasonChange={setRejectCustomReason}
               disabled={busy}
               compact
+              hideOutdatedOc={isContractor}
             />
             {documentPrefill.trim() ? (
               <p className="rounded border border-destructive/15 bg-background/80 px-2.5 py-1.5 text-xs text-muted-foreground whitespace-pre-wrap">
@@ -543,7 +514,7 @@ export function VerificationSubjectPanel({
             updatedSince={lastDecisionAt}
             reviews={reviews}
             subjectUserId={subjectUserId}
-            ocValidUntil={userType === 'contractor' ? ocValidUntil : null}
+            ocValidUntil={userType === 'contractor' ? null : ocValidUntil}
           />
         </CardContent>
       </Card>

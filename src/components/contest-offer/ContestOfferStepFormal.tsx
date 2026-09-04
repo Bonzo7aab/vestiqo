@@ -13,20 +13,28 @@ interface ContestOfferStepFormalProps {
   form: ContestOfferFormData;
   resolvedDocs: ResolvedContractorDocument[];
   fieldErrors: ContestOfferFieldErrors;
+  insuranceOcMinAmount?: number | null;
   onUseProfile: (doc: ResolvedContractorDocument) => void;
   onUploadFormal: (doc: ResolvedContractorDocument, file: File) => void;
   onRemoveFormal: (doc: ResolvedContractorDocument) => void;
   onFileIssue?: (doc: ResolvedContractorDocument, message: string | null) => void;
+  onOcValidUntilChange?: (value: string) => void;
+  onOcGuaranteeAmountChange?: (value: string) => void;
+  onOcFieldsBlur?: () => void;
 }
 
 export function ContestOfferStepFormal({
   form,
   resolvedDocs,
   fieldErrors,
+  insuranceOcMinAmount = null,
   onUseProfile,
   onUploadFormal,
   onRemoveFormal,
   onFileIssue,
+  onOcValidUntilChange,
+  onOcGuaranteeAmountChange,
+  onOcFieldsBlur,
 }: ContestOfferStepFormalProps): ReactElement {
   return (
     <div className="space-y-6">
@@ -54,6 +62,12 @@ export function ContestOfferStepFormal({
             onUpload={(file) => onUploadFormal(doc, file)}
             onRemove={() => onRemoveFormal(doc)}
             onFileIssue={(message) => onFileIssue?.(doc, message)}
+            ocValidUntil={form.ocValidUntil}
+            ocGuaranteeAmount={form.ocGuaranteeAmount}
+            insuranceOcMinAmount={insuranceOcMinAmount}
+            onOcValidUntilChange={onOcValidUntilChange}
+            onOcGuaranteeAmountChange={onOcGuaranteeAmountChange}
+            onOcFieldsBlur={onOcFieldsBlur}
           />
         );
       })}

@@ -872,7 +872,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   const status = initialStatus.state;
   /** Standalone /weryfikacja page: hide upload UI once approved. Account tab always shows sections. */
   const showDocumentSections = embedded || status !== 'approved';
-  const showVerificationSubmit = status !== 'approved';
+  const showVerificationSubmit = !isContractor && status !== 'approved';
 
   const existingByKey = useMemo(() => {
     const map: Record<string, VerificationDocumentEntry> = {};
@@ -955,6 +955,35 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     }
   };
 
+  const saveContractorOcScan = async (file: File) => {
+    if (!user?.id) {
+      toast.error('Musisz być zalogowany.');
+      return;
+    }
+    try {
+      const uploadResult = await uploadVerificationDocumentClient('insurance', file);
+      if (uploadResult.error || !uploadResult.path) {
+        toast.error(uploadResult.error ?? 'Nie udało się przesłać skanu polisy OC');
+        return;
+      }
+      await upsertContractorAccountSettings(user.id, {
+        ocPolicyScanPath: uploadResult.path,
+      });
+      setHasOcPolicyInAccount(true);
+      handleFileChange('insurance', null);
+      setReplaceMode(prev => {
+        const next = { ...prev };
+        delete next.insurance;
+        return next;
+      });
+      toast.success('Skan polisy OC zapisany w profilu');
+      router.refresh();
+    } catch (error) {
+      console.error('Error saving contractor OC scan:', error);
+      toast.error('Nie udało się zapisać skanu polisy OC');
+    }
+  };
+
   const ocDateDirty =
     ocValidUntil !== initialOcValidUntil || ocGuaranteeAmount !== initialOcGuaranteeAmount;
 
@@ -963,7 +992,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       type: 'insurance',
       name: 'Polisa OC',
       description: 'Polisa ubezpieczenia odpowiedzialności cywilnej (ważna minimum 6 miesięcy)',
-      required: true,
+      required: false,
     },
     {
       type: 'references',
@@ -1002,7 +1031,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
   const documents = isContractor ? contractorDocuments : managerDocuments;
   const verificationRequiredDocs = isContractor
-    ? documents.filter(doc => doc.type === 'insurance')
+    ? []
     : documents.filter(doc => doc.type === 'company_registration' || doc.type === 'insurance');
   const progressRequiredDocs = verificationRequiredDocs;
   const visibleDocuments = documents;
@@ -1036,6 +1065,10 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       handleFileChange(documentType, file);
+      if (isContractor && documentType === 'insurance' && user?.id) {
+        void saveContractorOcScan(file);
+        return;
+      }
       toast.success(`Dodano plik: ${file.name}`);
     }
   };
@@ -1107,37 +1140,36 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
       toast.error('Musisz być zalogowany.');
       return;
     }
-    if (isContractor && showVerificationSubmit) {
-      if (!isOcPolicyDetailsComplete(ocValidUntil, ocGuaranteeAmount)) {
-        toast.error('Uzupełnij ważność polisy OC i sumę gwarancyjną przed wysłaniem dokumentów.');
-        return;
-      }
-    }
     setIsSubmitting(true);
 
     try {
-      if (isContractor && showVerificationSubmit) {
+      if (isContractor && ocDateDirty) {
         const parsedGuarantee = parseOcGuaranteeAmount(ocGuaranteeAmount);
-        if (parsedGuarantee == null) {
+        if (ocValidUntil.trim() && parsedGuarantee == null) {
           toast.error('Podaj prawidłową sumę gwarancyjną polisy OC (większą od zera).');
           return;
         }
-        const saved = await upsertContractorAccountSettings(user.id, {
-          ocValidUntil,
-          ocGuaranteeAmount: parsedGuarantee,
-        });
-        const newDate = saved.ocValidUntil ?? '';
-        setOcValidUntil(newDate);
-        setInitialOcValidUntil(newDate);
-        const guarantee =
-          saved.ocGuaranteeAmount != null ? String(saved.ocGuaranteeAmount) : '';
-        setOcGuaranteeAmount(guarantee);
-        setInitialOcGuaranteeAmount(guarantee);
+        if (ocValidUntil.trim() && parsedGuarantee != null) {
+          const saved = await upsertContractorAccountSettings(user.id, {
+            ocValidUntil,
+            ocGuaranteeAmount: parsedGuarantee,
+          });
+          const newDate = saved.ocValidUntil ?? '';
+          setOcValidUntil(newDate);
+          setInitialOcValidUntil(newDate);
+          const guarantee =
+            saved.ocGuaranteeAmount != null ? String(saved.ocGuaranteeAmount) : '';
+          setOcGuaranteeAmount(guarantee);
+          setInitialOcGuaranteeAmount(guarantee);
+        }
       }
 
       const uploadedPaths: Record<string, string> = {};
 
       for (const doc of documents) {
+        if (isContractor && doc.type === 'insurance') {
+          continue;
+        }
         const file = uploads[doc.type]?.file;
         if (!file) continue;
 
@@ -1155,10 +1187,10 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
         return;
       }
       toast.success(
-        embedded && status === 'approved'
+        embedded && (status === 'approved' || isContractor)
           ? 'Dokumenty zostały zapisane'
           : isContractor
-            ? 'Polisa OC została przesłana do weryfikacji'
+            ? 'Dokumenty zostały zapisane'
             : 'Dokumenty zostały przesłane do weryfikacji',
       );
       await refreshSession();
@@ -1173,7 +1205,7 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
   // A required doc is "covered" if there's a new file OR a previously uploaded
   // file. Contractor OC is also covered by an OC scan stored in account settings.
-  const contractorOcDetailsRequired = isContractor && showVerificationSubmit;
+  const contractorOcDetailsRequired = false;
   const ocPolicyDetailsComplete =
     !contractorOcDetailsRequired || isOcPolicyDetailsComplete(ocValidUntil, ocGuaranteeAmount);
 
@@ -1215,7 +1247,8 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
   const isAwaitingVerificationWithNoChanges =
     status === 'pending' && !hasDocumentFormChanges;
 
-  const showOptionalSave = embedded && status === 'approved' && newUploadsCount > 0;
+  const showOptionalSave =
+    (isContractor || (embedded && status === 'approved')) && newUploadsCount > 0;
 
   const submitLabel = (() => {
     if (isAwaitingVerificationWithNoChanges) {
@@ -1564,15 +1597,14 @@ export const VerificationPage: React.FC<VerificationPageProps> = ({
 
               <ContractorDocumentPanel
                 heading="Polisa OC"
-                description="OC jest wymagane do weryfikacji konta."
+                description="Używana przy składaniu oferty, gdy konkurs wymaga aktualnej polisy OC."
                 id="oc-policy"
-                required
                 defaultOpen
                 icon={<Shield className="h-5 w-5" />}
                 highlightStatus={getDocHighlightStatus(
                   documents.find(d => d.type === 'insurance') ?? {
                     type: 'insurance',
-                    required: true,
+                    required: false,
                   },
                 )}
               >

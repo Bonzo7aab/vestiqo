@@ -179,7 +179,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
   const docPaths: Record<string, string> = {
     ...((profile.verification_document_paths as Record<string, string> | null | undefined) ?? {}),
   };
-  if (profile.user_type === 'contractor' && !docPaths.insurance && ocPolicyScanPath) {
+  if (profile.user_type !== 'contractor' && !docPaths.insurance && ocPolicyScanPath) {
     docPaths.insurance = ocPolicyScanPath;
   }
 

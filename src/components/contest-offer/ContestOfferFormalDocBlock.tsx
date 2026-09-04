@@ -6,6 +6,8 @@ import type { FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
 import { ExternalLink, FileText, Upload, X } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
 import type {
   ContestOfferAttachmentRef,
@@ -48,6 +50,12 @@ interface ContestOfferFormalDocBlockProps {
   onUpload: (file: File) => void;
   onRemove: () => void;
   onFileIssue?: (message: string | null) => void;
+  ocValidUntil?: string;
+  ocGuaranteeAmount?: string;
+  insuranceOcMinAmount?: number | null;
+  onOcValidUntilChange?: (value: string) => void;
+  onOcGuaranteeAmountChange?: (value: string) => void;
+  onOcFieldsBlur?: () => void;
 }
 
 export function ContestOfferFormalDocBlock({
@@ -60,13 +68,21 @@ export function ContestOfferFormalDocBlock({
   onUpload,
   onRemove,
   onFileIssue,
+  ocValidUntil = '',
+  ocGuaranteeAmount = '',
+  insuranceOcMinAmount = null,
+  onOcValidUntilChange,
+  onOcGuaranteeAmountChange,
+  onOcFieldsBlur,
 }: ContestOfferFormalDocBlockProps): ReactElement {
   const displayName = stagedName ?? attached?.name;
   const isAttached = Boolean(displayName);
   const isStaged = Boolean(stagedName);
   const previewUrl = isStaged ? undefined : attached?.url;
+  const isInsuranceOc = doc.requirementKey === 'insuranceOc';
   const showProfileOptions = supportsContestOfferProfileAutofill(doc.requirementKey);
-  const showProfileCta = showProfileOptions && (doc.missing || doc.profileBlocked);
+  const showProfileCta =
+    showProfileOptions && !isInsuranceOc && (doc.missing || doc.profileBlocked);
   const displaySize = isStaged ? stagedSize : attached?.size;
 
   const handleDrop = (accepted: File[], rejections: FileRejection[]): void => {
@@ -197,6 +213,43 @@ export function ContestOfferFormalDocBlock({
               </Button>
             </li>
           </ul>
+        ) : null}
+
+        {isInsuranceOc ? (
+          <div className="mb-3 mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="contest-offer-ocValidUntil" className="text-xs font-medium">
+                Ważność polisy do
+              </Label>
+              <Input
+                id="contest-offer-ocValidUntil"
+                type="date"
+                value={ocValidUntil}
+                onChange={(event) => onOcValidUntilChange?.(event.target.value)}
+                onBlur={onOcFieldsBlur}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="contest-offer-ocGuaranteeAmount" className="text-xs font-medium">
+                Suma gwarancyjna (zł)
+              </Label>
+              <Input
+                id="contest-offer-ocGuaranteeAmount"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                placeholder="np. 200000"
+                value={ocGuaranteeAmount}
+                onChange={(event) => onOcGuaranteeAmountChange?.(event.target.value)}
+                onBlur={onOcFieldsBlur}
+              />
+              {insuranceOcMinAmount != null && insuranceOcMinAmount > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Minimum w konkursie: {insuranceOcMinAmount.toLocaleString('pl-PL')} zł
+                </p>
+              ) : null}
+            </div>
+          </div>
         ) : null}
 
         <Dropzone

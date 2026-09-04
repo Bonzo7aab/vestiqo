@@ -31,7 +31,7 @@ function formal(overrides: FormalRequirements = {}): FormalRequirements {
 
 assert.equal(
   validateProfileFormalRequirements(formal({ insuranceOc: true }), snapshot(), NOW).insuranceOc,
-  'Uzupełnij polisę OC w profilu',
+  'Wgraj skan polisy OC',
 );
 
 assert.equal(
@@ -40,7 +40,7 @@ assert.equal(
     snapshot({ hasOcScan: true }),
     NOW,
   ).insuranceOc,
-  'Uzupełnij datę ważności polisy OC w profilu',
+  'Podaj datę ważności polisy OC',
 );
 
 assert.equal(

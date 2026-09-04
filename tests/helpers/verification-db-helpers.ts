@@ -118,7 +118,11 @@ export async function resetContractorVerificationForE2E(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: settingsError } = await (adminClient as any)
     .from('contractor_account_settings')
-    .update({ oc_policy_scan_path: null })
+    .update({
+      oc_policy_scan_path: null,
+      oc_valid_until: null,
+      oc_guarantee_amount: null,
+    })
     .eq('user_id', userId);
 
   if (settingsError) {
@@ -161,4 +165,39 @@ export async function assertContractorInAdminPendingQueue(
   expect(queueError, 'Expected contractor in admin pending queue').toBeNull();
   expect(queueProfile).toBeTruthy();
   expect(`${queueProfile?.first_name} ${queueProfile?.last_name}`).toBe(displayName);
+}
+
+export async function assertContractorOcSavedWithoutAdminQueue(
+  email: string,
+  password: string,
+): Promise<void> {
+  const adminClient = createAdminClient();
+  const profile = await getSeededUserProfile(email, password);
+
+  const { data: row, error } = await adminClient
+    .from('user_profiles')
+    .select('verification_submitted_at, is_verified')
+    .eq('id', profile.userId)
+    .single();
+
+  if (error || !row) {
+    throw new Error(`Failed to read verification state: ${error?.message ?? 'not found'}`);
+  }
+
+  expect(row.verification_submitted_at).toBeNull();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: settings, error: settingsError } = await (adminClient as any)
+    .from('contractor_account_settings')
+    .select('oc_policy_scan_path, oc_valid_until, oc_guarantee_amount')
+    .eq('user_id', profile.userId)
+    .maybeSingle();
+
+  if (settingsError) {
+    throw new Error(`Failed to read OC settings: ${settingsError.message}`);
+  }
+
+  expect(settings?.oc_policy_scan_path).toBeTruthy();
+  expect(settings?.oc_valid_until).toBeTruthy();
+  expect(Number(settings?.oc_guarantee_amount)).toBeGreaterThan(0);
 }

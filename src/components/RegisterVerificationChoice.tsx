@@ -63,8 +63,9 @@ export function RegisterVerificationChoice() {
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Konto zostało utworzone</h1>
             <p className="mt-2 text-sm text-slate-600">
-              Możesz od razu przesłać dokumenty do weryfikacji albo wrócić do tego później w
-              zakładce Dokumenty na koncie.
+              Weryfikacja firmy odbywa się automatycznie w rejestrach. W Dokumentach na koncie
+              możesz też uzupełnić polisę OC i inne załączniki — przydadzą się przy składaniu
+              ofert.
             </p>
           </div>
 
@@ -78,9 +79,9 @@ export function RegisterVerificationChoice() {
                   <FileCheck className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1 text-left">
-                  <h2 className="font-semibold text-slate-900">Prześlij dokumenty teraz</h2>
+                  <h2 className="font-semibold text-slate-900">Uzupełnij dokumenty profilu</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Polisa OC i opcjonalne załączniki. Weryfikacja trwa zwykle 1–3 dni robocze.
+                    Polisa OC, certyfikaty i referencje. Nie wymagają akceptacji administratora.
                   </p>
                 </div>
                 <ArrowRight className="h-5 w-5 shrink-0 text-primary mt-1" />
@@ -95,8 +96,8 @@ export function RegisterVerificationChoice() {
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold text-slate-900">Zrobię to później</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Przeglądaj konkursy już teraz. Dokumenty uzupełnisz w menu konta pod pozycją
-                    „Dokończ weryfikację”.
+                    Przeglądaj konkursy już teraz. Dokumenty uzupełnisz później w zakładce
+                    Dokumenty na koncie.
                   </p>
                   <Button
                     variant="outline"

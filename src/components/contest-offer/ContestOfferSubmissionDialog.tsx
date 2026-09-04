@@ -21,7 +21,10 @@ import type {
   FormalRequirementKey,
   ResolvedContractorDocument,
 } from '../../types/contest-offer';
-import type { ContractorFormalProfileSnapshot } from '../../lib/contest-offer/validate-profile-formal-requirements';
+import {
+  ocFieldsFromSnapshot,
+  type ContractorFormalProfileSnapshot,
+} from '../../lib/contest-offer/validate-profile-formal-requirements';
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
@@ -68,6 +71,7 @@ import {
   getContestOfferStepsWithErrors,
   scrollToFirstContestOfferError,
 } from '../../lib/contest-offer/form-validation-ui';
+import { persistContestOfferOcToProfile } from '../../lib/contest-offer/persist-offer-oc-to-profile';
 import { uploadContestOfferStagedFiles } from '../../lib/contest-offer/upload-staged-offer-files';
 import { contestOfferErrorFromUnknown, CONTEST_OFFER_ERRORS } from '../../lib/contest-offer/error-messages';
 import { resolveContractorDocuments } from '../../lib/contest-offer/resolve-contractor-documents-actions';
@@ -127,6 +131,7 @@ export function ContestOfferSubmissionDialog({
   const supabase = useMemo(() => createClient(), []);
   const [currentStep, setCurrentStep] = useState<ContestOfferWizardStep>(1);
   const [form, setForm] = useState<ContestOfferFormData>(createEmptyContestOfferForm);
+  const formRef = useRef(form);
   const [resolvedDocs, setResolvedDocs] = useState<ResolvedContractorDocument[]>([]);
   const [formalProfileSnapshot, setFormalProfileSnapshot] =
     useState<ContractorFormalProfileSnapshot | null>(null);
@@ -147,6 +152,7 @@ export function ContestOfferSubmissionDialog({
   onCloseRef.current = onClose;
   const contestInfoRef = useRef(contestInfo);
   contestInfoRef.current = contestInfo;
+  formRef.current = form;
 
   const totalSteps = 4;
 
@@ -218,6 +224,7 @@ export function ContestOfferSubmissionDialog({
           const applied = applyProfileDocumentsToForm(docs, hydrated);
           hydrated.formalAttachments = applied.formalAttachments;
           hydrated.qualificationAttachments = applied.qualificationAttachments;
+          Object.assign(hydrated, ocFieldsFromSnapshot(resolved.snapshot));
           setForm(hydrated);
         } else {
           setHasExistingDraft(false);
@@ -228,6 +235,7 @@ export function ContestOfferSubmissionDialog({
           const applied = applyProfileDocumentsToForm(docs, empty);
           empty.formalAttachments = applied.formalAttachments;
           empty.qualificationAttachments = applied.qualificationAttachments;
+          Object.assign(empty, ocFieldsFromSnapshot(resolved.snapshot));
           setForm(empty);
           setCurrentStep(1);
           profileDocsAppliedRef.current = true;
@@ -310,6 +318,18 @@ export function ContestOfferSubmissionDialog({
     return () => window.cancelAnimationFrame(frame);
   }, [fieldErrors, currentStep]);
 
+  const persistOcToProfile = useCallback(
+    async (nextForm: ContestOfferFormData): Promise<void> => {
+      if (!contestInfo.formalRequirements.insuranceOc) return;
+      try {
+        await persistContestOfferOcToProfile(contractorId, nextForm);
+      } catch (error) {
+        console.error('persistContestOfferOcToProfile:', error);
+      }
+    },
+    [contractorId, contestInfo.formalRequirements.insuranceOc],
+  );
+
   const patchForm = (patch: Partial<ContestOfferFormData>): void => {
     setFormError(null);
     setFieldErrors((prev) => clearContestOfferFieldErrorsForPatch(prev, patch));
@@ -331,6 +351,8 @@ export function ContestOfferSubmissionDialog({
         return;
       }
       setForm(uploadedForm);
+
+      await persistOcToProfile(uploadedForm);
 
       const { error } = await upsertTenderBidDraft(
         tenderId,
@@ -402,6 +424,8 @@ export function ContestOfferSubmissionDialog({
         return;
       }
       setForm(uploadedForm);
+
+      await persistOcToProfile(uploadedForm);
 
       const { error } = await submitTenderBid(
         tenderId,
@@ -785,10 +809,16 @@ export function ContestOfferSubmissionDialog({
                     form={form}
                     resolvedDocs={resolvedDocs}
                     fieldErrors={displayedFieldErrors}
+                    insuranceOcMinAmount={contestInfo.formalRequirements.insuranceOcMinAmount}
                     onUseProfile={applyProfileDocument}
                     onUploadFormal={replaceFormalDocument}
                     onRemoveFormal={removeFormalDocument}
                     onFileIssue={reportFormalFileIssue}
+                    onOcValidUntilChange={(value) => patchForm({ ocValidUntil: value })}
+                    onOcGuaranteeAmountChange={(value) => patchForm({ ocGuaranteeAmount: value })}
+                    onOcFieldsBlur={() => {
+                      void persistOcToProfile(formRef.current);
+                    }}
                   />
                 )}
               {currentStep === 4 && (

@@ -4,8 +4,6 @@ import { ROUTES } from '../config/constants';
 
 const DOC_LABELS = {
   insurance: 'Polisa OC',
-  certifications: 'Certyfikaty zawodowe',
-  references: 'Referencje',
 } as const;
 
 export async function openContractorDocumentsTab(page: Page): Promise<void> {
@@ -47,8 +45,6 @@ async function uploadVerificationDocument(
 
   await expect(fileInput).toBeAttached({ timeout: 10000 });
   await fileInput.setInputFiles(filePath);
-
-  await expect(section.getByText(/kliknij, aby zmienić/i)).toBeVisible({ timeout: 10000 });
 }
 
 async function fillOcPolicyDetails(page: Page): Promise<void> {
@@ -60,6 +56,7 @@ async function fillOcPolicyDetails(page: Page): Promise<void> {
   const saveOcButton = page.getByRole('button', { name: /Zapisz dane OC/i });
   await saveOcButton.scrollIntoViewIfNeeded();
   await saveOcButton.click();
+  await expect(page.getByText('Dane polisy OC zapisane')).toBeVisible({ timeout: 15000 });
 }
 
 export async function fillVerificationForm(
@@ -76,44 +73,13 @@ export async function fillVerificationForm(
     DOC_LABELS.insurance,
     files.insurance,
   );
-
-  await uploadVerificationDocument(
-    page,
-    /Certyfikaty i uprawnienia/i,
-    DOC_LABELS.certifications,
-    files.certifications,
-  );
-
-  await uploadVerificationDocument(
-    page,
-    /^Referencje$/i,
-    DOC_LABELS.references,
-    files.references,
-  );
-
-  await expect(page.locator('span.tabular-nums').filter({ hasText: '2/2' })).toBeVisible({
-    timeout: 15000,
+  await expect(page.getByText('Skan polisy OC zapisany w profilu')).toBeVisible({
+    timeout: 20000,
   });
 }
 
 export async function submitVerificationDocuments(page: Page): Promise<void> {
-  const submitButton = page.getByRole('button', {
-    name: /Prześlij dokumenty|Prześlij ponownie|Zapisz zmiany i wyślij/i,
+  await expect(page.getByText('Skan polisy OC zapisany w profilu')).toBeVisible({
+    timeout: 15000,
   });
-
-  await submitButton.scrollIntoViewIfNeeded();
-  await expect(submitButton).toBeEnabled({ timeout: 20000 });
-  await submitButton.click();
-
-  await expect(page.getByText('Polisa OC została przesłana do weryfikacji')).toBeVisible({
-    timeout: 30000,
-  });
-
-  await expect(
-    page
-      .getByText(
-        /Dokumenty oczekują na decyzję|Oczekujemy na decyzję moderatora|W trakcie weryfikacji/i,
-      )
-      .first(),
-  ).toBeVisible({ timeout: 15000 });
 }

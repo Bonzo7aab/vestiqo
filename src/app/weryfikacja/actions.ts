@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../lib/supabase/server';
 import { instrumentServerAction } from '../../lib/sentry/instrument-server-action';
+import { getRequiredDocumentKeys } from '../../lib/verification/required-documents';
 import type { Database, Json } from '../../types/database';
 
 const DEFAULT_CONTRACTOR_NOTIFICATION_CHANNELS = {
@@ -126,10 +127,7 @@ async function submitVerificationDocumentsActionImpl(
       ? ['insurance', 'certifications', 'references']
       : ['company_registration', 'insurance', 'management_license', 'management_contracts'];
 
-  const optionalDocKeys =
-    userType === 'contractor'
-      ? new Set(['certifications', 'references'])
-      : new Set(['management_license', 'management_contracts']);
+  const requiredKeys = new Set(getRequiredDocumentKeys(userType ?? ''));
 
   const existingPaths =
     (profile.verification_document_paths as Record<string, string> | null | undefined) ?? {};
@@ -147,23 +145,19 @@ async function submitVerificationDocumentsActionImpl(
 
   const merged = { ...existingPaths, ...newPaths };
   const newPathKeys = Object.keys(newPaths);
+  const newRequiredKeys = newPathKeys.filter((key) => requiredKeys.has(key));
   const onlyOptionalUploads =
-    profile.is_verified &&
-    newPathKeys.length > 0 &&
-    newPathKeys.every((key) => optionalDocKeys.has(key));
+    newPathKeys.length > 0 && newRequiredKeys.length === 0;
 
-  if (profile.is_verified && !onlyOptionalUploads && newPathKeys.length > 0) {
+  if (profile.is_verified && newRequiredKeys.length > 0) {
     const { invalidateUserVerification } = await import('../../lib/verification/invalidate-verification');
     await invalidateUserVerification(supabase, user.id);
   }
 
   let hasInsuranceDoc = Boolean(merged.insurance);
-  if (userType === 'contractor' && !hasInsuranceDoc) {
+  if (userType !== 'contractor' && !hasInsuranceDoc) {
     const ocPath = await fetchOcPolicyScanPathServer(supabase, user.id);
     if (ocPath) {
-      // Pull the OC scan from account settings into the verification doc set
-      // so admins see one unified list and the rest of the flow uses one
-      // canonical path.
       merged.insurance = ocPath;
       hasInsuranceDoc = true;
     }
@@ -174,58 +168,17 @@ async function submitVerificationDocumentsActionImpl(
   if (!hasCompanyReg && userType !== 'contractor') {
     return { ok: false, error: 'Wymagany dokument: wypis z KRS / CEIDG.' };
   }
-  if (!hasInsuranceDoc) {
+  if (userType !== 'contractor' && !hasInsuranceDoc) {
     return {
       ok: false,
-      error:
-        userType === 'contractor'
-          ? 'Wymagana polisa OC: prześlij plik lub uzupełnij skan OC w ustawieniach konta wykonawcy.'
-          : 'Wymagany dokument ubezpieczenia OC.',
+      error: 'Wymagany dokument ubezpieczenia OC.',
     };
-  }
-
-  if (userType === 'contractor' && !onlyOptionalUploads) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: contractorSettings, error: settingsError } = await (supabase as any)
-      .from('contractor_account_settings')
-      .select('oc_valid_until, oc_guarantee_amount')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (settingsError) {
-      return { ok: false, error: 'Nie udało się wczytać danych polisy OC.' };
-    }
-
-    const ocValidUntil =
-      typeof contractorSettings?.oc_valid_until === 'string'
-        ? contractorSettings.oc_valid_until.trim()
-        : '';
-    const guaranteeRaw = contractorSettings?.oc_guarantee_amount;
-    const guaranteeAmount =
-      typeof guaranteeRaw === 'number'
-        ? guaranteeRaw
-        : guaranteeRaw != null
-          ? Number(guaranteeRaw)
-          : NaN;
-
-    if (!ocValidUntil) {
-      return {
-        ok: false,
-        error: 'Uzupełnij datę ważności polisy OC przed wysłaniem dokumentów.',
-      };
-    }
-    if (!Number.isFinite(guaranteeAmount) || guaranteeAmount <= 0) {
-      return {
-        ok: false,
-        error: 'Uzupełnij sumę gwarancyjną polisy OC przed wysłaniem dokumentów.',
-      };
-    }
   }
 
   const profileUpdate: { verification_document_paths: Json; verification_submitted_at?: string } = {
     verification_document_paths: merged as Json,
   };
-  if (!onlyOptionalUploads) {
+  if (userType !== 'contractor' && !onlyOptionalUploads) {
     profileUpdate.verification_submitted_at = new Date().toISOString();
   }
 

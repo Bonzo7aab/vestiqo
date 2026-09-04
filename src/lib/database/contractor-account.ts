@@ -428,16 +428,9 @@ export async function upsertContractorAccountSettings(
 
   const { data: existingRow, error: selectError } = await client
     .from('contractor_account_settings')
-    .select('user_id, oc_valid_until, oc_policy_scan_path')
+    .select('user_id')
     .eq('user_id', userId)
     .maybeSingle();
-
-  const ocVerificationChanged =
-    !!existingRow &&
-    ((payload.ocValidUntil !== undefined &&
-      (existingRow.oc_valid_until as string | null) !== payload.ocValidUntil) ||
-      (payload.ocPolicyScanPath !== undefined &&
-        (existingRow.oc_policy_scan_path as string | null) !== payload.ocPolicyScanPath));
 
   if (selectError) {
     if (isMissingContractorSettingsTableError(selectError)) {
@@ -463,11 +456,6 @@ export async function upsertContractorAccountSettings(
 
     if (payload.ocPolicyScanPath !== undefined) {
       await syncOcScanToVerificationDocs(client, userId, payload.ocPolicyScanPath);
-    }
-
-    if (ocVerificationChanged) {
-      const { invalidateUserVerification } = await import('../verification/invalidate-verification');
-      await invalidateUserVerification(supabase, userId);
     }
 
     return normalizeSettings((data as Record<string, unknown>) || null);

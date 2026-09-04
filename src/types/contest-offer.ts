@@ -55,6 +55,10 @@ export interface ContestOfferFormData {
     Record<FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other', File[]>
   >;
   stagedQualificationFiles: Record<string, File>;
+  /** Offer-local OC date (initialized from profile; OPD-186). */
+  ocValidUntil: string;
+  /** Offer-local OC guarantee sum as a string input (OPD-186). */
+  ocGuaranteeAmount: string;
 }
 
 export interface ResolvedContractorDocument {
@@ -86,6 +90,8 @@ export function createEmptyContestOfferForm(): ContestOfferFormData {
     extraAttachments: [],
     stagedFiles: {},
     stagedQualificationFiles: {},
+    ocValidUntil: '',
+    ocGuaranteeAmount: '',
   };
 }
 
@@ -162,6 +168,8 @@ export function offerDetailsToFormData(
     formalAttachments: details.formalAttachments ?? {},
     qualificationAttachments: details.qualificationAttachments ?? [],
     extraAttachments: details.extraAttachments ?? [],
+    ocValidUntil: base.ocValidUntil,
+    ocGuaranteeAmount: base.ocGuaranteeAmount,
   };
 }
 

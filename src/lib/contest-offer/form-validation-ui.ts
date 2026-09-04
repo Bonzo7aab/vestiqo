@@ -58,6 +58,17 @@ export function clearContestOfferFieldErrorsForPatch(
   if ('paymentTermsAccepted' in patch) {
     delete next.paymentTermsAccepted;
   }
+  if ('ocValidUntil' in patch || 'ocGuaranteeAmount' in patch) {
+    if (next.formal?.insuranceOc) {
+      const formal = { ...next.formal };
+      delete formal.insuranceOc;
+      if (Object.keys(formal).length > 0) {
+        next.formal = formal;
+      } else {
+        delete next.formal;
+      }
+    }
+  }
 
   return next;
 }

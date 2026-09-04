@@ -87,13 +87,13 @@ export function validateProfileFormalRequirements(
 
   if (formal.insuranceOc) {
     if (!snapshot.hasOcScan) {
-      errors.insuranceOc = 'Uzupełnij polisę OC w profilu';
+      errors.insuranceOc = 'Wgraj skan polisy OC';
     } else if (!snapshot.ocValidUntil) {
-      errors.insuranceOc = 'Uzupełnij datę ważności polisy OC w profilu';
+      errors.insuranceOc = 'Podaj datę ważności polisy OC';
     } else if (daysUntil(snapshot.ocValidUntil, nowMs) == null) {
-      errors.insuranceOc = 'Uzupełnij datę ważności polisy OC w profilu';
+      errors.insuranceOc = 'Podaj datę ważności polisy OC';
     } else if (isExpired(snapshot.ocValidUntil, nowMs)) {
-      errors.insuranceOc = `Polisa OC w profilu wygasła (ważna do: ${formatPlDate(snapshot.ocValidUntil)}). Uzupełnij w profilu.`;
+      errors.insuranceOc = `Polisa OC wygasła (ważna do: ${formatPlDate(snapshot.ocValidUntil)}).`;
     } else if (
       formal.insuranceOcMinAmount != null &&
       formal.insuranceOcMinAmount > 0 &&
@@ -101,7 +101,7 @@ export function validateProfileFormalRequirements(
     ) {
       const profileSum =
         snapshot.ocGuaranteeAmount == null ? 'brak' : formatPln(snapshot.ocGuaranteeAmount);
-      errors.insuranceOc = `Suma gwarancyjna OC w profilu (${profileSum}) jest niższa niż wymagane minimum (${formatPln(formal.insuranceOcMinAmount)}). Uzupełnij w profilu.`;
+      errors.insuranceOc = `Suma gwarancyjna OC (${profileSum}) jest niższa niż wymagane minimum (${formatPln(formal.insuranceOcMinAmount)}).`;
     }
   }
 
@@ -166,4 +166,47 @@ export function validateProfileFormalRequirements(
   }
 
   return errors;
+}
+
+export function parseOcGuaranteeAmountInput(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed.replace(/\s/g, '').replace(',', '.'));
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+export function ocFieldsFromSnapshot(
+  snapshot: ContractorFormalProfileSnapshot,
+): { ocValidUntil: string; ocGuaranteeAmount: string } {
+  return {
+    ocValidUntil: snapshot.ocValidUntil ?? '',
+    ocGuaranteeAmount:
+      snapshot.ocGuaranteeAmount != null ? String(snapshot.ocGuaranteeAmount) : '',
+  };
+}
+
+/**
+ * Overlay offer-form OC date/sum and a newly staged/attached scan onto the
+ * profile snapshot so contest validation can pass without a profile round-trip.
+ */
+export function overlayOfferOcOnSnapshot(
+  snapshot: ContractorFormalProfileSnapshot,
+  form: {
+    ocValidUntil: string;
+    ocGuaranteeAmount: string;
+    formalAttachments: Partial<Record<FormalRequirementKey, { path?: string } | undefined>>;
+    stagedFiles: Partial<Record<FormalRequirementKey | string, File[] | undefined>>;
+  },
+): ContractorFormalProfileSnapshot {
+  const hasOfferScan = Boolean(
+    form.formalAttachments.insuranceOc || form.stagedFiles.insuranceOc?.length,
+  );
+  const parsedAmount = parseOcGuaranteeAmountInput(form.ocGuaranteeAmount);
+  return {
+    ...snapshot,
+    hasOcScan: snapshot.hasOcScan || hasOfferScan,
+    ocValidUntil: form.ocValidUntil.trim() || snapshot.ocValidUntil,
+    ocGuaranteeAmount: parsedAmount ?? snapshot.ocGuaranteeAmount,
+  };
 }

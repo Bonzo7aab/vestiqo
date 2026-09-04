@@ -7,6 +7,7 @@ import {
 } from '../contractor/professional-qualification-documents';
 import { professionalQualificationLabel } from '../contractor/constants';
 import {
+  overlayOfferOcOnSnapshot,
   validateProfileFormalRequirements,
   type ContractorFormalProfileSnapshot,
 } from './validate-profile-formal-requirements';
@@ -166,10 +167,10 @@ export function getContestOfferStepFieldErrors(
       const snapshotForProfile =
         offerCoversLicenses && !profileSnapshot.professionalQualificationsScanPath
           ? {
-              ...profileSnapshot,
+              ...overlayOfferOcOnSnapshot(profileSnapshot, form),
               professionalQualificationsScanPath: 'offer-local',
             }
-          : profileSnapshot;
+          : overlayOfferOcOnSnapshot(profileSnapshot, form);
       const profileErrors = validateProfileFormalRequirements(
         contestInfo.formalRequirements,
         snapshotForProfile,

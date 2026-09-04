@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test';
 import { clearAuthState, loginViaUI, seedCookieConsentAccepted } from '../helpers/auth-helpers';
 import { buildVerificationMockFiles } from '../fixtures/verification-mock-documents';
 import {
-  assertContractorInAdminPendingQueue,
-  getSeededUserProfile,
+  assertContractorOcSavedWithoutAdminQueue,
   resetContractorVerificationForE2E,
 } from '../helpers/verification-db-helpers';
 import {
@@ -17,7 +16,7 @@ import { SEEDED_CONTRACTOR } from '../config/constants';
  * Requires pre-seeded contractor (wykonawca3@openpro.pl) with company profile
  * and R2/storage configured for verification document upload.
  *
- * Admin queue is asserted via service-role DB query (no admin UI login).
+ * Admin queue is no longer used for contractor OC (OPD-186).
  */
 test.describe('Contractor verification submission (wykonawca3)', () => {
   test.beforeEach(async ({ page }) => {
@@ -48,29 +47,23 @@ test.describe('Contractor verification submission (wykonawca3)', () => {
     });
   });
 
-  test('should submit verification documents and queue for admin review', async ({
+  test('should save OC on documents tab without admin verification queue', async ({
     page,
     browserName,
   }) => {
     test.skip(browserName === 'firefox', 'Flaky in Firefox headless environment');
     test.setTimeout(120000);
 
-    const profile = await getSeededUserProfile(
-      SEEDED_CONTRACTOR.email,
-      SEEDED_CONTRACTOR.password,
-    );
     const files = buildVerificationMockFiles();
-    const displayName = `${profile.firstName} ${profile.lastName}`.trim();
 
     await loginViaUI(page, SEEDED_CONTRACTOR.email, SEEDED_CONTRACTOR.password);
 
     await fillVerificationForm(page, files);
     await submitVerificationDocuments(page);
 
-    await assertContractorInAdminPendingQueue(
+    await assertContractorOcSavedWithoutAdminQueue(
       SEEDED_CONTRACTOR.email,
       SEEDED_CONTRACTOR.password,
-      displayName,
     );
   });
 });

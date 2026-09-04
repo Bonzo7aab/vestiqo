@@ -23,6 +23,8 @@ interface VerificationRejectReasonFieldsProps {
   onCustomReasonChange: (text: string) => void;
   disabled?: boolean;
   compact?: boolean;
+  /** Hide OC-specific presets (contractor account review no longer covers polisa OC). */
+  hideOutdatedOc?: boolean;
 }
 
 export function VerificationRejectReasonFields({
@@ -32,7 +34,11 @@ export function VerificationRejectReasonFields({
   onCustomReasonChange,
   disabled,
   compact = false,
+  hideOutdatedOc = false,
 }: VerificationRejectReasonFieldsProps) {
+  const reasonOptions = hideOutdatedOc
+    ? VERIFICATION_REJECTION_REASONS.filter((option) => option.id !== 'outdated_oc')
+    : VERIFICATION_REJECTION_REASONS;
   return (
     <div className={compact ? 'space-y-2' : 'space-y-3'}>
       <div className={compact ? 'space-y-1' : 'space-y-2'}>
@@ -46,7 +52,7 @@ export function VerificationRejectReasonFields({
             <SelectValue placeholder="Wybierz powód odrzucenia…" />
           </SelectTrigger>
           <SelectContent>
-            {VERIFICATION_REJECTION_REASONS.map(option => (
+            {reasonOptions.map(option => (
               <SelectItem key={option.id} value={option.id}>
                 {option.label}
               </SelectItem>

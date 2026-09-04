@@ -15,8 +15,7 @@ interface ContractorDocumentsTabProps {
 }
 
 /**
- * Contractor account tab: verification documents (polisa OC, certyfikaty, referencje,
- * uprawnienia zawodowe, dodatkowe informacje).
+ * Contractor account tab: profile documents (polisa OC, certyfikaty, referencje).
  */
 export function ContractorDocumentsTab({
   userId,
