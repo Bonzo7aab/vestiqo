@@ -24,6 +24,7 @@ import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housi
 import type { ManagedBuilding } from '../../types/managed-building';
 import type {
   FormalRequirements,
+  OfferDocumentRequirement,
   SelectionCriterionItem,
   TenderContestDocumentMeta,
   TenderContestFormData,
@@ -31,6 +32,8 @@ import type {
 } from '../../types/tender-contest';
 import {
   createEmptyTenderContestForm,
+  isPresetOfferDocumentId,
+  PRESET_OFFER_DOCUMENTS,
   selectionCriteriaTotalWeight,
 } from '../../types/tender-contest';
 import {
@@ -441,6 +444,49 @@ export function TenderContestForm({
       }
       return { ...prev, formalRequirements: nextFormal };
     });
+  };
+
+  const offerDocuments = form.formalRequirements.offerDocuments ?? [];
+
+  const togglePresetOfferDocument = (preset: OfferDocumentRequirement, checked: boolean): void => {
+    patchFormalRequirements((prev) => {
+      const current = [...(prev.offerDocuments ?? [])];
+      if (checked) {
+        if (current.some((item) => item.id === preset.id)) return prev;
+        const presets = PRESET_OFFER_DOCUMENTS.filter(
+          (item) => item.id === preset.id || current.some((existing) => existing.id === item.id),
+        ).map((item) => current.find((existing) => existing.id === item.id) ?? { ...item });
+        const customs = current.filter((item) => !isPresetOfferDocumentId(item.id));
+        return { ...prev, offerDocuments: [...presets, ...customs] };
+      }
+      return { ...prev, offerDocuments: current.filter((item) => item.id !== preset.id) };
+    });
+  };
+
+  const addCustomOfferDocument = (): void => {
+    patchFormalRequirements((prev) => ({
+      ...prev,
+      offerDocuments: [
+        ...(prev.offerDocuments ?? []),
+        { id: `custom-${Date.now()}`, name: '' },
+      ],
+    }));
+  };
+
+  const updateOfferDocumentName = (id: string, name: string): void => {
+    patchFormalRequirements((prev) => ({
+      ...prev,
+      offerDocuments: (prev.offerDocuments ?? []).map((item) =>
+        item.id === id ? { ...item, name } : item,
+      ),
+    }));
+  };
+
+  const removeOfferDocument = (id: string): void => {
+    patchFormalRequirements((prev) => ({
+      ...prev,
+      offerDocuments: (prev.offerDocuments ?? []).filter((item) => item.id !== id),
+    }));
   };
 
   const handleFileUpload = (accepted: File[], rejections: FileRejection[]): void => {
@@ -1095,6 +1141,60 @@ export function TenderContestForm({
         title="Wymogi"
         description="Wszystkie pozycje są opcjonalne. Zaznacz dokumenty i oświadczenia oczekiwane od firm składających oferty."
       >
+          <div id="contest-offer-documents" className="space-y-3">
+            <div>
+              <Label>Dokumenty ofertowe</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Zaznacz lub dodaj dokumenty, które wykonawca będzie musiał wgrać na ekranie Wymogi.
+              </p>
+            </div>
+            {PRESET_OFFER_DOCUMENTS.map((preset) => (
+              <div key={preset.id} className="flex items-center gap-3">
+                <Checkbox
+                  id={`req-offer-doc-${preset.id}`}
+                  checked={offerDocuments.some((item) => item.id === preset.id)}
+                  onCheckedChange={(checked) => togglePresetOfferDocument(preset, checked === true)}
+                />
+                <Label htmlFor={`req-offer-doc-${preset.id}`} className="font-normal">
+                  {preset.name}
+                </Label>
+              </div>
+            ))}
+            {offerDocuments
+              .filter((item) => !isPresetOfferDocumentId(item.id))
+              .map((item) => (
+                <div key={item.id} className="space-y-1 max-w-lg">
+                  <div className="flex items-start gap-2">
+                    <Input
+                      data-offer-document-id={item.id}
+                      placeholder="Nazwa dokumentu"
+                      value={item.name}
+                      onChange={(event) => updateOfferDocumentName(item.id, event.target.value)}
+                      className={cn(
+                        fieldErrorInputClass(Boolean(displayedErrors.offerDocumentItems?.[item.id])),
+                      )}
+                      aria-invalid={Boolean(displayedErrors.offerDocumentItems?.[item.id])}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => removeOfferDocument(item.id)}
+                      aria-label="Usuń dokument"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <ContestOfferFieldError message={displayedErrors.offerDocumentItems?.[item.id]} />
+                </div>
+              ))}
+            <Button type="button" variant="outline" size="sm" onClick={addCustomOfferDocument}>
+              <Plus className="h-4 w-4 mr-2" />
+              Dodaj dokument
+            </Button>
+          </div>
+
           <div className="flex items-start gap-3">
             <Checkbox
               id="req-oc"

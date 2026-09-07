@@ -19,6 +19,8 @@ export function mergeFlatAttachmentsIntoForm(
     id: string;
     size?: number;
     qualificationTypeId?: string;
+    offerDocumentId?: string;
+    offerDocumentName?: string;
   }>) {
     if (att.qualificationTypeId) {
       const alreadyPresent = form.qualificationAttachments.some(
@@ -78,6 +80,8 @@ export function mergeFlatAttachmentsIntoForm(
           | 'offerDocumentation'
           | 'other'
           | undefined,
+        offerDocumentId: att.offerDocumentId,
+        offerDocumentName: att.offerDocumentName,
         size: att.size,
       });
     }

@@ -9,6 +9,11 @@ export type WarrantyGuaranteePeriod =
 
 export type PaymentTermsMode = 'standard_14' | 'custom';
 
+export interface OfferDocumentRequirement {
+  id: string;
+  name: string;
+}
+
 export interface FormalRequirements {
   insuranceOc?: boolean;
   insuranceOcMinAmount?: number;
@@ -20,6 +25,8 @@ export interface FormalRequirements {
   professionalLicenses?: boolean;
   /** Qualification catalog ids required when professionalLicenses is set. */
   professionalLicenseTypes?: string[];
+  /** Named offer files the contractor must upload on Wymogi (OPD-187). */
+  offerDocuments?: OfferDocumentRequirement[];
 }
 
 export type SelectionCriterionType = 'price' | 'quality' | 'time' | 'experience' | 'other';
@@ -80,7 +87,36 @@ export const DEFAULT_FORMAL_REQUIREMENTS: FormalRequirements = {
   professionalCertificates: false,
   professionalLicenses: false,
   professionalLicenseTypes: [],
+  offerDocuments: [],
 };
+
+export const PRESET_OFFER_DOCUMENTS: OfferDocumentRequirement[] = [
+  { id: 'kosztorys', name: 'Kosztorys' },
+  { id: 'opis-techniczny', name: 'Opis techniczny' },
+];
+
+export function isPresetOfferDocumentId(id: string): boolean {
+  return PRESET_OFFER_DOCUMENTS.some((preset) => preset.id === id);
+}
+
+/** Parses offerDocuments JSONB; ignores junk and defaults to []. */
+export function parseOfferDocuments(raw: unknown): OfferDocumentRequirement[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
+    .map((entry, index) => {
+      const id = String(entry.id ?? '').trim() || `custom-${index}`;
+      return {
+        id,
+        name: String(entry.name ?? '').trim(),
+      };
+    })
+    .filter((item, index, items) => items.findIndex((other) => other.id === item.id) === index);
+}
+
+export function requiredOfferDocuments(formal: FormalRequirements): OfferDocumentRequirement[] {
+  return parseOfferDocuments(formal.offerDocuments).filter((item) => item.name.length > 0);
+}
 
 export const DEFAULT_SELECTION_CRITERIA_ITEMS: SelectionCriterionItem[] = [
   {
@@ -192,7 +228,11 @@ export function createEmptyTenderContestForm(): TenderContestFormData {
     completionDate: null,
     siteVisitType: 'not_required',
     siteVisitNotes: '',
-    formalRequirements: { ...DEFAULT_FORMAL_REQUIREMENTS },
+    formalRequirements: {
+      ...DEFAULT_FORMAL_REQUIREMENTS,
+      professionalLicenseTypes: [...(DEFAULT_FORMAL_REQUIREMENTS.professionalLicenseTypes ?? [])],
+      offerDocuments: [],
+    },
     selectionCriteria: { ...DEFAULT_SELECTION_CRITERIA },
     warrantyPeriod: '',
     guaranteePeriod: '',

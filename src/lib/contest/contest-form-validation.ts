@@ -19,6 +19,7 @@ export interface TenderContestFormFieldErrors {
   selectionCriteria?: string;
   criteriaItems?: Record<string, string>;
   professionalLicenseTypes?: string;
+  offerDocumentItems?: Record<string, string>;
 }
 
 function isCompletionOnOrBeforeSubmission(completion: Date, submission: Date): boolean {
@@ -148,6 +149,16 @@ export function getTenderContestFormFieldErrors(
     }
   }
 
+  const offerDocumentItems: Record<string, string> = {};
+  for (const item of form.formalRequirements.offerDocuments ?? []) {
+    if (!item.name.trim()) {
+      offerDocumentItems[item.id] = 'Podaj nazwę dokumentu';
+    }
+  }
+  if (Object.keys(offerDocumentItems).length > 0) {
+    errors.offerDocumentItems = offerDocumentItems;
+  }
+
   return errors;
 }
 
@@ -173,7 +184,10 @@ export function hasTenderContestFormFieldErrors(
   ) {
     return true;
   }
-  return Boolean(errors.criteriaItems && Object.keys(errors.criteriaItems).length > 0);
+  return Boolean(
+    (errors.criteriaItems && Object.keys(errors.criteriaItems).length > 0) ||
+      (errors.offerDocumentItems && Object.keys(errors.offerDocumentItems).length > 0),
+  );
 }
 
 export function clearTenderContestFieldErrorsForPatch(
@@ -207,6 +221,7 @@ export function clearTenderContestFieldErrorsForPatch(
   }
   if ('formalRequirements' in patch) {
     delete next.professionalLicenseTypes;
+    delete next.offerDocumentItems;
   }
 
   return next;
@@ -226,6 +241,10 @@ export function firstTenderContestErrorSelector(
   if (errors.completionDate) return '#completion-date';
   if (errors.siteVisitNotes) return '#site-visit-notes';
   if (errors.professionalLicenseTypes) return '#contest-professional-license-types';
+  if (errors.offerDocumentItems) {
+    const firstId = Object.keys(errors.offerDocumentItems)[0];
+    if (firstId) return `[data-offer-document-id="${firstId}"]`;
+  }
   if (errors.criteriaItems) {
     const firstId = Object.keys(errors.criteriaItems)[0];
     if (firstId) return `[data-criterion-id="${firstId}"]`;

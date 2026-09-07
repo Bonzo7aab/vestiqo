@@ -19,6 +19,10 @@ export interface ContestOfferAttachmentRef {
   requirementKey?: FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other';
   /** Catalog id when this file belongs to a typed cert/license requirement (OPD-185). */
   qualificationTypeId?: string;
+  /** Named Wymogi offer-document slot (OPD-187). */
+  offerDocumentId?: string;
+  /** Label captured at upload so manager review can group files. */
+  offerDocumentName?: string;
   size?: number;
 }
 
@@ -55,6 +59,8 @@ export interface ContestOfferFormData {
     Record<FormalRequirementKey | 'deposit' | 'offerDocumentation' | 'other', File[]>
   >;
   stagedQualificationFiles: Record<string, File>;
+  /** One staged file per named offer-document requirement (OPD-187). */
+  stagedOfferDocumentFiles: Record<string, File>;
   /** Offer-local OC date (initialized from profile; OPD-186). */
   ocValidUntil: string;
   /** Offer-local OC guarantee sum as a string input (OPD-186). */
@@ -90,6 +96,7 @@ export function createEmptyContestOfferForm(): ContestOfferFormData {
     extraAttachments: [],
     stagedFiles: {},
     stagedQualificationFiles: {},
+    stagedOfferDocumentFiles: {},
     ocValidUntil: '',
     ocGuaranteeAmount: '',
   };
@@ -115,6 +122,7 @@ export function toSerializableContestOfferForm(form: ContestOfferFormData): Cont
     ...form,
     stagedFiles: {},
     stagedQualificationFiles: {},
+    stagedOfferDocumentFiles: {},
   });
 }
 
@@ -200,4 +208,17 @@ export function contestOfferDocumentSlotKey(doc: {
   return doc.qualificationTypeId
     ? `${doc.requirementKey}:${doc.qualificationTypeId}`
     : doc.requirementKey;
+}
+
+export function isOptionalOfferDocumentationAttachment(
+  ref: ContestOfferAttachmentRef,
+): boolean {
+  return ref.requirementKey === 'offerDocumentation' && !ref.offerDocumentId;
+}
+
+export function hasOfferDocumentFile(form: ContestOfferFormData, documentId: string): boolean {
+  return Boolean(
+    form.extraAttachments.some((item) => item.offerDocumentId === documentId) ||
+      form.stagedOfferDocumentFiles[documentId],
+  );
 }

@@ -17,7 +17,8 @@ export function getContestOfferStepsWithErrors(
   }
   if (
     (errors.formal && Object.keys(errors.formal).length > 0) ||
-    (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0)
+    (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0) ||
+    (errors.offerDocuments && Object.keys(errors.offerDocuments).length > 0)
   ) {
     steps.push(3);
   }
@@ -91,6 +92,24 @@ export function clearContestOfferFormalFieldError(
   return next;
 }
 
+export function clearContestOfferOfferDocumentFieldError(
+  errors: ContestOfferFieldErrors,
+  documentId: string,
+): ContestOfferFieldErrors {
+  if (!errors.offerDocuments?.[documentId]) {
+    return errors;
+  }
+  const offerDocuments = { ...errors.offerDocuments };
+  delete offerDocuments[documentId];
+  const next: ContestOfferFieldErrors = { ...errors };
+  if (Object.keys(offerDocuments).length > 0) {
+    next.offerDocuments = offerDocuments;
+  } else {
+    delete next.offerDocuments;
+  }
+  return next;
+}
+
 export function clearContestOfferQualificationFieldError(
   errors: ContestOfferFieldErrors,
   typeId: string,
@@ -123,6 +142,10 @@ export function firstContestOfferErrorSelector(
   }
 
   if (step === 3) {
+    if (errors.offerDocuments) {
+      const firstOfferDoc = Object.keys(errors.offerDocuments)[0];
+      if (firstOfferDoc) return `[data-contest-offer-document="${firstOfferDoc}"]`;
+    }
     if (errors.qualificationFiles) {
       const firstQual = Object.keys(errors.qualificationFiles)[0];
       if (firstQual) return `[data-contest-offer-formal="professionalLicenses:${firstQual}"]`;

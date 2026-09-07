@@ -189,9 +189,12 @@ export function ContestOfferDetailView({
   const qualificationDocs = (details?.qualificationAttachments ?? []).filter((ref) =>
     Boolean(ref?.name),
   );
+  const namedOfferDocs = (details?.extraAttachments ?? []).filter((ref) =>
+    Boolean(ref.offerDocumentId && ref.name),
+  );
   const offerDocs = (details?.extraAttachments ?? []).filter(
     (ref) =>
-      ref.requirementKey === 'offerDocumentation' ||
+      (ref.requirementKey === 'offerDocumentation' && !ref.offerDocumentId) ||
       (ref.requirementKey === 'other' &&
         !(details?.extraAttachments ?? []).some((a) => a.requirementKey === 'offerDocumentation')),
   );
@@ -307,6 +310,21 @@ export function ContestOfferDetailView({
                 requirementKey={ref.requirementKey ?? 'professionalLicenses'}
                 attachment={ref}
               />
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {namedOfferDocs.length > 0 ? (
+        <SectionCard icon={FileText} title="Dokumenty ofertowe">
+          <div className="space-y-3">
+            {namedOfferDocs.map((ref) => (
+              <div key={ref.id} className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {ref.offerDocumentName || ref.offerDocumentId}
+                </p>
+                <AttachmentDownloadButton attachment={ref} />
+              </div>
             ))}
           </div>
         </SectionCard>

@@ -13,6 +13,7 @@ export async function uploadContestOfferStagedFiles(
   userId: string,
   tenderId: string,
   form: ContestOfferFormData,
+  offerDocumentNames: Record<string, string> = {},
 ): Promise<{ form: ContestOfferFormData; error: string | null }> {
   const next = {
     ...form,
@@ -115,8 +116,36 @@ export async function uploadContestOfferStagedFiles(
     ];
   }
 
+  for (const [documentId, file] of Object.entries(form.stagedOfferDocumentFiles)) {
+    if (!file) continue;
+    const { data, error } = await uploadBidAttachment(file, userId, tenderId);
+    if (error || !data) {
+      return {
+        form: next,
+        error: contestOfferUploadFailureMessage([{ file: file.name, error }]),
+      };
+    }
+    const existing = next.extraAttachments.find((item) => item.offerDocumentId === documentId);
+    next.extraAttachments = [
+      ...next.extraAttachments.filter((item) => item.offerDocumentId !== documentId),
+      {
+        id: newAttachmentId(`offer-document-${documentId}`),
+        name: file.name,
+        path: data.path,
+        url: data.url,
+        type: data.type === 'image' ? ('image' as const) : ('document' as const),
+        source: 'override' as const,
+        requirementKey: 'offerDocumentation',
+        offerDocumentId: documentId,
+        offerDocumentName: offerDocumentNames[documentId] ?? existing?.offerDocumentName,
+        size: file.size,
+      },
+    ];
+  }
+
   next.stagedFiles = {};
   next.stagedQualificationFiles = {};
+  next.stagedOfferDocumentFiles = {};
   return { form: next, error: null };
 }
 

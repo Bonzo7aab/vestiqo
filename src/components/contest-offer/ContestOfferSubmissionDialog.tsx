@@ -28,9 +28,11 @@ import {
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
+  isOptionalOfferDocumentationAttachment,
   toSerializableClientData,
   toSerializableContestOfferForm,
 } from '../../types/contest-offer';
+import { requiredOfferDocuments } from '../../types/tender-contest';
 import { createClient } from '../../lib/supabase/client';
 import {
   completionDateWarning,
@@ -67,6 +69,7 @@ import {
 import {
   clearContestOfferFieldErrorsForPatch,
   clearContestOfferFormalFieldError,
+  clearContestOfferOfferDocumentFieldError,
   clearContestOfferQualificationFieldError,
   getContestOfferStepsWithErrors,
   scrollToFirstContestOfferError,
@@ -173,6 +176,15 @@ export function ContestOfferSubmissionDialog({
       maximumFractionDigits: 2,
     });
   }, [form.netPrice, form.vatRate]);
+
+  const namedOfferDocuments = useMemo(
+    () => requiredOfferDocuments(contestInfo.formalRequirements),
+    [contestInfo.formalRequirements],
+  );
+  const offerDocumentNameMap = useMemo(
+    () => Object.fromEntries(namedOfferDocuments.map((item) => [item.id, item.name])),
+    [namedOfferDocuments],
+  );
 
   const completionWarning = completionDateWarning(
     form.proposedCompletionDate,
@@ -344,6 +356,7 @@ export function ContestOfferSubmissionDialog({
         contractorId,
         tenderId,
         form,
+        offerDocumentNameMap,
       );
       if (uploadError) {
         toast.error(uploadError);
@@ -417,6 +430,7 @@ export function ContestOfferSubmissionDialog({
         contractorId,
         tenderId,
         form,
+        offerDocumentNameMap,
       );
       if (uploadError) {
         toast.error(uploadError);
@@ -493,7 +507,7 @@ export function ContestOfferSubmissionDialog({
     setForm((prev) => {
       const migrated = migrateLegacyOfferAttachments(prev);
       const keptCount = migrated.extraAttachments.filter(
-        (a) => a.requirementKey === 'offerDocumentation',
+        isOptionalOfferDocumentationAttachment,
       ).length;
       const pendingCount = migrated.stagedFiles.offerDocumentation?.length ?? 0;
       const remaining = remainingOfferDocumentSlots(pendingCount, keptCount);
@@ -548,6 +562,22 @@ export function ContestOfferSubmissionDialog({
       return {
         ...prev,
         formal: { ...prev.formal, [doc.requirementKey]: message },
+      };
+    });
+  };
+
+  const reportOfferDocumentFileIssue = (documentId: string, message: string | null): void => {
+    setValidatedSteps((prev) => new Set(prev).add(3));
+    setFieldErrors((prev) => {
+      if (!message) {
+        return clearContestOfferOfferDocumentFieldError(prev, documentId);
+      }
+      return {
+        ...prev,
+        offerDocuments: {
+          ...prev.offerDocuments,
+          [documentId]: message,
+        },
       };
     });
   };
@@ -646,6 +676,33 @@ export function ContestOfferSubmissionDialog({
         ? clearContestOfferQualificationFieldError(prev, doc.qualificationTypeId)
         : clearContestOfferFormalFieldError(prev, doc.requirementKey),
     );
+  };
+
+  const replaceOfferDocument = (documentId: string, file: File): void => {
+    setForm((prev) => {
+      const { [documentId]: _staged, ...stagedOfferDocumentFiles } = prev.stagedOfferDocumentFiles;
+      return {
+        ...prev,
+        extraAttachments: prev.extraAttachments.filter((item) => item.offerDocumentId !== documentId),
+        stagedOfferDocumentFiles: {
+          ...stagedOfferDocumentFiles,
+          [documentId]: file,
+        },
+      };
+    });
+    setFieldErrors((prev) => clearContestOfferOfferDocumentFieldError(prev, documentId));
+  };
+
+  const removeOfferDocument = (documentId: string): void => {
+    setForm((prev) => {
+      const { [documentId]: _staged, ...stagedOfferDocumentFiles } = prev.stagedOfferDocumentFiles;
+      return {
+        ...prev,
+        extraAttachments: prev.extraAttachments.filter((item) => item.offerDocumentId !== documentId),
+        stagedOfferDocumentFiles,
+      };
+    });
+    setFieldErrors((prev) => clearContestOfferOfferDocumentFieldError(prev, documentId));
   };
 
   const applyProfileDocument = (doc: ResolvedContractorDocument): void => {
@@ -808,12 +865,16 @@ export function ContestOfferSubmissionDialog({
                   <ContestOfferStepFormal
                     form={form}
                     resolvedDocs={resolvedDocs}
+                    offerDocuments={namedOfferDocuments}
                     fieldErrors={displayedFieldErrors}
                     insuranceOcMinAmount={contestInfo.formalRequirements.insuranceOcMinAmount}
                     onUseProfile={applyProfileDocument}
                     onUploadFormal={replaceFormalDocument}
                     onRemoveFormal={removeFormalDocument}
+                    onUploadOfferDocument={replaceOfferDocument}
+                    onRemoveOfferDocument={removeOfferDocument}
                     onFileIssue={reportFormalFileIssue}
+                    onOfferDocumentFileIssue={reportOfferDocumentFileIssue}
                     onOcValidUntilChange={(value) => patchForm({ ocValidUntil: value })}
                     onOcGuaranteeAmountChange={(value) => patchForm({ ocGuaranteeAmount: value })}
                     onOcFieldsBlur={() => {

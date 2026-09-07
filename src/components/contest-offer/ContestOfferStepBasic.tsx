@@ -5,10 +5,11 @@ import type { FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import type { ContestOfferFormData } from '../../types/contest-offer';
+import { isOptionalOfferDocumentationAttachment } from '../../types/contest-offer';
 import type { ContestOfferFieldErrors } from '../../lib/contest-offer/offer-form-validation';
 import { Button } from '../ui/button';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '../ui/dropzone';
-import { ContestOfferFieldError, ContestOfferRequiredLabel } from './ContestOfferFieldError';
+import { ContestOfferFieldError, ContestOfferOptionalLabel } from './ContestOfferFieldError';
 import {
   contestOfferFileIconWrapClass,
   contestOfferStagedFileRowClass,
@@ -44,7 +45,7 @@ export function ContestOfferStepBasic({
   onFileIssue,
   fieldErrors,
 }: ContestOfferStepBasicProps): ReactElement {
-  const offerDocs = form.extraAttachments.filter((a) => a.requirementKey === 'offerDocumentation');
+  const offerDocs = form.extraAttachments.filter(isOptionalOfferDocumentationAttachment);
   const stagedFiles = form.stagedFiles.offerDocumentation ?? [];
   const totalFiles = offerDocs.length + stagedFiles.length;
   const remainingSlots = remainingOfferDocumentSlots(stagedFiles.length, offerDocs.length);
@@ -96,13 +97,13 @@ export function ContestOfferStepBasic({
     <div className="space-y-4" id="contest-offer-offerDocumentation">
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <ContestOfferRequiredLabel>Dokumentacja ofertowa</ContestOfferRequiredLabel>
+          <ContestOfferOptionalLabel>Dokumentacja ofertowa</ContestOfferOptionalLabel>
           <span className="text-xs tabular-nums text-muted-foreground">
             {totalFiles}/{OFFER_DOCUMENT_MAX_FILES}
           </span>
         </div>
         <p className="mb-3 mt-1 text-sm text-muted-foreground">
-          Dodaj pliki oferty — kosztorys, opis techniczny, załączniki wymagane w konkursie.
+          Dodaj inne pliki oferty, jeśli chcesz je dołączyć.
         </p>
 
         {hasFiles ? (

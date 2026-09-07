@@ -17,6 +17,7 @@ import type {
 import {
   DEFAULT_FORMAL_REQUIREMENTS,
   DEFAULT_PAYMENT_TERMS,
+  parseOfferDocuments,
   parseSelectionCriteria,
 } from '../../types/tender-contest';
 import { parseProfessionalLicenseTypes } from '../contractor/constants';
@@ -263,6 +264,7 @@ export function mapTenderRowToContestForm(
       ...DEFAULT_FORMAL_REQUIREMENTS,
       ...formal,
       professionalLicenseTypes: parseProfessionalLicenseTypes(formal.professionalLicenseTypes),
+      offerDocuments: parseOfferDocuments(formal.offerDocuments),
     },
     selectionCriteria: selection,
     warrantyPeriod: REVERSE_WARRANTY[(tender.warranty_period as string) ?? ''] ?? '',

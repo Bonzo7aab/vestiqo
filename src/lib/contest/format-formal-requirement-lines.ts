@@ -31,5 +31,11 @@ export function formatFormalRequirementLines(formal: FormalRequirements): string
       lines.push(`${CERTIFICATES_AND_LICENSES_LABEL}: ${labels.join(', ')}`);
     }
   }
+  for (const document of formal.offerDocuments ?? []) {
+    const name = document.name.trim();
+    if (name) {
+      lines.push(name);
+    }
+  }
   return lines;
 }
