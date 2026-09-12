@@ -45,25 +45,25 @@ const info = contestInfo();
 const empty = createEmptyContestOfferForm();
 
 assert.equal(
-  getContestOfferStepFieldErrors(2, empty, info).proposedCompletionDate,
+  getContestOfferStepFieldErrors(1, empty, info).proposedCompletionDate,
   'Podaj oferowany termin wykonania',
 );
 
 const past = { ...empty, proposedCompletionDate: '2000-01-01' };
 assert.equal(
-  getContestOfferStepFieldErrors(2, past, info).proposedCompletionDate,
+  getContestOfferStepFieldErrors(1, past, info).proposedCompletionDate,
   'Termin wykonania nie może być w przeszłości',
 );
 
 const today = { ...empty, proposedCompletionDate: localIsoDate() };
 assert.equal(
-  getContestOfferStepFieldErrors(2, today, info).proposedCompletionDate,
+  getContestOfferStepFieldErrors(1, today, info).proposedCompletionDate,
   undefined,
 );
 
 const future = { ...empty, proposedCompletionDate: '2099-12-31' };
 assert.equal(
-  getContestOfferStepFieldErrors(2, future, info).proposedCompletionDate,
+  getContestOfferStepFieldErrors(1, future, info).proposedCompletionDate,
   undefined,
 );
 
@@ -73,7 +73,7 @@ const belowMin = {
   warrantyMonths: '12',
   guaranteeMonths: '12',
 };
-const belowMinErrors = getContestOfferStepFieldErrors(4, belowMin, info);
+const belowMinErrors = getContestOfferStepFieldErrors(3, belowMin, info);
 assert.equal(belowMinErrors.warrantyMonths, 'Wybierz okres gwarancji');
 assert.equal(belowMinErrors.guaranteeMonths, 'Wybierz okres rękojmi');
 
@@ -83,13 +83,13 @@ const atMin = {
   warrantyMonths: '24',
   guaranteeMonths: '24',
 };
-const atMinErrors = getContestOfferStepFieldErrors(4, atMin, info);
+const atMinErrors = getContestOfferStepFieldErrors(3, atMin, info);
 assert.equal(atMinErrors.warrantyMonths, undefined);
 assert.equal(atMinErrors.guaranteeMonths, undefined);
 
 const noMinInfo = contestInfo({ warrantyPeriod: 'none', guaranteePeriod: 'none' });
 const twelveOk = getContestOfferStepFieldErrors(
-  4,
+  3,
   { ...empty, netPrice: '1000', warrantyMonths: '12', guaranteeMonths: '12' },
   noMinInfo,
 );

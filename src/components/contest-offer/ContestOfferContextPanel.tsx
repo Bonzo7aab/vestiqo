@@ -21,10 +21,9 @@ interface ContestOfferContextPanelProps {
 }
 
 const STEP_CONTEXT_TITLES: Record<ContestOfferWizardStep, string> = {
-  1: 'Informacje o konkursie',
-  2: 'Harmonogram konkursu',
-  3: 'Wymogi formalne konkursu',
-  4: 'Warunki finansowe konkursu',
+  1: 'Harmonogram konkursu',
+  2: 'Wymogi formalne konkursu',
+  3: 'Warunki finansowe konkursu',
 };
 
 function ContextSection({
@@ -69,7 +68,7 @@ function ContestInfoStepContent({
   const hasMeta = Boolean(category || subcategory || contestInfo.entityName || contestInfo.entityAddress);
 
   return (
-    <ContextContent compact>
+    <>
       {(description || hasMeta) && (
         <div className="space-y-2.5">
           {description ? (
@@ -132,7 +131,7 @@ function ContestInfoStepContent({
           </ul>
         </ContextSection>
       ) : null}
-    </ContextContent>
+    </>
   );
 }
 
@@ -193,18 +192,13 @@ function renderContextContent(
 
   if (currentStep === 1) {
     return (
-      <ContestInfoStepContent
-        description={description}
-        category={category}
-        subcategory={subcategory}
-        contestInfo={contestInfo}
-      />
-    );
-  }
-
-  if (currentStep === 2) {
-    return (
       <ContextContent>
+        <ContestInfoStepContent
+          description={description}
+          category={category}
+          subcategory={subcategory}
+          contestInfo={contestInfo}
+        />
         <ContextSection title="Terminy">
           <p className="leading-relaxed text-muted-foreground">
             Oferty przyjmowane są do:{' '}
@@ -238,7 +232,7 @@ function renderContextContent(
     );
   }
 
-  if (currentStep === 3) {
+  if (currentStep === 2) {
     return (
       <ContextContent>
         <ContextSection title="Wymagane dokumenty">

@@ -9,18 +9,15 @@ export function getContestOfferStepsWithErrors(
 ): ContestOfferWizardStep[] {
   const steps: ContestOfferWizardStep[] = [];
 
-  if (errors.offerDocumentation) {
-    steps.push(1);
-  }
   if (errors.proposedCompletionDate || errors.siteVisitConfirmed) {
-    steps.push(2);
+    steps.push(1);
   }
   if (
     (errors.formal && Object.keys(errors.formal).length > 0) ||
     (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0) ||
     (errors.offerDocuments && Object.keys(errors.offerDocuments).length > 0)
   ) {
-    steps.push(3);
+    steps.push(2);
   }
   if (
     errors.netPrice ||
@@ -29,7 +26,7 @@ export function getContestOfferStepsWithErrors(
     errors.paymentTermsAccepted ||
     errors.deposit
   ) {
-    steps.push(4);
+    steps.push(3);
   }
 
   return steps;
@@ -133,15 +130,11 @@ export function firstContestOfferErrorSelector(
   errors: ContestOfferFieldErrors,
 ): string | null {
   if (step === 1) {
-    if (errors.offerDocumentation) return '#contest-offer-offerDocumentation';
-  }
-
-  if (step === 2) {
     if (errors.proposedCompletionDate) return '#contest-offer-proposedCompletionDate';
     if (errors.siteVisitConfirmed) return '#contest-offer-siteVisitConfirmed';
   }
 
-  if (step === 3) {
+  if (step === 2) {
     if (errors.offerDocuments) {
       const firstOfferDoc = Object.keys(errors.offerDocuments)[0];
       if (firstOfferDoc) return `[data-contest-offer-document="${firstOfferDoc}"]`;
@@ -156,7 +149,7 @@ export function firstContestOfferErrorSelector(
     }
   }
 
-  if (step === 4) {
+  if (step === 3) {
     if (errors.netPrice) return '#contest-offer-netPrice';
     if (errors.warrantyMonths) return '#contest-offer-warrantyMonths';
     if (errors.guaranteeMonths) return '#contest-offer-guaranteeMonths';

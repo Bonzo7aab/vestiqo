@@ -104,7 +104,7 @@ offerForm.ocGuaranteeAmount = '1500000';
 offerForm.stagedFiles.insuranceOc = stagedOc;
 
 const stepErrors = getContestOfferStepFieldErrors(
-  3,
+  2,
   offerForm,
   contestInfo(),
   snapshot({ hasOcScan: false, ocValidUntil: '2020-01-01', ocGuaranteeAmount: 1 }),
@@ -123,7 +123,7 @@ lowSum.formalAttachments.insuranceOc = {
   requirementKey: 'insuranceOc',
 };
 const lowSumErrors = getContestOfferStepFieldErrors(
-  3,
+  2,
   lowSum,
   contestInfo(),
   snapshot({ hasOcScan: true }),

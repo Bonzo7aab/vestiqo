@@ -86,7 +86,7 @@ const fromCertifications = formalSnapshotFromSources(
       'extinguisher_hydrant',
       'f_gas',
     ],
-    professionalQualificationsValidUntil: '2026-09-03',
+    professionalQualificationsValidUntil: '2030-01-10',
   },
   { certifications: CERT_PATH },
 );
@@ -109,7 +109,7 @@ assert.equal(
       {
         ...emptySettings,
         professionalQualificationTypes: ['building_exec_unlimited'],
-        professionalQualificationsValidUntil: '2026-09-03',
+        professionalQualificationsValidUntil: '2030-01-10',
       },
       {},
     ),
@@ -145,36 +145,36 @@ formWithStaged.stagedQualificationFiles = {
 };
 
 assert.equal(
-  getContestOfferStepFieldErrors(3, createEmptyContestOfferForm(), info, {
+  getContestOfferStepFieldErrors(2, createEmptyContestOfferForm(), info, {
     ...EMPTY_FORMAL_PROFILE_SNAPSHOT,
     professionalQualificationTypes: [
       'building_exec_unlimited',
       'extinguisher_hydrant',
       'f_gas',
     ],
-    professionalQualificationsValidUntil: '2026-09-03',
+    professionalQualificationsValidUntil: '2030-01-10',
   }).formal?.professionalLicenses,
   PROFILE_LICENSE_SCAN_MISSING,
 );
 
 assert.equal(
-  getContestOfferStepFieldErrors(3, formWithStaged, info, {
+  getContestOfferStepFieldErrors(2, formWithStaged, info, {
     ...EMPTY_FORMAL_PROFILE_SNAPSHOT,
     professionalQualificationTypes: [
       'building_exec_unlimited',
       'extinguisher_hydrant',
       'f_gas',
     ],
-    professionalQualificationsValidUntil: '2026-09-03',
+    professionalQualificationsValidUntil: '2030-01-10',
   }).formal?.professionalLicenses,
   undefined,
 );
 
 assert.match(
-  getContestOfferStepFieldErrors(3, formWithStaged, info, {
+  getContestOfferStepFieldErrors(2, formWithStaged, info, {
     ...EMPTY_FORMAL_PROFILE_SNAPSHOT,
     professionalQualificationTypes: ['building_exec_unlimited'],
-    professionalQualificationsValidUntil: '2026-09-03',
+    professionalQualificationsValidUntil: '2030-01-10',
   }).formal?.professionalLicenses ?? '',
   /brakuje wymaganych uprawnień/,
 );

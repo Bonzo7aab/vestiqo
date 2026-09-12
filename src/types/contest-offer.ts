@@ -9,6 +9,9 @@ export type FormalRequirementKey =
   | 'professionalCertificates'
   | 'professionalLicenses';
 
+/** 2 = 3-step wizard (Harmonogram, Wymogi, Warunki). Missing/1 = legacy 4-step drafts. */
+export const CONTEST_OFFER_WIZARD_VERSION = 2;
+
 export interface ContestOfferAttachmentRef {
   id: string;
   name: string;
@@ -28,6 +31,8 @@ export interface ContestOfferAttachmentRef {
 
 export interface ContestOfferDetails {
   currentStep?: number;
+  /** 2 = 3-step wizard (Harmonogram, Wymogi, Warunki). Missing/1 = legacy 4-step drafts. */
+  wizardVersion?: number;
   proposedCompletionDate?: string | null;
   siteVisitConfirmed?: boolean;
   /** @deprecated OPD-150: references are formalAttachments.references; kept for legacy drafts */
@@ -142,6 +147,7 @@ export function formDataToOfferDetails(
 
   return {
     currentStep: step,
+    wizardVersion: CONTEST_OFFER_WIZARD_VERSION,
     proposedCompletionDate: form.proposedCompletionDate || null,
     siteVisitConfirmed: form.siteVisitConfirmed,
     referencesText: form.referencesText,

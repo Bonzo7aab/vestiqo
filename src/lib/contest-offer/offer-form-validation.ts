@@ -1,6 +1,6 @@
 import type { ContestInfo } from '../../types/job';
 import type { ContestOfferFormData, FormalRequirementKey } from '../../types/contest-offer';
-import { hasOfferDocumentFile, requiredFormalKeys } from '../../types/contest-offer';
+import { CONTEST_OFFER_WIZARD_VERSION, hasOfferDocumentFile, requiredFormalKeys } from '../../types/contest-offer';
 import { requiredOfferDocuments } from '../../types/tender-contest';
 import {
   requiredQualificationTypeIds,
@@ -14,10 +14,12 @@ import {
 } from './validate-profile-formal-requirements';
 import { warrantyMonthsOptions } from './warranty-period-options';
 
-export type ContestOfferWizardStep = 1 | 2 | 3 | 4;
+/** Schedule → Wymogi → Warunki. Version 2 dropped the old Informacje podstawowe extras step. */
+export const CONTEST_OFFER_WIZARD_STEP_COUNT = 3;
+
+export type ContestOfferWizardStep = 1 | 2 | 3;
 
 export interface ContestOfferFieldErrors {
-  offerDocumentation?: string;
   proposedCompletionDate?: string;
   siteVisitConfirmed?: string;
   netPrice?: string;
@@ -57,7 +59,6 @@ function isAllowedWarrantyMonths(
 
 export function hasContestOfferFieldErrors(errors: ContestOfferFieldErrors): boolean {
   if (
-    errors.offerDocumentation ||
     errors.proposedCompletionDate ||
     errors.siteVisitConfirmed ||
     errors.netPrice ||
@@ -102,10 +103,6 @@ export function getContestOfferStepFieldErrors(
   const errors: ContestOfferFieldErrors = {};
 
   if (step === 1) {
-    return errors;
-  }
-
-  if (step === 2) {
     if (!form.proposedCompletionDate) {
       errors.proposedCompletionDate = 'Podaj oferowany termin wykonania';
     } else if (form.proposedCompletionDate < localIsoDate()) {
@@ -117,7 +114,7 @@ export function getContestOfferStepFieldErrors(
     return errors;
   }
 
-  if (step === 3) {
+  if (step === 2) {
     const formal: Partial<Record<FormalRequirementKey, string>> = {};
     const qualificationFiles: Record<string, string> = {};
     const required = requiredFormalKeys(contestInfo.formalRequirements);
@@ -187,7 +184,7 @@ export function getContestOfferStepFieldErrors(
     return errors;
   }
 
-  if (step === 4) {
+  if (step === 3) {
     const net = Number.parseFloat(form.netPrice);
     if (!form.netPrice.trim() || Number.isNaN(net) || net <= 0) {
       errors.netPrice = 'Podaj cenę netto';
@@ -226,21 +223,19 @@ export function getContestOfferAllFieldErrors(
   const step1 = getContestOfferStepFieldErrors(1, form, contestInfo, profileSnapshot);
   const step2 = getContestOfferStepFieldErrors(2, form, contestInfo, profileSnapshot);
   const step3 = getContestOfferStepFieldErrors(3, form, contestInfo, profileSnapshot);
-  const step4 = getContestOfferStepFieldErrors(4, form, contestInfo, profileSnapshot);
 
-  const formal = { ...step3.formal };
-  const qualificationFiles = { ...step3.qualificationFiles };
-  const offerDocuments = { ...step3.offerDocuments };
+  const formal = { ...step2.formal };
+  const qualificationFiles = { ...step2.qualificationFiles };
+  const offerDocuments = { ...step2.offerDocuments };
 
   return {
-    offerDocumentation: step1.offerDocumentation,
-    proposedCompletionDate: step2.proposedCompletionDate,
-    siteVisitConfirmed: step2.siteVisitConfirmed,
-    netPrice: step4.netPrice,
-    warrantyMonths: step4.warrantyMonths,
-    guaranteeMonths: step4.guaranteeMonths,
-    paymentTermsAccepted: step4.paymentTermsAccepted,
-    deposit: step4.deposit,
+    proposedCompletionDate: step1.proposedCompletionDate,
+    siteVisitConfirmed: step1.siteVisitConfirmed,
+    netPrice: step3.netPrice,
+    warrantyMonths: step3.warrantyMonths,
+    guaranteeMonths: step3.guaranteeMonths,
+    paymentTermsAccepted: step3.paymentTermsAccepted,
+    deposit: step3.deposit,
     ...(Object.keys(formal).length > 0 ? { formal } : {}),
     ...(Object.keys(qualificationFiles).length > 0 ? { qualificationFiles } : {}),
     ...(Object.keys(offerDocuments).length > 0 ? { offerDocuments } : {}),
@@ -253,19 +248,17 @@ export function filterFieldErrorsForStep(
 ): ContestOfferFieldErrors {
   switch (step) {
     case 1:
-      return { offerDocumentation: errors.offerDocumentation };
-    case 2:
       return {
         proposedCompletionDate: errors.proposedCompletionDate,
         siteVisitConfirmed: errors.siteVisitConfirmed,
       };
-    case 3:
+    case 2:
       return {
         formal: errors.formal,
         qualificationFiles: errors.qualificationFiles,
         offerDocuments: errors.offerDocuments,
       };
-    case 4:
+    case 3:
       return {
         netPrice: errors.netPrice,
         warrantyMonths: errors.warrantyMonths,
@@ -278,19 +271,39 @@ export function filterFieldErrorsForStep(
   }
 }
 
+/** Map a persisted draft step onto the 3-step wizard. */
+export function normalizeContestOfferWizardStep(
+  savedStep: unknown,
+  wizardVersion: unknown = CONTEST_OFFER_WIZARD_VERSION,
+): ContestOfferWizardStep {
+  const step = typeof savedStep === 'number' && Number.isFinite(savedStep) ? savedStep : 1;
+  const version =
+    typeof wizardVersion === 'number' && Number.isFinite(wizardVersion) ? wizardVersion : 1;
+
+  if (version >= CONTEST_OFFER_WIZARD_VERSION) {
+    if (step <= 1) return 1;
+    if (step === 2) return 2;
+    return 3;
+  }
+
+  // Legacy 4-step: 1=basic (removed), 2=schedule, 3=wymogi, 4=warunki
+  if (step <= 2) return 1;
+  if (step === 3) return 2;
+  return 3;
+}
+
 export function firstContestOfferStepWithErrors(
   errors: ContestOfferFieldErrors,
 ): ContestOfferWizardStep | null {
-  if (errors.offerDocumentation) return 1;
-  if (errors.proposedCompletionDate || errors.siteVisitConfirmed) return 2;
+  if (errors.proposedCompletionDate || errors.siteVisitConfirmed) return 1;
   if (errors.formal && Object.keys(errors.formal).length > 0) {
-    return 3;
+    return 2;
   }
   if (errors.qualificationFiles && Object.keys(errors.qualificationFiles).length > 0) {
-    return 3;
+    return 2;
   }
   if (errors.offerDocuments && Object.keys(errors.offerDocuments).length > 0) {
-    return 3;
+    return 2;
   }
   if (
     errors.netPrice ||
@@ -299,13 +312,12 @@ export function firstContestOfferStepWithErrors(
     errors.paymentTermsAccepted ||
     errors.deposit
   ) {
-    return 4;
+    return 3;
   }
   return null;
 }
 
 function firstFieldErrorMessage(errors: ContestOfferFieldErrors): string | null {
-  if (errors.offerDocumentation) return errors.offerDocumentation;
   if (errors.proposedCompletionDate) return errors.proposedCompletionDate;
   if (errors.siteVisitConfirmed) return errors.siteVisitConfirmed;
   if (errors.formal) {

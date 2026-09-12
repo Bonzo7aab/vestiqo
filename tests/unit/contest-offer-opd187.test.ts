@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {
   getContestOfferStepFieldErrors,
+  normalizeContestOfferWizardStep,
 } from '../../src/lib/contest-offer/offer-form-validation';
 import { formatFormalRequirementLines } from '../../src/lib/contest/format-formal-requirement-lines';
 import { getTenderContestFormFieldErrors } from '../../src/lib/contest/contest-form-validation';
@@ -112,9 +113,17 @@ assert.deepEqual(
 
 const empty = createEmptyContestOfferForm();
 assert.equal(
-  getContestOfferStepFieldErrors(1, empty, contestInfo()).offerDocumentation,
-  undefined,
+  getContestOfferStepFieldErrors(1, empty, contestInfo()).proposedCompletionDate,
+  'Podaj oferowany termin wykonania',
 );
+
+assert.equal(normalizeContestOfferWizardStep(1, 1), 1);
+assert.equal(normalizeContestOfferWizardStep(2, 1), 1);
+assert.equal(normalizeContestOfferWizardStep(3, 1), 2);
+assert.equal(normalizeContestOfferWizardStep(4, 1), 3);
+assert.equal(normalizeContestOfferWizardStep(1, 2), 1);
+assert.equal(normalizeContestOfferWizardStep(2, 2), 2);
+assert.equal(normalizeContestOfferWizardStep(3, 2), 3);
 
 const withNamed = contestInfo({
   formalRequirements: {
@@ -125,7 +134,7 @@ const withNamed = contestInfo({
     ],
   },
 });
-const missingNamed = getContestOfferStepFieldErrors(3, empty, withNamed);
+const missingNamed = getContestOfferStepFieldErrors(2, empty, withNamed);
 assert.equal(missingNamed.offerDocuments?.kosztorys, 'Wgraj plik: Kosztorys');
 assert.equal(missingNamed.offerDocuments?.['custom-1'], 'Wgraj plik: Projekt zamienny');
 
@@ -147,7 +156,7 @@ staged.extraAttachments = [
 ];
 assert.equal(hasOfferDocumentFile(staged, 'kosztorys'), true);
 assert.equal(hasOfferDocumentFile(staged, 'custom-1'), true);
-assert.equal(getContestOfferStepFieldErrors(3, staged, withNamed).offerDocuments, undefined);
+assert.equal(getContestOfferStepFieldErrors(2, staged, withNamed).offerDocuments, undefined);
 
 const lines = formatFormalRequirementLines({
   insuranceOc: true,

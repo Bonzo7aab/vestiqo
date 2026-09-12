@@ -28,7 +28,6 @@ import {
 import {
   computeGrossFromNet,
   createEmptyContestOfferForm,
-  isOptionalOfferDocumentationAttachment,
   toSerializableClientData,
   toSerializableContestOfferForm,
 } from '../../types/contest-offer';
@@ -40,7 +39,6 @@ import {
   fetchTenderBidDraft,
   fetchTenderBidOfferState,
   hydrateContestOfferFormFromBid,
-  migrateLegacyOfferAttachments,
 } from '../../lib/database/contest-offers';
 import {
   filterFieldErrorsForStep,
@@ -48,6 +46,8 @@ import {
   getContestOfferAllFieldErrors,
   getContestOfferStepFieldErrors,
   hasContestOfferFieldErrors,
+  normalizeContestOfferWizardStep,
+  CONTEST_OFFER_WIZARD_STEP_COUNT,
   type ContestOfferFieldErrors,
   type ContestOfferWizardStep,
 } from '../../lib/contest-offer/offer-form-validation';
@@ -78,13 +78,8 @@ import { persistContestOfferOcToProfile } from '../../lib/contest-offer/persist-
 import { uploadContestOfferStagedFiles } from '../../lib/contest-offer/upload-staged-offer-files';
 import { contestOfferErrorFromUnknown, CONTEST_OFFER_ERRORS } from '../../lib/contest-offer/error-messages';
 import { resolveContractorDocuments } from '../../lib/contest-offer/resolve-contractor-documents-actions';
-import {
-  remainingOfferDocumentSlots,
-  takeAcceptedContestFiles,
-} from '../../lib/contest-offer/contest-offer-form-documents';
 import { ContestOfferWizardStepper } from './ContestOfferWizardStepper';
 import { ContestOfferContextPanel } from './ContestOfferContextPanel';
-import { ContestOfferStepBasic } from './ContestOfferStepBasic';
 import { ContestOfferStepSchedule } from './ContestOfferStepSchedule';
 import { ContestOfferStepFormal } from './ContestOfferStepFormal';
 import { ContestOfferStepFinancial } from './ContestOfferStepFinancial';
@@ -95,12 +90,7 @@ import {
   resolveCategorySlugFromJob,
 } from '../../lib/config/categoryConfig';
 
-const STEP_LABELS = [
-  'Informacje podstawowe',
-  'Harmonogram',
-  'Wymogi',
-  'Warunki',
-];
+const STEP_LABELS = ['Harmonogram', 'Wymogi', 'Warunki'];
 
 export interface ContestOfferSubmissionDialogProps {
   isOpen: boolean;
@@ -157,7 +147,7 @@ export function ContestOfferSubmissionDialog({
   contestInfoRef.current = contestInfo;
   formRef.current = form;
 
-  const totalSteps = 4;
+  const totalSteps = CONTEST_OFFER_WIZARD_STEP_COUNT;
 
   const categorySlug = useMemo(
     () => resolveCategorySlugFromJob({ category }),
@@ -228,10 +218,10 @@ export function ContestOfferSubmissionDialog({
           setHasExistingDraft(true);
           const hydrated = hydrateContestOfferFormFromBid(draft);
           if (draft.offer_details && typeof draft.offer_details === 'object') {
-            const step = (draft.offer_details as { currentStep?: number }).currentStep;
-            if (step && step >= 1 && step <= 4) {
-              setCurrentStep(step as ContestOfferWizardStep);
-            }
+            const details = draft.offer_details as { currentStep?: number; wizardVersion?: number };
+            setCurrentStep(
+              normalizeContestOfferWizardStep(details.currentStep, details.wizardVersion),
+            );
           }
           const applied = applyProfileDocumentsToForm(docs, hydrated);
           hydrated.formalAttachments = applied.formalAttachments;
@@ -285,7 +275,7 @@ export function ContestOfferSubmissionDialog({
   }, [isOpen]);
 
   useEffect(() => {
-    if (currentStep !== 3 || isLoading || profileDocsAppliedRef.current) return;
+    if (currentStep !== 2 || isLoading || profileDocsAppliedRef.current) return;
     profileDocsAppliedRef.current = true;
     setForm((prev) => {
       const applied = applyProfileDocumentsToForm(resolvedDocs, prev);
@@ -502,47 +492,11 @@ export function ContestOfferSubmissionDialog({
     setCurrentStep((s) => Math.max(1, s - 1) as ContestOfferWizardStep);
   };
 
-  const stageOfferDocumentationFiles = (files: File[]): void => {
-    if (files.length === 0) return;
-    setForm((prev) => {
-      const migrated = migrateLegacyOfferAttachments(prev);
-      const keptCount = migrated.extraAttachments.filter(
-        isOptionalOfferDocumentationAttachment,
-      ).length;
-      const pendingCount = migrated.stagedFiles.offerDocumentation?.length ?? 0;
-      const remaining = remainingOfferDocumentSlots(pendingCount, keptCount);
-      const { filesToAdd } = takeAcceptedContestFiles(files, remaining);
-      if (filesToAdd.length === 0) return prev;
-      return {
-        ...migrated,
-        stagedFiles: {
-          ...migrated.stagedFiles,
-          offerDocumentation: [
-            ...(migrated.stagedFiles.offerDocumentation ?? []),
-            ...filesToAdd,
-          ],
-        },
-      };
-    });
-  };
-
-  const reportOfferDocumentationIssue = (message: string | null): void => {
-    setValidatedSteps((prev) => new Set(prev).add(1));
-    setFieldErrors((prev) => {
-      if (!message) {
-        const next = { ...prev };
-        delete next.offerDocumentation;
-        return next;
-      }
-      return { ...prev, offerDocumentation: message };
-    });
-  };
-
   const reportFormalFileIssue = (
     doc: ResolvedContractorDocument,
     message: string | null,
   ): void => {
-    setValidatedSteps((prev) => new Set(prev).add(3));
+    setValidatedSteps((prev) => new Set(prev).add(2));
     setFieldErrors((prev) => {
       if (doc.qualificationTypeId) {
         if (!message) {
@@ -567,7 +521,7 @@ export function ContestOfferSubmissionDialog({
   };
 
   const reportOfferDocumentFileIssue = (documentId: string, message: string | null): void => {
-    setValidatedSteps((prev) => new Set(prev).add(3));
+    setValidatedSteps((prev) => new Set(prev).add(2));
     setFieldErrors((prev) => {
       if (!message) {
         return clearContestOfferOfferDocumentFieldError(prev, documentId);
@@ -583,7 +537,7 @@ export function ContestOfferSubmissionDialog({
   };
 
   const reportDepositFileIssue = (message: string | null): void => {
-    setValidatedSteps((prev) => new Set(prev).add(4));
+    setValidatedSteps((prev) => new Set(prev).add(3));
     setFieldErrors((prev) => {
       if (!message) {
         const next = { ...prev };
@@ -591,20 +545,6 @@ export function ContestOfferSubmissionDialog({
         return next;
       }
       return { ...prev, deposit: message };
-    });
-  };
-
-  const removeStagedOfferDocumentation = (index: number): void => {
-    setForm((prev) => {
-      const offerDocumentation = [...(prev.stagedFiles.offerDocumentation ?? [])];
-      offerDocumentation.splice(index, 1);
-      const stagedFiles = { ...prev.stagedFiles };
-      if (offerDocumentation.length > 0) {
-        stagedFiles.offerDocumentation = offerDocumentation;
-      } else {
-        delete stagedFiles.offerDocumentation;
-      }
-      return { ...prev, stagedFiles };
     });
   };
 
@@ -740,13 +680,6 @@ export function ContestOfferSubmissionDialog({
     );
   };
 
-  const removeExtraAttachment = (id: string): void => {
-    setForm((prev) => ({
-      ...prev,
-      extraAttachments: prev.extraAttachments.filter((a) => a.id !== id),
-    }));
-  };
-
   const removeDeposit = (): void => {
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -843,16 +776,6 @@ export function ContestOfferSubmissionDialog({
           ) : (
             <>
               {currentStep === 1 && (
-                <ContestOfferStepBasic
-                  form={form}
-                  fieldErrors={displayedFieldErrors}
-                  onStageFiles={stageOfferDocumentationFiles}
-                  onRemoveExtra={removeExtraAttachment}
-                  onRemoveStaged={removeStagedOfferDocumentation}
-                  onFileIssue={reportOfferDocumentationIssue}
-                />
-              )}
-              {currentStep === 2 && (
                 <ContestOfferStepSchedule
                   form={form}
                   contestInfo={contestInfo}
@@ -861,28 +784,28 @@ export function ContestOfferSubmissionDialog({
                   onPatch={patchForm}
                 />
               )}
-                {currentStep === 3 && (
-                  <ContestOfferStepFormal
-                    form={form}
-                    resolvedDocs={resolvedDocs}
-                    offerDocuments={namedOfferDocuments}
-                    fieldErrors={displayedFieldErrors}
-                    insuranceOcMinAmount={contestInfo.formalRequirements.insuranceOcMinAmount}
-                    onUseProfile={applyProfileDocument}
-                    onUploadFormal={replaceFormalDocument}
-                    onRemoveFormal={removeFormalDocument}
-                    onUploadOfferDocument={replaceOfferDocument}
-                    onRemoveOfferDocument={removeOfferDocument}
-                    onFileIssue={reportFormalFileIssue}
-                    onOfferDocumentFileIssue={reportOfferDocumentFileIssue}
-                    onOcValidUntilChange={(value) => patchForm({ ocValidUntil: value })}
-                    onOcGuaranteeAmountChange={(value) => patchForm({ ocGuaranteeAmount: value })}
-                    onOcFieldsBlur={() => {
-                      void persistOcToProfile(formRef.current);
-                    }}
-                  />
-                )}
-              {currentStep === 4 && (
+              {currentStep === 2 && (
+                <ContestOfferStepFormal
+                  form={form}
+                  resolvedDocs={resolvedDocs}
+                  offerDocuments={namedOfferDocuments}
+                  fieldErrors={displayedFieldErrors}
+                  insuranceOcMinAmount={contestInfo.formalRequirements.insuranceOcMinAmount}
+                  onUseProfile={applyProfileDocument}
+                  onUploadFormal={replaceFormalDocument}
+                  onRemoveFormal={removeFormalDocument}
+                  onUploadOfferDocument={replaceOfferDocument}
+                  onRemoveOfferDocument={removeOfferDocument}
+                  onFileIssue={reportFormalFileIssue}
+                  onOfferDocumentFileIssue={reportOfferDocumentFileIssue}
+                  onOcValidUntilChange={(value) => patchForm({ ocValidUntil: value })}
+                  onOcGuaranteeAmountChange={(value) => patchForm({ ocGuaranteeAmount: value })}
+                  onOcFieldsBlur={() => {
+                    void persistOcToProfile(formRef.current);
+                  }}
+                />
+              )}
+              {currentStep === 3 && (
                 <ContestOfferStepFinancial
                   form={form}
                   contestInfo={contestInfo}

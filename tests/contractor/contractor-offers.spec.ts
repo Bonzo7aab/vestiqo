@@ -983,7 +983,6 @@ test.describe('Contractor Making Offers', () => {
     ): Promise<void> {
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByText(/składasz ofertę w konkursie/i)).toBeVisible();
-      await dialog.getByRole('button', { name: 'Dalej' }).click();
       const completion = new Date();
       completion.setMonth(completion.getMonth() + 2);
       await dialog.locator('#proposedCompletionDate').fill(completion.toISOString().slice(0, 10));
@@ -1041,7 +1040,6 @@ test.describe('Contractor Making Offers', () => {
         await page.getByRole('button', { name: /złóż ofertę/i }).click();
         const dialog = page.getByRole('dialog');
         await expect(dialog.getByText(/składasz ofertę w konkursie/i)).toBeVisible();
-        await dialog.getByRole('button', { name: 'Dalej' }).click();
         const completion = new Date();
         completion.setMonth(completion.getMonth() + 1);
         await dialog.locator('#proposedCompletionDate').fill(completion.toISOString().slice(0, 10));
