@@ -35,7 +35,7 @@ interface AuthPageLayoutProps {
   footer?: ReactNode;
   testId?: string;
   headingTestId?: string;
-  contentMaxWidth?: 'md' | 'lg';
+  contentMaxWidth?: 'md' | 'lg' | 'xl' | '2xl';
   /** Footer trust line on the side panel. Omit contractor verification note for managers. */
   trustNote?: string;
   /** Hide mobile header logo above the form title. */
@@ -55,7 +55,7 @@ function AuthSidePanel({
   trustNote?: string;
 }) {
   return (
-    <aside className="relative hidden lg:flex lg:flex-col lg:self-stretch">
+    <aside className="relative hidden lg:sticky lg:top-16 lg:flex lg:flex-col lg:self-start">
       <div className="relative flex flex-1 flex-col justify-center gap-7 px-10 py-10 xl:gap-8 xl:px-14 xl:py-12">
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
@@ -117,7 +117,7 @@ export function AuthPageLayout({
   const authMinHeightClass = 'min-h-[calc(100vh-12rem)]';
 
   return (
-    <div className={cn('relative overflow-x-hidden', authMinHeightClass)} data-testid={testId}>
+    <div className={cn('relative overflow-x-clip', authMinHeightClass)} data-testid={testId}>
       {/* Full-page background */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-accent/60 via-background to-background" />
@@ -126,14 +126,28 @@ export function AuthPageLayout({
         <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      <div className={cn('relative lg:grid lg:grid-cols-2', authMinHeightClass)}>
+      <div
+        className={cn(
+          'relative',
+          authMinHeightClass,
+          contentMaxWidth === '2xl'
+            ? 'lg:grid lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.4fr)]'
+            : 'lg:grid lg:grid-cols-2',
+        )}
+      >
         <AuthSidePanel side={side} trustNote={trustNote} />
 
-        <div className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-14">
+        <div className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-12">
           <div
             className={cn(
               'mx-auto w-full',
-              contentMaxWidth === 'lg' ? 'max-w-xl' : 'max-w-md',
+              contentMaxWidth === '2xl'
+                ? 'max-w-4xl'
+                : contentMaxWidth === 'xl'
+                  ? 'max-w-3xl'
+                  : contentMaxWidth === 'lg'
+                    ? 'max-w-xl'
+                    : 'max-w-md',
             )}
           >
             {showMobileLogo ? (
@@ -170,7 +184,7 @@ export function AuthPageLayout({
 }
 
 interface AuthFormSectionProps {
-  title: string;
+  title?: string;
   children: ReactNode;
   className?: string;
 }
@@ -178,9 +192,11 @@ interface AuthFormSectionProps {
 export function AuthFormSection({ title, children, className }: AuthFormSectionProps) {
   return (
     <section className={cn('space-y-3', className)}>
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h2>
+      {title ? (
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h2>
+      ) : null}
       {children}
     </section>
   );

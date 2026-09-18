@@ -15,12 +15,14 @@ export function ScrollbarManager() {
     const handleScroll = () => {
       if (!isScrolling) {
         isScrolling = true;
+        document.documentElement.classList.add('scrolling');
         document.body.classList.add('scrolling');
       }
 
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         isScrolling = false;
+        document.documentElement.classList.remove('scrolling');
         document.body.classList.remove('scrolling');
       }, 150);
     };

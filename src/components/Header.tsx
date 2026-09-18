@@ -128,6 +128,7 @@ export function Header({
   const { setIsMapExpanded } = useLayoutContext();
   const { user: contextUser, session, isAuthenticated: contextIsAuthenticated, logout, isLoading } = useUserProfile();
   const [isMounted, setIsMounted] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [liveVerificationSubmittedAt, setLiveVerificationSubmittedAt] = useState<
     string | null | undefined
   >(undefined);
@@ -138,6 +139,15 @@ export function Header({
     setTimeout(() => {
       setIsMounted(true);
     }, 0);
+  }, []);
+
+  useEffect(() => {
+    const syncScrolled = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+    syncScrolled();
+    window.addEventListener('scroll', syncScrolled, { passive: true });
+    return () => window.removeEventListener('scroll', syncScrolled);
   }, []);
   
   // Authentication state: use context when mounted; before mount, trust server initialUser
@@ -405,7 +415,12 @@ export function Header({
     currentUser?.userType !== 'contractor';
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-card">
+    <header
+      className={cn(
+        'sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/90',
+        isScrolled ? 'border-border/80 shadow-sm' : 'border-border/60',
+      )}
+    >
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 min-w-0 items-center justify-between gap-2">
           {/* 1. Logo Section - Left */}

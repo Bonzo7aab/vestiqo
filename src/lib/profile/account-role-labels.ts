@@ -141,28 +141,47 @@ export const REGISTRATION_ENTITY_LABELS: Record<RegistrationEntityType, string> 
   [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'Wykonawca',
 };
 
-export const WSPOLNOTA_SUB_ROLE_OPTIONS: Array<{ value: WspolnotaSubRole; label: string }> = [
-  { value: WSPOLNOTA_SUB_ROLES.CONDO_BOARD, label: 'Zarząd Wspólnoty' },
-  { value: WSPOLNOTA_SUB_ROLES.PROPERTY_MANAGER, label: 'Administracja Wspólnoty' },
+export const WSPOLNOTA_SUB_ROLE_OPTIONS: Array<{
+  value: WspolnotaSubRole;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: WSPOLNOTA_SUB_ROLES.CONDO_BOARD,
+    label: 'Zarząd Wspólnoty',
+    description: 'Reprezentuję zarząd i publikuję konkursy we własnym imieniu.',
+  },
+  {
+    value: WSPOLNOTA_SUB_ROLES.PROPERTY_MANAGER,
+    label: 'Administracja Wspólnoty',
+    description: 'Działam w imieniu firmy zarządzającej. Potrzebny będzie osobny NIP administracji.',
+  },
 ];
 
 /** Extra NIP field when registering as Administracja Wspólnoty. */
 export const REGISTRATION_MANAGEMENT_NIP_LABEL = 'NIP Administracji Wspólnoty';
 
-export const SPOLDZIELNIA_SUB_ROLE_OPTIONS: Array<{ value: SpoldzielniaSubRole; label: string }> = [
-  { value: SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD, label: 'Zarząd Spółdzielni' },
-  { value: SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_ADMIN, label: 'Administracja Spółdzielni' },
+export const SPOLDZIELNIA_SUB_ROLE_OPTIONS: Array<{
+  value: SpoldzielniaSubRole;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD,
+    label: 'Zarząd Spółdzielni',
+    description: 'Reprezentuję zarząd i publikuję konkursy w imieniu spółdzielni.',
+  },
+  {
+    value: SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_ADMIN,
+    label: 'Administracja Spółdzielni',
+    description: 'Działam w imieniu administracji spółdzielni.',
+  },
 ];
 
 export const REGISTRATION_NIP_LABELS: Record<RegistrationEntityType, string> = {
   [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'NIP Wspólnoty Mieszkaniowej',
   [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'NIP Spółdzielni Mieszkaniowej',
   [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'NIP Wykonawcy',
-};
-
-export const REGISTRATION_ROLE_HEADINGS: Partial<Record<RegistrationEntityType, string>> = {
-  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Twoja rola we Wspólnocie',
-  [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'Twoja rola w Spółdzielni',
 };
 
 export function registrationEntityToUserType(

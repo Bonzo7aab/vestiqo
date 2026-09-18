@@ -7,6 +7,7 @@ import posthog from 'posthog-js';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
+  Check,
   Users,
   Wrench,
   Phone,
@@ -21,6 +22,7 @@ import {
   Megaphone,
   MessagesSquare,
   LayoutDashboard,
+  MapPin,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -44,24 +46,25 @@ import {
   type RegistrationSettings,
 } from '../lib/registration-settings-shared';
 import {
+  ACCOUNT_ROLE_DISPLAY_LABELS,
   ACCOUNT_ROLES,
   REGISTRATION_ENTITY_LABELS,
   REGISTRATION_ENTITY_TYPES,
   REGISTRATION_MANAGEMENT_NIP_LABEL,
   REGISTRATION_NIP_LABELS,
-  REGISTRATION_ROLE_HEADINGS,
-  SPOLDZIELNIA_SUB_ROLE_OPTIONS,
   SPOLDZIELNIA_SUB_ROLES,
-  WSPOLNOTA_SUB_ROLE_OPTIONS,
   WSPOLNOTA_SUB_ROLES,
   registrationEntityToUserType,
   resolveRegistrationAccountRole,
   resolveRegistrationOrganizationType,
   type RegistrationEntityType,
-  type SpoldzielniaSubRole,
-  type WspolnotaSubRole,
 } from '../lib/profile/account-role-labels';
-import { AuthFormPanel, AuthPageLayout, authFieldClassName } from './auth/AuthPageLayout';
+import {
+  AuthFormPanel,
+  AuthFormSection,
+  AuthPageLayout,
+  authFieldClassName,
+} from './auth/AuthPageLayout';
 import { AuthFieldError } from './auth/AuthFieldError';
 import { AuthFormError } from './auth/AuthFormError';
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from '../lib/auth/password-policy';
@@ -262,62 +265,35 @@ function RegisterEntityTile({
         checked={checked}
         onChange={onSelect}
         disabled={disabled}
-        className="peer sr-only"
+        aria-label={label}
+        className="sr-only"
       />
       <Label
         htmlFor={id}
         className={cn(
-          'flex h-full cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-border bg-card p-4 text-center shadow-sm transition-all sm:p-5',
-          'hover:border-primary/50 hover:shadow-md peer-checked:border-primary peer-checked:bg-primary/8 peer-checked:shadow-md peer-checked:ring-2 peer-checked:ring-primary/20',
+          'relative flex h-full cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-card p-3 text-left shadow-sm transition-all sm:p-3.5',
+          'hover:border-primary/50 hover:shadow-md',
+          checked && 'border-primary bg-primary/8 shadow-md ring-2 ring-primary/20',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/12 ring-1 ring-primary/15 peer-checked:bg-primary/15">
-          <Icon className="h-6 w-6 text-primary" strokeWidth={2.25} />
+        {checked ? (
+          <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="size-2.5" strokeWidth={3} />
+          </span>
+        ) : null}
+        <span
+          className={cn(
+            'flex size-10 shrink-0 items-center justify-center rounded-lg ring-1',
+            checked ? 'bg-primary/15 ring-primary/25' : 'bg-primary/10 ring-primary/15',
+          )}
+        >
+          <Icon className="size-5 text-primary" strokeWidth={2.25} />
         </span>
-        <span className="space-y-1">
-          <span className="block font-semibold text-foreground">{label}</span>
-          <span className="block text-xs leading-snug text-muted-foreground">{description}</span>
+        <span className="flex min-w-0 flex-col gap-0.5 pr-4">
+          <span className="font-semibold leading-tight text-foreground">{label}</span>
+          <span className="text-xs leading-snug text-muted-foreground">{description}</span>
         </span>
-      </Label>
-    </div>
-  );
-}
-
-function RegisterRoleOption({
-  id,
-  name,
-  value,
-  checked,
-  onSelect,
-  label,
-}: {
-  id: string;
-  name: string;
-  value: string;
-  checked: boolean;
-  onSelect: () => void;
-  label: string;
-}) {
-  return (
-    <div className="relative">
-      <input
-        type="radio"
-        id={id}
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={onSelect}
-        className="peer sr-only"
-      />
-      <Label
-        htmlFor={id}
-        className={cn(
-          'flex cursor-pointer items-center rounded-xl border-2 border-border bg-card px-4 py-3 text-sm font-medium shadow-sm transition-all',
-          'hover:border-primary/50 hover:bg-muted/30 peer-checked:border-primary peer-checked:bg-primary/8 peer-checked:shadow-sm peer-checked:ring-2 peer-checked:ring-primary/15',
-        )}
-      >
-        {label}
       </Label>
     </div>
   );
@@ -328,6 +304,8 @@ function NipLookupField({
   label,
   nip,
   companyName,
+  city,
+  postalCode,
   lookupStatus,
   lookupMessage,
   validationError,
@@ -335,11 +313,14 @@ function NipLookupField({
   disabled,
   onNipChange,
   onNipBlur,
+  layout = 'split',
 }: {
   id: string;
   label: string;
   nip: string;
   companyName: string;
+  city?: string;
+  postalCode?: string;
   lookupStatus: NipLookupState['lookupStatus'];
   lookupMessage: string | null;
   validationError: string | null;
@@ -347,40 +328,67 @@ function NipLookupField({
   disabled?: boolean;
   onNipChange: (value: string) => void;
   onNipBlur: () => void;
+  layout?: 'split' | 'stack';
 }) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        value={nip}
-        onChange={e => onNipChange(e.target.value)}
-        onBlur={onNipBlur}
-        placeholder="0000000000"
-        className={authFieldClassName}
-        required
-        disabled={disabled}
-        inputMode="numeric"
-        autoComplete="off"
-      />
-      <div className="flex min-h-5 items-center gap-2">
-        {lookupStatus === 'loading' && (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-        )}
-        {validationError || (lookupStatus === 'error' && lookupMessage) ? (
-          <AuthFieldError
-            message={validationError ?? lookupMessage}
-            reserveSpace={false}
-            className="min-h-5 flex-1 border-0 bg-transparent p-0"
-          />
-        ) : (
-          <p
-            className="min-h-5 text-sm leading-5 text-foreground"
-            data-testid={companyNameTestId}
-          >
-            {companyName || '\u00a0'}
+  const errorMessage = validationError ?? (lookupStatus === 'error' ? lookupMessage : null);
+  const locationLine = [postalCode, city].filter(Boolean).join(' ');
+  const showCompany = Boolean(companyName && lookupStatus === 'success');
+
+  const resultCard = showCompany ? (
+    <div className="flex min-h-11 items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Building2 className="size-4" strokeWidth={2} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium leading-5 text-foreground" data-testid={companyNameTestId}>
+          {companyName}
+        </p>
+        {locationLine ? (
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="size-3 shrink-0" />
+            {locationLine}
           </p>
+        ) : null}
+      </div>
+    </div>
+  ) : lookupStatus === 'loading' ? (
+    <p className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="size-4 shrink-0 animate-spin" />
+      Pobieranie danych z GUS…
+    </p>
+  ) : null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div
+        className={cn(
+          'grid gap-3',
+          resultCard && layout === 'split' ? 'sm:grid-cols-2 sm:items-start' : 'grid-cols-1',
         )}
+      >
+        <div className="flex flex-col gap-2">
+          <Input
+            id={id}
+            value={nip}
+            onChange={e => onNipChange(e.target.value)}
+            onBlur={onNipBlur}
+            placeholder="0000000000"
+            className={authFieldClassName}
+            required
+            disabled={disabled}
+            inputMode="numeric"
+            autoComplete="off"
+          />
+          {errorMessage ? (
+            <AuthFieldError
+              message={errorMessage}
+              reserveSpace={false}
+              className="min-h-5 border-0 bg-transparent p-0"
+            />
+          ) : null}
+        </div>
+        {resultCard}
       </div>
     </div>
   );
@@ -389,9 +397,28 @@ function NipLookupField({
 const PASSWORD_MISMATCH_MESSAGE = 'Hasła nie są identyczne';
 
 const ENTITY_TILE_DESCRIPTIONS: Record<RegistrationEntityType, string> = {
-  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Zarząd wspólnoty lub administracja wspólnoty',
-  [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'Zarząd lub administracja spółdzielni',
-  [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'Firma wykonawcza szukająca zleceń',
+  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Zarząd lub administracja',
+  [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'Publikacja konkursów',
+  [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'Oferty w konkursach',
+};
+
+const ENTITY_DATA_SECTION_TITLES: Partial<Record<RegistrationEntityType, string>> = {
+  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Dane wspólnoty',
+};
+
+const FORM_SUBTITLES: Record<RegistrationEntityType, string> = {
+  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]:
+    'Konto dla zarządu lub administracji wspólnoty mieszkaniowej.',
+  [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]:
+    'Konto spółdzielni mieszkaniowej do publikacji konkursów.',
+  [REGISTRATION_ENTITY_TYPES.WYKONAWCA]:
+    'Konto firmy, która chce składać oferty w konkursach.',
+};
+
+const SUBMIT_LABELS: Record<RegistrationEntityType, string> = {
+  [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Załóż konto wspólnoty',
+  [REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]: 'Załóż konto spółdzielni',
+  [REGISTRATION_ENTITY_TYPES.WYKONAWCA]: 'Załóż konto wykonawcy',
 };
 
 function resolveDefaultEntityType(
@@ -439,12 +466,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const [registrationEntityType, setRegistrationEntityType] = useState<RegistrationEntityType>(
     () => resolveDefaultEntityType(registrationSettings, defaultUserTypeParam),
   );
-  const [wspolnotaSubRole, setWspolnotaSubRole] = useState<WspolnotaSubRole>(
-    WSPOLNOTA_SUB_ROLES.CONDO_BOARD,
-  );
-  const [spoldzielniaSubRole, setSpoldzielniaSubRole] = useState<SpoldzielniaSubRole>(
-    SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD,
-  );
+  const [isCommunityAdministration, setIsCommunityAdministration] = useState(false);
 
   const entityNipLookup = useNipLookup();
   const managementNipLookup = useNipLookup();
@@ -461,12 +483,15 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const selectedUserType = registrationEntityToUserType(registrationEntityType);
+  const wspolnotaSubRole = isCommunityAdministration
+    ? WSPOLNOTA_SUB_ROLES.PROPERTY_MANAGER
+    : WSPOLNOTA_SUB_ROLES.CONDO_BOARD;
   const accountRole = resolveRegistrationAccountRole(
     registrationEntityType,
     registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA
       ? wspolnotaSubRole
       : registrationEntityType === REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA
-        ? spoldzielniaSubRole
+        ? SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD
         : null,
   );
   const isPropertyManager = accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER;
@@ -476,12 +501,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
     setRegistrationEntityType(entityType);
     entityNipLookup.reset();
     managementNipLookup.reset();
-    if (entityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA) {
-      setWspolnotaSubRole(WSPOLNOTA_SUB_ROLES.CONDO_BOARD);
-    }
-    if (entityType === REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA) {
-      setSpoldzielniaSubRole(SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD);
-    }
+    setIsCommunityAdministration(false);
   };
 
   const phoneError = (() => {
@@ -642,7 +662,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
     formData.set('registrationEntityType', registrationEntityType);
     formData.set('accountRole', accountRole);
     formData.set('wspolnotaSubRole', wspolnotaSubRole);
-    formData.set('spoldzielniaSubRole', spoldzielniaSubRole);
+    formData.set('spoldzielniaSubRole', SPOLDZIELNIA_SUB_ROLES.COOPERATIVE_BOARD);
 
     if (organizationType) {
       formData.set('organizationType', organizationType);
@@ -778,15 +798,15 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   };
 
   const sideCopy = sideCopyByEntity[registrationEntityType];
-  const roleHeading = REGISTRATION_ROLE_HEADINGS[registrationEntityType];
 
   return (
     <AuthPageLayout
       testId="register-page"
       headingTestId="register-heading"
-      contentMaxWidth="lg"
+      contentMaxWidth="2xl"
       showMobileLogo={false}
       title="Zarejestruj się"
+      subtitle={FORM_SUBTITLES[registrationEntityType]}
       trustNote={sideCopy.trustNote}
       side={{
         heading: sideCopy.heading,
@@ -821,102 +841,123 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
       )}
 
       <AuthFormPanel>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <RegisterEntityTile
-              id="register-wspolnota"
-              checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA}
-              disabled={!registrationSettings.managerOpen}
-              onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.WSPOLNOTA)}
-              icon={Building2}
-              label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.WSPOLNOTA]}
-              description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.WSPOLNOTA]}
-            />
-            <RegisterEntityTile
-              id="register-spoldzielnia"
-              checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA}
-              disabled={!registrationSettings.managerOpen}
-              onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA)}
-              icon={Users}
-              label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]}
-              description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]}
-            />
-            <RegisterEntityTile
-              id="register-wykonawca"
-              checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.WYKONAWCA}
-              disabled={!registrationSettings.contractorOpen}
-              onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.WYKONAWCA)}
-              icon={Wrench}
-              label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.WYKONAWCA]}
-              description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.WYKONAWCA]}
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <AuthFormSection title="Typ konta">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <RegisterEntityTile
+                id="register-wspolnota"
+                checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA}
+                disabled={!registrationSettings.managerOpen}
+                onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.WSPOLNOTA)}
+                icon={Building2}
+                label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.WSPOLNOTA]}
+                description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.WSPOLNOTA]}
+              />
+              <RegisterEntityTile
+                id="register-spoldzielnia"
+                checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA}
+                disabled={!registrationSettings.managerOpen}
+                onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA)}
+                icon={Users}
+                label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]}
+                description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.SPOLDZIELNIA]}
+              />
+              <RegisterEntityTile
+                id="register-wykonawca"
+                checked={registrationEntityType === REGISTRATION_ENTITY_TYPES.WYKONAWCA}
+                disabled={!registrationSettings.contractorOpen}
+                onSelect={() => handleSelectEntityType(REGISTRATION_ENTITY_TYPES.WYKONAWCA)}
+                icon={Wrench}
+                label={REGISTRATION_ENTITY_LABELS[REGISTRATION_ENTITY_TYPES.WYKONAWCA]}
+                description={ENTITY_TILE_DESCRIPTIONS[REGISTRATION_ENTITY_TYPES.WYKONAWCA]}
+              />
+            </div>
+          </AuthFormSection>
+
+          <div key={registrationEntityType} className="flex flex-col gap-4">
+            <AuthFormSection title={ENTITY_DATA_SECTION_TITLES[registrationEntityType]}>
+              <div
+                className={cn(
+                  'grid gap-4',
+                  isPropertyManager ? 'lg:grid-cols-2' : null,
+                )}
+              >
+                <NipLookupField
+                  id="entityNip"
+                  label={REGISTRATION_NIP_LABELS[registrationEntityType]}
+                  nip={entityNipLookup.nip}
+                  companyName={entityNipLookup.companyName}
+                  city={entityNipLookup.city}
+                  postalCode={entityNipLookup.postalCode}
+                  lookupStatus={entityNipLookup.lookupStatus}
+                  lookupMessage={entityNipLookup.lookupMessage}
+                  validationError={entityNipLookup.validationError}
+                  companyNameTestId="register-company-name"
+                  disabled={isPending}
+                  onNipChange={entityNipLookup.setNip}
+                  onNipBlur={entityNipLookup.handleNipBlur}
+                  layout={isPropertyManager ? 'stack' : 'split'}
+                />
+
+                {isPropertyManager ? (
+                  <NipLookupField
+                    id="managementNip"
+                    label={REGISTRATION_MANAGEMENT_NIP_LABEL}
+                    nip={managementNipLookup.nip}
+                    companyName={managementNipLookup.companyName}
+                    city={managementNipLookup.city}
+                    postalCode={managementNipLookup.postalCode}
+                    lookupStatus={managementNipLookup.lookupStatus}
+                    lookupMessage={managementNipLookup.lookupMessage}
+                    validationError={managementNipLookup.validationError}
+                    companyNameTestId="register-management-company-name"
+                    disabled={isPending}
+                    onNipChange={managementNipLookup.setNip}
+                    onNipBlur={managementNipLookup.handleNipBlur}
+                    layout="stack"
+                  />
+                ) : null}
+              </div>
+
+              {registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA ? (
+                <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+                  <Checkbox
+                    id="communityAdministration"
+                    checked={isCommunityAdministration}
+                    onCheckedChange={checked => {
+                      const enabled = checked === true;
+                      setIsCommunityAdministration(enabled);
+                      if (!enabled) {
+                        managementNipLookup.reset();
+                      }
+                    }}
+                    disabled={isPending}
+                  />
+                  <label
+                    htmlFor="communityAdministration"
+                    className="flex min-w-0 cursor-pointer flex-wrap items-baseline gap-x-2 text-sm leading-snug"
+                  >
+                    <span className="font-medium text-foreground">
+                      {ACCOUNT_ROLE_DISPLAY_LABELS[ACCOUNT_ROLES.PROPERTY_MANAGER]}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Działam w imieniu firmy zarządzającej — potrzebny osobny NIP.
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+            </AuthFormSection>
           </div>
 
-          <NipLookupField
-            id="entityNip"
-            label={REGISTRATION_NIP_LABELS[registrationEntityType]}
-            nip={entityNipLookup.nip}
-            companyName={entityNipLookup.companyName}
-            lookupStatus={entityNipLookup.lookupStatus}
-            lookupMessage={entityNipLookup.lookupMessage}
-            validationError={entityNipLookup.validationError}
-            companyNameTestId="register-company-name"
-            disabled={isPending}
-            onNipChange={entityNipLookup.setNip}
-            onNipBlur={entityNipLookup.handleNipBlur}
-          />
-
-          {roleHeading ? (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">{roleHeading}</p>
-              <div className="grid gap-2">
-                {registrationEntityType === REGISTRATION_ENTITY_TYPES.WSPOLNOTA
-                  ? WSPOLNOTA_SUB_ROLE_OPTIONS.map(option => (
-                      <RegisterRoleOption
-                        key={option.value}
-                        id={`wspolnota-role-${option.value}`}
-                        name="wspolnotaSubRole"
-                        value={option.value}
-                        checked={wspolnotaSubRole === option.value}
-                        onSelect={() => setWspolnotaSubRole(option.value)}
-                        label={option.label}
-                      />
-                    ))
-                  : SPOLDZIELNIA_SUB_ROLE_OPTIONS.map(option => (
-                      <RegisterRoleOption
-                        key={option.value}
-                        id={`spoldzielnia-role-${option.value}`}
-                        name="spoldzielniaSubRole"
-                        value={option.value}
-                        checked={spoldzielniaSubRole === option.value}
-                        onSelect={() => setSpoldzielniaSubRole(option.value)}
-                        label={option.label}
-                      />
-                    ))}
-              </div>
-            </div>
-          ) : null}
-
-          {isPropertyManager ? (
-            <NipLookupField
-              id="managementNip"
-              label={REGISTRATION_MANAGEMENT_NIP_LABEL}
-              nip={managementNipLookup.nip}
-              companyName={managementNipLookup.companyName}
-              lookupStatus={managementNipLookup.lookupStatus}
-              lookupMessage={managementNipLookup.lookupMessage}
-              validationError={managementNipLookup.validationError}
-              companyNameTestId="register-management-company-name"
-              disabled={isPending}
-              onNipChange={managementNipLookup.setNip}
-              onNipBlur={managementNipLookup.handleNipBlur}
-            />
-          ) : null}
-
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-foreground">Dane osoby kontaktowej</p>
+          <AuthFormSection
+            title={
+              isPropertyManager
+                ? 'Dane osoby kontaktowej Administratora Wspólnoty'
+                : 'Dane osoby kontaktowej'
+            }
+          >
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="firstName">Imię</Label>
                 <Input
                   id="firstName"
@@ -928,7 +969,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                   autoComplete="given-name"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="lastName">Nazwisko</Label>
                 <Input
                   id="lastName"
@@ -940,10 +981,10 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                   autoComplete="family-name"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="phone">Telefon</Label>
                 <div className="relative">
-                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="phone"
                     name="phone"
@@ -961,12 +1002,12 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     aria-describedby={phoneError ? 'phone-error' : undefined}
                   />
                 </div>
-                <AuthFieldError message={phoneError} id="phone-error" />
+                <AuthFieldError message={phoneError} id="phone-error" reserveSpace={false} />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="email"
                     name="email"
@@ -983,16 +1024,12 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     aria-describedby={emailError ? 'email-error' : undefined}
                   />
                 </div>
-                <AuthFieldError message={emailError} id="email-error" />
+                <AuthFieldError message={emailError} id="email-error" reserveSpace={false} />
               </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="password">Hasło</Label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
                     name="password"
@@ -1013,14 +1050,14 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     tabIndex={-1}
                     aria-label={showPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="confirmPassword">Potwierdź hasło</Label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -1048,68 +1085,77 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     aria-label={showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="size-4" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="size-4" />
                     )}
                   </button>
                 </div>
-                <AuthFieldError message={passwordMismatchError} id="confirm-password-error" />
+                <AuthFieldError message={passwordMismatchError} id="confirm-password-error" reserveSpace={false} />
               </div>
             </div>
+          </AuthFormSection>
 
-          <div className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
-            <Checkbox
-              id="acceptTerms"
-              checked={acceptTerms}
-              onCheckedChange={v => setAcceptTerms(v === true)}
-              disabled={isPending}
-            />
-            <label htmlFor="acceptTerms" className="cursor-pointer text-sm leading-snug text-muted-foreground">
-              Akceptuję{' '}
-              <Link
-                href="/regulamin"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                regulamin
-              </Link>{' '}
-              i{' '}
-              <Link
-                href="/polityka-prywatnosci"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                politykę prywatności
-              </Link>
-              .
-            </label>
-          </div>
-          <input type="hidden" name="acceptTerms" value={acceptTerms ? '1' : '0'} />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 items-start gap-3 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+                <Checkbox
+                  id="acceptTerms"
+                  checked={acceptTerms}
+                  onCheckedChange={v => setAcceptTerms(v === true)}
+                  disabled={isPending}
+                />
+                <label htmlFor="acceptTerms" className="cursor-pointer text-sm leading-snug text-muted-foreground">
+                  Akceptuję{' '}
+                  <Link
+                    href="/regulamin"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    regulamin
+                  </Link>{' '}
+                  i{' '}
+                  <Link
+                    href="/polityka-prywatnosci"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    politykę prywatności
+                  </Link>
+                  .
+                </label>
+              </div>
+              <input type="hidden" name="acceptTerms" value={acceptTerms ? '1' : '0'} />
 
-          <Button
-            type="submit"
-            disabled={submitDisabled || isPending}
-            className="h-11 w-full"
-            data-testid="register-submit"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Rejestracja...
-              </>
+              <Button
+                type="submit"
+                disabled={submitDisabled || isPending}
+                className="h-11 w-full shrink-0 sm:w-auto sm:min-w-[15rem]"
+                data-testid="register-submit"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Rejestracja...
+                  </>
+                ) : (
+                  SUBMIT_LABELS[registrationEntityType]
+                )}
+              </Button>
+            </div>
+
+            {selectedUserType === 'manager' ? (
+              <p className="text-center text-xs text-muted-foreground sm:text-right">
+                Twoje dane służą wyłącznie do kontaktu z wybranymi wykonawcami.
+              </p>
             ) : (
-              'Zarejestruj się'
+              <p className="text-center text-xs text-muted-foreground sm:text-right">
+                Dokumenty weryfikacyjne możesz przesłać od razu albo później z konta.
+              </p>
             )}
-          </Button>
-
-          {selectedUserType === 'manager' ? (
-            <p className="text-center text-xs text-muted-foreground">
-              Twoje dane służą wyłącznie do kontaktu z wybranymi wykonawcami.
-            </p>
-          ) : null}
+          </div>
         </form>
       </AuthFormPanel>
     </AuthPageLayout>
