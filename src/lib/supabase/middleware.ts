@@ -12,6 +12,11 @@ import {
   contractorServicesGateSearch,
   isContractorServicesGateExemptPath,
 } from '../contractor-services-gate'
+import {
+  isManagerAccessPending,
+  isManagerVerificationPath,
+  MANAGER_VERIFICATION_PATH,
+} from '../auth/manager-access-pending'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -64,6 +69,7 @@ export async function updateSession(request: NextRequest) {
     '/tworzenie-przetargu',
     '/administracja',
     '/zapisane-zgloszenia',
+    MANAGER_VERIFICATION_PATH,
   ]
 
   const isProtectedPath = protectedPaths.some(path =>
@@ -92,23 +98,43 @@ export async function updateSession(request: NextRequest) {
   // Ghost session: auth cookie present but profile gone (e.g. after account deletion).
   if (user) {
     let servicesGateEnabled = true
+    let verificationFieldsAvailable = true
     const firstProfile = await supabase
       .from('user_profiles')
-      .select('user_type, platform_role, contractor_services_completed')
+      .select('user_type, platform_role, contractor_services_completed, is_verified')
       .eq('id', user.id)
       .maybeSingle()
 
     let profile = firstProfile.data
+      ? { ...firstProfile.data, email_verified_at: null as string | null }
+      : null
     if (firstProfile.error) {
       servicesGateEnabled = false
+      verificationFieldsAvailable = false
       const fallback = await supabase
         .from('user_profiles')
         .select('user_type, platform_role')
         .eq('id', user.id)
         .maybeSingle()
       profile = fallback.data
-        ? { ...fallback.data, contractor_services_completed: true }
+        ? {
+            ...fallback.data,
+            contractor_services_completed: true,
+            is_verified: null,
+            email_verified_at: null,
+          }
         : null
+    } else if (profile) {
+      const emailVerified = await supabase
+        .from('user_profiles')
+        .select('email_verified_at')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (emailVerified.error) {
+        verificationFieldsAvailable = false
+      } else {
+        profile.email_verified_at = emailVerified.data?.email_verified_at ?? null
+      }
     }
 
     if (!profile) {
@@ -174,6 +200,32 @@ export async function updateSession(request: NextRequest) {
       }
       return '/panel-zarzadcy'
     })()
+
+    const managerPending = isManagerAccessPending({
+      userType: profile.user_type,
+      platformRole: routeAsAdmin ? 'platform_admin' : profile.platform_role,
+      isVerified: profile.is_verified,
+      emailVerifiedAt: profile.email_verified_at,
+      verificationFieldsAvailable,
+    })
+    const isVerificationHoldPath = isManagerVerificationPath(pathname)
+
+    if (managerPending && !routeAsAdmin) {
+      if (
+        !isVerificationHoldPath &&
+        (isProtectedPath || isAuthEntryPath || isManagerContestRoute)
+      ) {
+        const url = request.nextUrl.clone()
+        url.pathname = MANAGER_VERIFICATION_PATH
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    } else if (isVerificationHoldPath && !routeAsAdmin) {
+      const url = request.nextUrl.clone()
+      url.pathname = homePathFor
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
 
     if (
       isAuthEntryPath ||

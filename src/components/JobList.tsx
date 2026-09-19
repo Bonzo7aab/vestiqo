@@ -1,10 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowUpDown, Star, Map } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpDown, ClipboardList, Map, Plus, SearchX, Star } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Toggle } from './ui/toggle';
 import { Label } from './ui/label';
+import { Button } from './ui/button';
 import JobCard from './JobCard';
+import { ContestListEmptyState } from './home/ContestListEmptyState';
+import { routes } from '../lib/routes';
 import type { FilterState } from '../lib/filters/filter-state';
 import { getBookmarkedJobs, addBookmark, removeBookmark } from '../utils/bookmarkStorage';
 import { resolveBookmarkEntityType } from '../lib/bookmark/resolve-entity-type';
@@ -300,28 +304,44 @@ export default function JobList({
       </div>
 
       {isLoadingJobs && sortedJobs.length === 0 && (
-        <div className="text-center py-8">
-          <div className="flex flex-col items-center space-y-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            <div className="text-muted-foreground mb-2">Ładowanie konkursów...</div>
-          </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 px-6 py-14 text-center">
+          <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">Ładowanie konkursów...</p>
         </div>
       )}
 
       {!isLoadingJobs && sortedJobs.length === 0 && availableJobs.length === 0 && (
-        <div className="text-center py-8">
-          <div className="text-muted-foreground mb-2">Brak konkursów</div>
-        </div>
+        <ContestListEmptyState
+          icon={ClipboardList}
+          title="Brak konkursów"
+          description="Nie ma obecnie aktywnych konkursów ofert. Nowe ogłoszenia pojawią się tutaj, gdy zarządcy je opublikują."
+          action={
+            isManager ? (
+              <Button asChild>
+                <Link href={routes.dodajKonkurs}>
+                  <Plus className="h-4 w-4" />
+                  Utwórz konkurs
+                </Link>
+              </Button>
+            ) : undefined
+          }
+        />
       )}
 
       {!isLoadingJobs && sortedJobs.length === 0 && availableJobs.length > 0 && (
-        <div className="text-center py-8">
-          <div className="text-muted-foreground mb-2">
-            {filters?.favoritesOnly
-              ? 'Brak zapisanych konkursów pasujących do filtrów'
-              : 'Brak konkursów pasujących do filtrów'}
-          </div>
-        </div>
+        <ContestListEmptyState
+          icon={SearchX}
+          title={
+            filters?.favoritesOnly
+              ? 'Brak zapisanych konkursów'
+              : 'Brak konkursów pasujących do filtrów'
+          }
+          description={
+            filters?.favoritesOnly
+              ? 'Nie masz jeszcze zapisanych konkursów spełniających wybrane kryteria. Dodaj konkurs do zapisanych, aby wrócić do niego później.'
+              : 'Żaden aktywny konkurs nie spełnia wybranych kryteriów. Zmień lokalizację, kategorię albo inne filtry, aby zobaczyć więcej wyników.'
+          }
+        />
       )}
 
       <AnimatedList

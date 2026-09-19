@@ -19,20 +19,12 @@ interface ResolveVerificationStatusInput {
 /**
  * Single source of truth for contractor/manager verification state.
  * Contractors: OPD-118 registry approval (CEIDG/KRS + MF), or admin `is_verified`.
+ * Managers: admin `is_verified` after registration (email is a separate login gate).
  */
 export function resolveVerificationStatus(
   input: ResolveVerificationStatusInput,
 ): VerificationStatus {
   const submittedAt = input.submittedAt ?? null;
-
-  if (input.userType === 'manager') {
-    return {
-      state: 'approved',
-      submittedAt,
-      decidedAt: null,
-      reason: null,
-    };
-  }
 
   if (input.userType === 'contractor') {
     const registryApproved =

@@ -12,6 +12,11 @@ import type { AuthUser } from '../types/auth';
 import { createClient } from '../lib/supabase/client';
 import { fetchUserPrimaryCompany, upsertUserCompany } from '../lib/database/companies';
 import { ManagedHousingEntityManagement } from './ManagedHousingEntityManagement';
+import {
+  ACCOUNT_ROLES,
+  getManagedHousingUiCopy,
+  resolveAccountRole,
+} from '../lib/profile/account-role-labels';
 import { cn } from './ui/utils';
 import { GusNipStatusHint } from './gus/GusNipStatusHint';
 import { useGusNipLookup } from '../lib/gus/use-gus-nip-lookup';
@@ -41,6 +46,14 @@ const CONTRACTOR_COMPANY_TYPES = [
 
 export function CompanyManagementForm({ user, managedEntitiesOnly = false }: CompanyManagementFormProps) {
   const isManager = user.userType === 'manager';
+  const accountRole = resolveAccountRole({
+    userType: user.userType,
+    accountRole: user.accountRole,
+    organizationType: user.organizationType,
+  });
+  const housingCopy = getManagedHousingUiCopy(accountRole);
+  const housingVariant =
+    accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER ? 'admin' : 'board';
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -400,7 +413,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <p className="ml-2 text-sm text-muted-foreground">
-            {managedEntitiesOnly ? 'Ładowanie nieruchomości...' : 'Ładowanie danych firmy...'}
+            {managedEntitiesOnly ? housingCopy.loadingList : 'Ładowanie danych firmy...'}
           </p>
         </div>
       </div>
@@ -411,17 +424,21 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
     return (
       <div className="space-y-4" id="nieruchomosci">
         {hasCompany && companyId ? (
-          <ManagedHousingEntityManagement companyId={companyId} />
+          <ManagedHousingEntityManagement
+            companyId={companyId}
+            copy={housingCopy}
+            variant={housingVariant}
+          />
         ) : (
           <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-center gap-2 mb-2">
               <Building className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-medium">Zarządzanie nieruchomościami</h4>
+              <h4 className="font-medium">{housingCopy.companyRequiredTitle}</h4>
             </div>
             <div className="text-center py-6">
               <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
-                Najpierw uzupełnij dane firmy w zakładce Twoje dane, aby dodawać nieruchomości.
+                {housingCopy.companyRequiredBody}
               </p>
             </div>
           </div>

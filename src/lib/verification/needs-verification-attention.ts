@@ -55,6 +55,8 @@ export function mergeAuthUsersForDisplay(
   const accountRole = sources.find(user => user.accountRole)?.accountRole ?? base.accountRole ?? null;
   const organizationType =
     sources.find(user => user.organizationType)?.organizationType ?? base.organizationType ?? null;
+  const emailVerifiedAt =
+    sources.find(user => user.emailVerifiedAt)?.emailVerifiedAt ?? base.emailVerifiedAt ?? null;
 
   return {
     ...base,
@@ -63,5 +65,6 @@ export function mergeAuthUsersForDisplay(
     verificationSubmittedAt,
     accountRole,
     organizationType,
+    emailVerifiedAt,
   };
 }

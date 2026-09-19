@@ -941,7 +941,8 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                       {ACCOUNT_ROLE_DISPLAY_LABELS[ACCOUNT_ROLES.PROPERTY_MANAGER]}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Działam w imieniu firmy zarządzającej — potrzebny osobny NIP.
+                      Tworzymy osobne konto firmy zarządzającej i osobny wpis wspólnoty.
+                      Później dodasz kolejne wspólnoty do zarządzania.
                     </span>
                   </label>
                 </div>

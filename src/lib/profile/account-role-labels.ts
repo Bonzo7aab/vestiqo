@@ -103,11 +103,171 @@ export function getAccountRoleDisplayLabel(input: ResolveAccountRoleInput): stri
   return ACCOUNT_ROLE_DISPLAY_LABELS[resolveAccountRole(input)];
 }
 
-/** WM/SM list on /konto applies only to delegated property managers. */
+/** WM/SM list on /konto for Zarząd Wspólnoty and Administracja Wspólnoty. */
 export function shouldShowManagedHousingEntitiesOnAccount(
   accountRole: AccountRole | string | null | undefined,
 ): boolean {
-  return accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER;
+  return (
+    accountRole === ACCOUNT_ROLES.CONDO_BOARD ||
+    accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER
+  );
+}
+
+export interface ManagedHousingUiCopy {
+  tab: string;
+  sectionTitle: string;
+  listTitle: string;
+  listCountOne: string;
+  listCountMany: string;
+  listIntro: string;
+  searchPlaceholder: string;
+  emptyListTitle: string;
+  childCountColumn: string;
+  listRootLabel: string;
+  nipFieldLabel: string;
+  addEntity: string;
+  emptyList: string;
+  loadEntitiesError: string;
+  needGusName: string;
+  addEntityError: string;
+  addEntitySuccess: string;
+  deleteEntityError: string;
+  deleteEntitySuccess: string;
+  backToList: string;
+  deleteEntity: string;
+  deleteEntityConfirmTitle: string;
+  deleteEntityConfirmWithChildren: string;
+  basicsHint: string;
+  overviewTab: string;
+  saveBasicsLabel: string;
+  childTab: string;
+  childIntro: string;
+  addChild: string;
+  emptyChildrenTitle: string;
+  emptyChildren: string;
+  addChildDialogTitle: string;
+  addChildDialogDescription: string;
+  addChildNameLabel: string;
+  addChildNamePlaceholder: string;
+  addChildNameRequired: string;
+  addChildError: string;
+  addChildSuccess: string;
+  loadChildrenError: string;
+  deleteChildSuccess: string;
+  companyRequiredTitle: string;
+  companyRequiredBody: string;
+  loadingList: string;
+}
+
+const CONDO_BOARD_HOUSING_COPY: ManagedHousingUiCopy = {
+  tab: 'Nieruchomości',
+  sectionTitle: 'Nieruchomości',
+  listTitle: 'Rejestr nieruchomości',
+  listCountOne: 'nieruchomość',
+  listCountMany: 'nieruchomości',
+  listIntro:
+    'Wspólnoty dodawane po NIP, z budynkami, danymi technicznymi i kalendarzem przeglądów.',
+  searchPlaceholder: 'Szukaj po nazwie, NIP lub mieście',
+  emptyListTitle: 'Brak nieruchomości w rejestrze',
+  childCountColumn: 'Budynki',
+  listRootLabel: 'Nieruchomości',
+  nipFieldLabel: 'NIP nieruchomości *',
+  addEntity: 'Dodaj nieruchomość',
+  emptyList:
+    'Nie masz jeszcze dodanych nieruchomości. Dodaj nieruchomość po numerze NIP — dane zostaną pobrane z rejestru GUS.',
+  loadEntitiesError: 'Nie udało się wczytać nieruchomości',
+  needGusName: 'Wyszukaj NIP w rejestrze GUS, aby pobrać dane nieruchomości',
+  addEntityError: 'Nie udało się dodać nieruchomości',
+  addEntitySuccess: 'Dodano nieruchomość',
+  deleteEntityError: 'Nie udało się usunąć nieruchomości',
+  deleteEntitySuccess: 'Usunięto nieruchomość',
+  backToList: 'Lista nieruchomości',
+  deleteEntity: 'Usuń nieruchomość',
+  deleteEntityConfirmTitle: 'Usunąć nieruchomość?',
+  deleteEntityConfirmWithChildren: 'wraz z budynkami i przeglądami',
+  basicsHint: 'Pola pobrane z NIP (GUS). Numer NIP jest stały po dodaniu nieruchomości.',
+  overviewTab: 'Przegląd',
+  saveBasicsLabel: 'Zapisz',
+  childTab: 'Budynki',
+  childIntro:
+    'Dodaj budynki należące do tej nieruchomości i uzupełnij dane techniczne oraz kalendarz przeglądów.',
+  addChild: 'Dodaj budynek',
+  emptyChildrenTitle: 'Brak budynków w rejestrze',
+  emptyChildren: 'Brak budynków. Dodaj pierwszy budynek, aby uzupełnić dane techniczne.',
+  addChildDialogTitle: 'Dodaj budynek',
+  addChildDialogDescription:
+    'Podaj nazwę lub identyfikator budynku. Szczegóły uzupełnisz w kolejnym kroku.',
+  addChildNameLabel: 'Nazwa / Identyfikator budynku',
+  addChildNamePlaceholder: 'Np. „Budynek A”',
+  addChildNameRequired: 'Podaj nazwę / identyfikator budynku',
+  addChildError: 'Nie udało się dodać budynku',
+  addChildSuccess: 'Dodano budynek',
+  loadChildrenError: 'Nie udało się wczytać budynków',
+  deleteChildSuccess: 'Usunięto budynek',
+  companyRequiredTitle: 'Zarządzanie nieruchomościami',
+  companyRequiredBody:
+    'Najpierw uzupełnij dane firmy w zakładce Twoje dane, aby dodawać nieruchomości.',
+  loadingList: 'Ładowanie nieruchomości...',
+};
+
+const PROPERTY_MANAGER_HOUSING_COPY: ManagedHousingUiCopy = {
+  tab: 'Wspólnota',
+  sectionTitle: 'Wspólnoty',
+  listTitle: 'Portfel wspólnot',
+  listCountOne: 'wspólnota',
+  listCountMany: 'wspólnoty',
+  listIntro:
+    'Wspólnoty dodawane po NIP, z rejestrem nieruchomości, danymi technicznymi i przeglądami.',
+  searchPlaceholder: 'Szukaj po nazwie, NIP lub mieście',
+  emptyListTitle: 'Brak wspólnot w portfelu',
+  childCountColumn: 'Nieruchomości',
+  listRootLabel: 'Wspólnoty',
+  nipFieldLabel: 'NIP wspólnoty mieszkaniowej *',
+  addEntity: 'Dodaj wspólnotę',
+  emptyList:
+    'Nie masz jeszcze dodanych wspólnot. Dodaj wspólnotę po numerze NIP — dane zostaną pobrane z rejestru GUS.',
+  loadEntitiesError: 'Nie udało się wczytać wspólnot',
+  needGusName: 'Wyszukaj NIP w rejestrze GUS, aby pobrać dane wspólnoty',
+  addEntityError: 'Nie udało się dodać wspólnoty',
+  addEntitySuccess: 'Dodano wspólnotę',
+  deleteEntityError: 'Nie udało się usunąć wspólnoty',
+  deleteEntitySuccess: 'Usunięto wspólnotę',
+  backToList: 'Lista wspólnot',
+  deleteEntity: 'Usuń wspólnotę',
+  deleteEntityConfirmTitle: 'Usunąć wspólnotę?',
+  deleteEntityConfirmWithChildren: 'wraz z nieruchomościami i przeglądami',
+  basicsHint: 'Pola pobrane z NIP (GUS). Numer NIP jest stały po dodaniu wspólnoty.',
+  overviewTab: 'Przegląd',
+  saveBasicsLabel: 'Zapisz',
+  childTab: 'Nieruchomości',
+  childIntro:
+    'Dodaj nieruchomości należące do tej wspólnoty i uzupełnij dane techniczne oraz kalendarz przeglądów.',
+  addChild: 'Dodaj nieruchomość',
+  emptyChildrenTitle: 'Brak nieruchomości w rejestrze',
+  emptyChildren:
+    'Brak nieruchomości. Dodaj pierwszą nieruchomość, aby uzupełnić dane techniczne.',
+  addChildDialogTitle: 'Dodaj nieruchomość',
+  addChildDialogDescription:
+    'Podaj nazwę lub identyfikator nieruchomości. Szczegóły uzupełnisz w kolejnym kroku.',
+  addChildNameLabel: 'Nazwa / Identyfikator nieruchomości',
+  addChildNamePlaceholder: 'Np. „Budynek A”',
+  addChildNameRequired: 'Podaj nazwę / identyfikator nieruchomości',
+  addChildError: 'Nie udało się dodać nieruchomości',
+  addChildSuccess: 'Dodano nieruchomość',
+  loadChildrenError: 'Nie udało się wczytać nieruchomości',
+  deleteChildSuccess: 'Usunięto nieruchomość',
+  companyRequiredTitle: 'Zarządzanie wspólnotami',
+  companyRequiredBody:
+    'Najpierw uzupełnij dane firmy w zakładce Twoje dane, aby dodawać wspólnoty.',
+  loadingList: 'Ładowanie wspólnot...',
+};
+
+export function getManagedHousingUiCopy(
+  accountRole: AccountRole | string | null | undefined,
+): ManagedHousingUiCopy {
+  return accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER
+    ? PROPERTY_MANAGER_HOUSING_COPY
+    : CONDO_BOARD_HOUSING_COPY;
 }
 
 /** Top-level registration entity type (OPD-128). */

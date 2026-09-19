@@ -29,6 +29,7 @@ import {
   type KontoTab,
 } from '../lib/konto-tabs';
 import {
+  getManagedHousingUiCopy,
   resolveAccountRole,
   shouldShowManagedHousingEntitiesOnAccount,
 } from '../lib/profile/account-role-labels';
@@ -184,6 +185,7 @@ export function UserAccountPageClient({
     organizationType: user.organizationType,
   });
   const showManagedHousingEntities = shouldShowManagedHousingEntitiesOnAccount(accountRole);
+  const managedHousingCopy = getManagedHousingUiCopy(accountRole);
   const isOnboarding = searchParams.get('onboarding') === '1';
 
   return (
@@ -274,7 +276,7 @@ export function UserAccountPageClient({
                         : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                     )}
                   >
-                    Nieruchomości
+                    {managedHousingCopy.tab}
                   </button>
                 ) : null}
               </>

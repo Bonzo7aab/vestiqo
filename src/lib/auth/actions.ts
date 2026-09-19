@@ -24,7 +24,9 @@ import { findAuthUserByEmail } from './find-user-by-email'
 import { generateSecurePassword } from './generate-password'
 import { validatePasswordStrength } from './password-policy'
 import { sendPasswordResetEmail } from '../email/send-password-reset-email'
+import { sendManagerEmailVerification } from '../email/send-manager-email-verification'
 import { createAdminClientOrNull } from '../supabase/admin'
+import { isManagerAccessPending, MANAGER_VERIFICATION_PATH } from './manager-access-pending'
 import * as Sentry from '@sentry/nextjs'
 import {
   ACCOUNT_ROLES,
@@ -109,26 +111,69 @@ async function loginActionImpl(
     if (userId) {
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('user_type, platform_role')
+        .select('user_type, platform_role, is_verified')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
-      if (profileError) {
-        return { error: translateAuthErrorMessage(profileError.message) }
+      let userType = profile?.user_type ?? null
+      let platformRole = profile?.platform_role ?? null
+      let isVerified = profile?.is_verified ?? null
+      let emailVerifiedAt: string | null = null
+      let verificationFieldsAvailable = !profileError && Boolean(profile)
+
+      if (profileError || !profile) {
+        const fallback = await supabase
+          .from('user_profiles')
+          .select('user_type, platform_role')
+          .eq('id', userId)
+          .single()
+
+        if (fallback.error) {
+          return { error: translateAuthErrorMessage(fallback.error.message) }
+        }
+
+        userType = fallback.data?.user_type ?? null
+        platformRole = fallback.data?.platform_role ?? null
+        isVerified = null
+        emailVerifiedAt = null
+        verificationFieldsAvailable = false
+      } else {
+        const emailLookup = await supabase
+          .from('user_profiles')
+          .select('email_verified_at')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (emailLookup.error) {
+          verificationFieldsAvailable = false
+        } else {
+          emailVerifiedAt = emailLookup.data?.email_verified_at ?? null
+        }
       }
 
-      const isAdmin = profile?.platform_role === 'platform_admin'
-      const isContractor = profile?.user_type === 'contractor'
+      const isAdmin = platformRole === 'platform_admin'
+      const isContractor = userType === 'contractor'
+      const managerPending = isManagerAccessPending({
+        userType,
+        platformRole,
+        isVerified,
+        emailVerifiedAt,
+        verificationFieldsAvailable,
+      })
 
       const roleHome = isAdmin
         ? '/administracja'
-        : isContractor
-          ? '/panel-wykonawcy'
-          : '/panel-zarzadcy'
+        : managerPending
+          ? MANAGER_VERIFICATION_PATH
+          : isContractor
+            ? '/panel-wykonawcy'
+            : '/panel-zarzadcy'
 
       if (isAdmin) {
         // Admins always land on /administracja regardless of `redirectTo`.
         redirectTo = '/administracja'
+      } else if (managerPending) {
+        redirectTo = MANAGER_VERIFICATION_PATH
       } else if (requestedRedirect) {
         const forbiddenForContractor =
           isContractor && isRedirectForbiddenForContractor(requestedRedirect)
@@ -408,6 +453,7 @@ async function registerActionImpl(
   const session = provisioned.session
   const writer = session ? supabase : admin
 
+  const registeredAt = new Date().toISOString()
   const { error: profileError } = await writer
     .from('user_profiles')
     .insert({
@@ -419,7 +465,9 @@ async function registerActionImpl(
       nip: normalizedNip,
       account_role: accountRole,
       organization_type: organizationType,
-      is_verified: userType === 'manager',
+      is_verified: false,
+      email_verified_at: userType === 'contractor' ? registeredAt : null,
+      verification_submitted_at: userType === 'manager' ? registeredAt : null,
       profile_completed: false,
       onboarding_completed: false,
     })
@@ -447,8 +495,8 @@ async function registerActionImpl(
     country: 'PL',
     email: email,
     phone: normalizedPhone || null,
-    is_verified: userType === 'manager',
-    verification_level: userType === 'manager' ? ('verified' as const) : ('none' as const),
+    is_verified: false,
+    verification_level: 'none' as const,
   }
 
   const { data: companyRow, error: companyError } = await writer
@@ -553,17 +601,31 @@ async function registerActionImpl(
     }
   }
 
-  revalidatePath('/', 'layout')
+  if (userType === 'manager') {
+    try {
+      const sendResult = await sendManagerEmailVerification({
+        toEmail: email,
+        userId,
+        origin,
+      })
+      if (!sendResult.sent) {
+        console.error('[registerAction] manager verification email not sent', {
+          userId,
+          reason: sendResult.skippedReason,
+        })
+      }
+    } catch (error) {
+      console.error('[registerAction] manager verification email failed', error)
+    }
+  }
 
-  const successMessage = encodeURIComponent(
-    'Konto zostało utworzone pomyślnie. Zostałeś automatycznie zalogowany.'
-  )
+  revalidatePath('/', 'layout')
 
   if (session) {
     const redirectTo =
       userType === 'contractor'
         ? `/konto?tab=uslugi&onboarding=1`
-        : `/panel-zarzadcy/konkursy?message=${successMessage}`
+        : MANAGER_VERIFICATION_PATH
     return { success: true, redirectTo }
   }
 
@@ -747,6 +809,52 @@ async function resendConfirmationEmailActionImpl(
   return { success: true };
 }
 
+async function resendManagerEmailVerificationActionImpl(): Promise<
+  { success: true } | { error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.email) {
+    return { error: 'Musisz być zalogowany, aby wysłać ponownie wiadomość.' };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('user_type, platform_role, is_verified, email_verified_at')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return { error: 'Nie znaleziono profilu.' };
+  }
+
+  if (profile.user_type !== 'manager' || profile.platform_role === 'platform_admin') {
+    return { error: 'Ta wiadomość dotyczy kont zarządców.' };
+  }
+
+  if (profile.email_verified_at) {
+    return { error: 'Adres email jest już potwierdzony.' };
+  }
+
+  const origin = getPublicAppOrigin();
+  const sendResult = await sendManagerEmailVerification({
+    toEmail: user.email,
+    userId: user.id,
+    origin,
+  });
+
+  if (!sendResult.sent) {
+    console.error('[resendManagerEmailVerificationAction] send failed', sendResult.skippedReason);
+    return { error: 'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę.' };
+  }
+
+  return { success: true };
+}
+
 /**
  * Server Action for password reset (legacy name; same as request flow used on forgot-password).
  */
@@ -864,5 +972,9 @@ export const requestPasswordResetEmailAction = instrumentServerAction(
 export const resendConfirmationEmailAction = instrumentServerAction(
   'resendConfirmationEmailAction',
   resendConfirmationEmailActionImpl,
+)
+export const resendManagerEmailVerificationAction = instrumentServerAction(
+  'resendManagerEmailVerificationAction',
+  resendManagerEmailVerificationActionImpl,
 )
 export const deleteAccountAction = instrumentServerAction('deleteAccountAction', deleteAccountActionImpl)

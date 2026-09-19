@@ -209,3 +209,19 @@ export function inspectionStatusLabel(status: BuildingInspectionStatus): string 
       return 'Brak daty';
   }
 }
+
+const INSPECTION_STATUS_RANK: Record<BuildingInspectionStatus, number> = {
+  overdue: 0,
+  upcoming: 1,
+  current: 2,
+  unknown: 3,
+};
+
+export function worstInspectionStatus(
+  statuses: BuildingInspectionStatus[],
+): BuildingInspectionStatus {
+  if (statuses.length === 0) return 'unknown';
+  return statuses.reduce((worst, status) =>
+    INSPECTION_STATUS_RANK[status] < INSPECTION_STATUS_RANK[worst] ? status : worst,
+  );
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import posthog from 'posthog-js';
 import {
   User,
@@ -127,19 +127,15 @@ export function Header({
   const pathname = usePathname();
   const { setIsMapExpanded } = useLayoutContext();
   const { user: contextUser, session, isAuthenticated: contextIsAuthenticated, logout, isLoading } = useUserProfile();
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [isScrolled, setIsScrolled] = useState(false);
   const [liveVerificationSubmittedAt, setLiveVerificationSubmittedAt] = useState<
     string | null | undefined
   >(undefined);
-
-  // Ensure consistent hydration
-  useEffect(() => {
-    // Use setTimeout to avoid synchronous setState in effect
-    setTimeout(() => {
-      setIsMounted(true);
-    }, 0);
-  }, []);
 
   useEffect(() => {
     const syncScrolled = () => {
@@ -150,10 +146,12 @@ export function Header({
     return () => window.removeEventListener('scroll', syncScrolled);
   }, []);
   
-  // Authentication state: use context when mounted; before mount, trust server initialUser
-  const userIsAuthenticated = isMounted
-    ? contextIsAuthenticated
-    : !!(initialUser || contextIsAuthenticated)
+  // Authentication: match SSR (initialUser only) until mount, then follow client session.
+  // Mixing context before mount hydrates logged-in chrome against logged-out HTML.
+  const userIsAuthenticated =
+    isMounted && !isLoading
+      ? contextIsAuthenticated
+      : Boolean(initialUser || (isMounted && contextIsAuthenticated));
 
   // Merge client + server profile so verification_submitted_at from SSR is kept in the menu label.
   const currentUser = useMemo(() => {

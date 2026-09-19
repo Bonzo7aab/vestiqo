@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { createClient } from '../lib/supabase/client';
 import {
   deleteManagedBuilding,
@@ -41,6 +42,7 @@ import { cn } from './ui/utils';
 
 interface ManagedBuildingEditorProps {
   building: ManagedBuilding;
+  grouped?: boolean;
   onUpdated: (building: ManagedBuilding) => void;
   onDeleted: (buildingId: string) => void;
   onClose: () => void;
@@ -59,8 +61,37 @@ function statusBadgeClass(status: ReturnType<typeof computeInspectionStatus>): s
   }
 }
 
+function EditorSection({
+  grouped,
+  title,
+  children,
+}: {
+  grouped: boolean;
+  title: string;
+  children: ReactNode;
+}): ReactElement {
+  if (!grouped) {
+    return (
+      <section className="space-y-3">
+        <h4 className="text-sm font-semibold">{title}</h4>
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="border-b pb-4">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-5">{children}</CardContent>
+    </Card>
+  );
+}
+
 export function ManagedBuildingEditor({
   building,
+  grouped = false,
   onUpdated,
   onDeleted,
   onClose,
@@ -176,7 +207,7 @@ export function ManagedBuildingEditor({
   };
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-4">
+    <div className={cn('space-y-4', !grouped && 'rounded-lg border bg-card p-4')}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-base font-semibold">{building.name}</h3>
@@ -190,11 +221,11 @@ export function ManagedBuildingEditor({
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => void handleDelete()}
             disabled={isDeleting}
-            className="text-destructive hover:text-destructive"
+            className="text-muted-foreground hover:text-destructive"
           >
             {isDeleting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -209,24 +240,25 @@ export function ManagedBuildingEditor({
       {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
 
       <Tabs defaultValue="technical" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2">
+        <TabsList className="w-full max-w-md">
           <TabsTrigger value="technical">Dane Techniczne</TabsTrigger>
           <TabsTrigger value="inspections">Kalendarz Przeglądów</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="technical" className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="building-name">Nazwa / Identyfikator budynku</Label>
-            <Input
-              id="building-name"
-              value={formData.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder='Np. „Budynek A”, „ul. Królewska 4A”'
-            />
-          </div>
+        <TabsContent value="technical" className="space-y-4">
+          <EditorSection grouped={grouped} title="Identyfikator">
+            <div className="space-y-2">
+              <Label htmlFor="building-name">Nazwa / Identyfikator budynku</Label>
+              <Input
+                id="building-name"
+                value={formData.name}
+                onChange={(e) => updateField('name', e.target.value)}
+                placeholder='Np. „Budynek A”, „ul. Królewska 4A”'
+              />
+            </div>
+          </EditorSection>
 
-          <section className="space-y-3">
-            <h4 className="text-sm font-semibold">Gabaryty i konstrukcja budynku</h4>
+          <EditorSection grouped={grouped} title="Gabaryty i konstrukcja budynku">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba kondygnacji nadziemnych</Label>
@@ -281,10 +313,9 @@ export function ManagedBuildingEditor({
                 />
               </div>
             </div>
-          </section>
+          </EditorSection>
 
-          <section className="space-y-3">
-            <h4 className="text-sm font-semibold">Instalacja gazowa budynku</h4>
+          <EditorSection grouped={grouped} title="Instalacja gazowa budynku">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba lokali z podłączeniem gazowym</Label>
@@ -312,10 +343,9 @@ export function ManagedBuildingEditor({
                 Budynek posiada własną kotłownię gazową
               </label>
             </div>
-          </section>
+          </EditorSection>
 
-          <section className="space-y-3">
-            <h4 className="text-sm font-semibold">Przewody kominowe budynku</h4>
+          <EditorSection grouped={grouped} title="Przewody kominowe budynku">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba punktów / otworów kominowych w lokalach</Label>
@@ -348,10 +378,9 @@ export function ManagedBuildingEditor({
                 </div>
               </div>
             </div>
-          </section>
+          </EditorSection>
 
-          <section className="space-y-3">
-            <h4 className="text-sm font-semibold">Instalacja elektryczna i odgromowa</h4>
+          <EditorSection grouped={grouped} title="Instalacja elektryczna i odgromowa">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba lokali mieszkalnych / użytkowych ogółem</Label>
@@ -378,10 +407,9 @@ export function ManagedBuildingEditor({
                 />
               </div>
             </div>
-          </section>
+          </EditorSection>
 
-          <section className="space-y-3">
-            <h4 className="text-sm font-semibold">Instalacje sanitarne i ppoż.</h4>
+          <EditorSection grouped={grouped} title="Instalacje sanitarne i ppoż.">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba węzłów cieplnych / kotłowni</Label>
@@ -401,12 +429,14 @@ export function ManagedBuildingEditor({
                 Budynek posiada wewnętrzną instalację hydrantową
               </label>
             </div>
-          </section>
+          </EditorSection>
 
-          <Button type="button" onClick={() => void handleSaveTechnical()} disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Zapisz dane techniczne
-          </Button>
+          <div className={cn(grouped && 'flex justify-end')}>
+            <Button type="button" onClick={() => void handleSaveTechnical()} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Zapisz dane techniczne
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="inspections" className="space-y-3">
@@ -422,7 +452,10 @@ export function ManagedBuildingEditor({
                 return (
                   <div
                     key={def.type}
-                    className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-end"
+                    className={cn(
+                      'grid gap-3 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-end',
+                      grouped ? 'rounded-xl border bg-card' : 'rounded-lg border',
+                    )}
                   >
                     <div>
                       <p className="text-sm font-medium">{def.label}</p>

@@ -1,5 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createTestUser, deleteTestUser, clearAuthState, waitForAuthInitialized } from '../helpers/auth-helpers';
+import {
+  createTestUser,
+  deleteTestUser,
+  clearAuthState,
+  waitForAuthInitialized,
+  fetchUserRegistrationRecordsByEmail,
+} from '../helpers/auth-helpers';
 import { ROUTES } from '../config/constants';
 
 /** Valid Polish NIP used when GUS lookup is available in the test environment. */
@@ -154,20 +160,80 @@ test.describe('Registration Page', () => {
 
     await page.click('button[type="submit"]');
 
-    // Wait for redirect to contests list (auto-login) or login (email confirm)
+    // Wait for redirect to verification hold (auto-login) or login (no session)
     await page.waitForURL(
       (url) =>
-        url.pathname.includes('/panel-zarzadcy/konkursy') ||
+        url.pathname.includes('/weryfikacja-konta') ||
         url.pathname.includes('/logowanie'),
       { timeout: 15000 }
     );
 
-    if (page.url().includes('/panel-zarzadcy/konkursy')) {
-      expect(page.url()).toContain('/panel-zarzadcy/konkursy');
+    if (page.url().includes('/weryfikacja-konta')) {
+      await expect(page.locator('[data-testid="account-verification-pending"]')).toBeVisible();
     }
+
+    const records = await fetchUserRegistrationRecordsByEmail(email);
+    expect(records?.company?.type).toBe('wspólnota');
+    expect(records?.profile?.is_verified).toBe(false);
+    expect(records?.profile?.email_verified_at).toBeNull();
+    expect(records?.managedEntities ?? []).toHaveLength(0);
 
     // Cleanup: delete the created user
     await deleteTestUser(email);
+  });
+
+  test('should successfully register as spółdzielnia', async ({ page }) => {
+    const email = `test-register-spoldzielnia-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+    const password = 'TestPassword123!';
+    testData.userEmails.push(email);
+
+    await page.goto(ROUTES.register);
+
+    await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[name="firstName"]')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('form').getByText('Spółdzielnia', { exact: true }).click();
+    await page.fill('input[name="firstName"]', 'Test');
+    await page.fill('input[name="lastName"]', 'Spoldzielnia');
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="phone"]', '+48 512 345 678');
+    await fillNipAndWaitForCompanyName(page);
+    await page.fill('input[name="password"]', password);
+    await page.fill('input[name="confirmPassword"]', password);
+    await page.locator('form').getByRole('checkbox', { name: /akceptuję regulamin/i }).check();
+
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL(
+      (url) =>
+        url.pathname.includes('/weryfikacja-konta') ||
+        url.pathname.includes('/logowanie'),
+      { timeout: 15000 }
+    );
+
+    if (page.url().includes('/weryfikacja-konta')) {
+      await expect(page.locator('[data-testid="account-verification-pending"]')).toBeVisible();
+    }
+
+    const records = await fetchUserRegistrationRecordsByEmail(email);
+    expect(records?.company?.type).toBe('spółdzielnia');
+    expect(records?.profile?.is_verified).toBe(false);
+    expect(records?.profile?.email_verified_at).toBeNull();
+
+    await deleteTestUser(email);
+  });
+
+  test('should show Zarządca two-record copy and both NIP fields', async ({ page }) => {
+    await page.goto(ROUTES.register);
+
+    await expect(page.locator('h1').filter({ hasText: 'Zarejestruj się' })).toBeVisible({ timeout: 10000 });
+    await page.locator('form').getByText('Wspólnota', { exact: true }).click();
+    await page.locator('#communityAdministration').check();
+
+    await expect(page.getByText(/osobne konto firmy zarządzającej/i)).toBeVisible();
+    await expect(page.locator('#entityNip')).toBeVisible();
+    await expect(page.locator('#managementNip')).toBeVisible();
+    await expect(page.getByText(/Dane osoby kontaktowej Administratora Wspólnoty/i)).toBeVisible();
   });
 
   test('should show error with missing required fields', async ({ page }) => {
@@ -308,7 +374,7 @@ test.describe('Registration Page', () => {
 
     await expect(page.locator('#managementNip')).not.toBeVisible();
 
-    await page.locator('#wspolnota-role-property_manager').click();
+    await page.locator('#communityAdministration').click();
     await expect(page.locator('#managementNip')).toBeVisible();
     await expect(page.getByText('NIP Administracji Wspólnoty')).toBeVisible();
   });

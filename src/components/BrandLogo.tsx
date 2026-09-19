@@ -16,8 +16,8 @@ export function BrandLogo({
   onClick,
 }: BrandLogoProps) {
   const src = variant === 'mark' ? BRAND.markPath : BRAND.logoPathPng;
-  const width = variant === 'mark' ? 32 : 140;
-  const height = 32;
+  const width = variant === 'mark' ? 32 : 1024;
+  const height = variant === 'mark' ? 32 : 300;
 
   const image = (
     <Image
@@ -30,7 +30,6 @@ export function BrandLogo({
         onClick && 'cursor-pointer',
         className,
       )}
-      // Next.js warns unless style (not only Tailwind) sets the unset axis to auto.
       style={variant === 'full' ? { width: 'auto' } : undefined}
       priority={variant === 'full'}
       unoptimized

@@ -7,6 +7,7 @@ import { buildEvaluationContext } from '../../lib/flagship/context';
 import { isOrdersFeatureEnabled } from '../../lib/flagship/orders-feature';
 import { UserAccountHeader } from '../../components/UserAccountHeader';
 import { ManagerDashboardNav } from '../../components/manager-dashboard/ManagerDashboardNav';
+import { redirectIfManagerAccessPending } from '../../lib/auth/redirect-if-manager-pending';
 import { buildNoIndexMetadata } from '../../lib/seo';
 
 export const metadata: Metadata = buildNoIndexMetadata('Panel zarządcy');
@@ -26,6 +27,10 @@ export default async function ManagerDashboardLayout({
 
   const effectiveContext = await getEffectiveUserContext();
   const effectiveUserId = effectiveContext?.effectiveUserId ?? user.id;
+
+  if (!effectiveContext?.isImpersonating) {
+    await redirectIfManagerAccessPending(supabase, user.id);
+  }
 
   const { data: profile } = await supabase
     .from('user_profiles')

@@ -103,6 +103,7 @@ async function ensureProfile(
       profile_completed: true,
       onboarding_completed: true,
       is_verified: true,
+      email_verified_at: new Date().toISOString(),
       verification_document_paths: {},
       verification_document_reviews: {},
     },

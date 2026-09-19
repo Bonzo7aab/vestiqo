@@ -2593,6 +2593,7 @@ export type Database = {
           created_at: string | null
           district: string | null
           employee_count: string | null
+          email_verified_at: string | null
           featured_projects: Json | null
           first_name: string
           frequent_services: string[] | null
@@ -2703,6 +2704,7 @@ export type Database = {
           created_at?: string | null
           district?: string | null
           employee_count?: string | null
+          email_verified_at?: string | null
           featured_projects?: Json | null
           first_name: string
           frequent_services?: string[] | null
@@ -2813,6 +2815,7 @@ export type Database = {
           created_at?: string | null
           district?: string | null
           employee_count?: string | null
+          email_verified_at?: string | null
           featured_projects?: Json | null
           first_name?: string
           frequent_services?: string[] | null

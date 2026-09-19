@@ -59,3 +59,40 @@ export async function fetchEmailConfirmationByUserIds(
   const meta = await fetchAuthUserMetaByUserIds(admin, userIds);
   return new Map([...meta.entries()].map(([id, value]) => [id, value.emailConfirmed]));
 }
+
+export interface ProfileEmailVerifiedLookup {
+  available: boolean;
+  byUserId: Map<string, string | null>;
+}
+
+/**
+ * App-level email confirmation timestamps. Fail-open when the column is missing
+ * so production stays usable until the migration is applied.
+ */
+export async function fetchProfileEmailVerifiedAtByUserIds(
+  supabase: SupabaseClient<Database>,
+  userIds: string[],
+): Promise<ProfileEmailVerifiedLookup> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  const byUserId = new Map<string, string | null>();
+
+  if (uniqueIds.length === 0) {
+    return { available: true, byUserId };
+  }
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('id, email_verified_at')
+    .in('id', uniqueIds);
+
+  if (error) {
+    console.error('[fetchProfileEmailVerifiedAtByUserIds]', error.message);
+    return { available: false, byUserId };
+  }
+
+  for (const row of data ?? []) {
+    byUserId.set(row.id, row.email_verified_at ?? null);
+  }
+
+  return { available: true, byUserId };
+}

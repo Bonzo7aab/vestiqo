@@ -33,6 +33,8 @@ export interface AuthUser {
   organizationType?: string | null
   /** OPD-118: positive CEIDG/KRS + MF registry checks (contractors). */
   registryVerified?: boolean
+  /** App-level email confirmation (managers). */
+  emailVerifiedAt?: string | null
 }
 
 // User with profile interface (used by useUser hook)

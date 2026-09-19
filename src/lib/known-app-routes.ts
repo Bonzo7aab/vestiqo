@@ -38,6 +38,7 @@ export const ALLOWED_FIRST_SEGMENTS = new Set<string>([
   'uzytkownik',
   'wdrozenie',
   'weryfikacja',
+  'weryfikacja-konta',
   'wiadomosci',
   'wybor-typu-konkursu',
   'wybor-typu-konta',

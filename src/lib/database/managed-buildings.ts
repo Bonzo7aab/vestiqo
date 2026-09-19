@@ -139,12 +139,23 @@ export async function fetchManagedBuildingsForEntity(
   supabase: DbClient,
   managedEntityId: string,
 ): Promise<{ data: ManagedBuilding[] | null; error: PostgrestError | null }> {
+  return fetchManagedBuildingsForEntities(supabase, [managedEntityId]);
+}
+
+export async function fetchManagedBuildingsForEntities(
+  supabase: DbClient,
+  managedEntityIds: string[],
+): Promise<{ data: ManagedBuilding[] | null; error: PostgrestError | null }> {
   try {
+    if (managedEntityIds.length === 0) {
+      return { data: [], error: null };
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('managed_buildings')
       .select('*')
-      .eq('managed_entity_id', managedEntityId)
+      .in('managed_entity_id', managedEntityIds)
       .order('name', { ascending: true });
 
     if (error) return { data: null, error };
@@ -154,6 +165,32 @@ export async function fetchManagedBuildingsForEntity(
     };
   } catch (err) {
     console.error('Error fetching managed buildings:', err);
+    return { data: null, error: err as PostgrestError };
+  }
+}
+
+export async function fetchBuildingInspectionsForBuildings(
+  supabase: DbClient,
+  buildingIds: string[],
+): Promise<{ data: ManagedBuildingInspection[] | null; error: PostgrestError | null }> {
+  try {
+    if (buildingIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from('managed_building_inspections')
+      .select('*')
+      .in('building_id', buildingIds);
+
+    if (error) return { data: null, error };
+    return {
+      data: ((data as Record<string, unknown>[]) ?? []).map(mapInspectionRow),
+      error: null,
+    };
+  } catch (err) {
+    console.error('Error fetching building inspections:', err);
     return { data: null, error: err as PostgrestError };
   }
 }

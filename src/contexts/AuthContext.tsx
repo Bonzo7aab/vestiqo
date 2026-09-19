@@ -55,8 +55,17 @@ export default function AuthProvider({
         .eq('id', profileUserId)
         .maybeSingle()
 
-      if (profileError || !profile) {
-        console.warn('No profile found for user:', profileUserId, profileError)
+      if (profileError) {
+        const isTransientNetworkError = /failed to fetch|networkerror|timeout|load failed/i.test(
+          `${profileError.message} ${profileError.details ?? ''}`,
+        )
+        if (isTransientNetworkError) {
+          return null
+        }
+        console.warn('Failed to load profile:', profileUserId, profileError)
+      }
+
+      if (!profile) {
         if (!impersonationSubjectId) {
           await clearStaleSession()
         }
@@ -113,6 +122,7 @@ export default function AuthProvider({
         platformRole: impersonationSubjectId ? 'user' : (profile.platform_role ?? 'user'),
         accountRole: profile.account_role ?? null,
         organizationType: profile.organization_type ?? null,
+        emailVerifiedAt: profile.email_verified_at ?? null,
       }
     } catch (err) {
       console.error('Error fetching profile:', err)

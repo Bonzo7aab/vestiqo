@@ -67,7 +67,8 @@ export async function createTestUser(
       first_name: options?.firstName || 'Test',
       last_name: options?.lastName || 'User',
       phone: options?.phone || null,
-      is_verified: false,
+      is_verified: userType === 'manager',
+      email_verified_at: new Date().toISOString(),
       profile_completed: false,
       onboarding_completed: false,
       contractor_services_completed: userType === 'contractor',
@@ -80,6 +81,72 @@ export async function createTestUser(
   }
 
   return authData.user;
+}
+
+/**
+ * Deletes a test user by email
+ */
+export async function fetchUserRegistrationRecordsByEmail(email: string): Promise<{
+  userId: string;
+  profile: {
+    is_verified: boolean | null;
+    email_verified_at: string | null;
+    verification_submitted_at: string | null;
+    account_role: string | null;
+  } | null;
+  company: { id: string; type: string | null; nip: string | null; is_verified: boolean | null } | null;
+  managedEntities: Array<{ nip: string | null; name: string | null }>;
+} | null> {
+  const adminClient = createAdminClient();
+  const { data: users, error: findError } = await adminClient.auth.admin.listUsers();
+  if (findError || !users?.users) {
+    return null;
+  }
+
+  const user = users.users.find((candidate: { email?: string }) => candidate.email === email);
+  if (!user) {
+    return null;
+  }
+
+  const { data: profile } = await adminClient
+    .from('user_profiles')
+    .select('is_verified, email_verified_at, verification_submitted_at, account_role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const { data: membership } = await adminClient
+    .from('user_companies')
+    .select('company_id')
+    .eq('user_id', user.id)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  if (!membership?.company_id) {
+    return {
+      userId: user.id,
+      profile,
+      company: null,
+      managedEntities: [],
+    };
+  }
+
+  const { data: company } = await adminClient
+    .from('companies')
+    .select('id, type, nip, is_verified')
+    .eq('id', membership.company_id)
+    .maybeSingle();
+
+  const { data: managedEntities } = await adminClient
+    .from('managed_housing_entities')
+    .select('nip, name')
+    .eq('manager_company_id', membership.company_id);
+
+  return {
+    userId: user.id,
+    profile,
+    company,
+    managedEntities: managedEntities ?? [],
+  };
 }
 
 /**

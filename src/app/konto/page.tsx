@@ -10,6 +10,7 @@ import {
 import { UserAccountPageClient } from '../../components/UserAccountPageClient';
 import { fetchUserPrimaryCompany } from '../../lib/database/companies';
 import { parseServiceSubcategorySlugsFromMetadata } from '../../lib/database/contractor-service-categories';
+import { redirectIfManagerAccessPending } from '../../lib/auth/redirect-if-manager-pending';
 
 export default async function Account() {
   const supabase = await createClient();
@@ -22,6 +23,9 @@ export default async function Account() {
   }
 
   const effectiveContext = await getEffectiveUserContext();
+  if (!effectiveContext?.isImpersonating) {
+    await redirectIfManagerAccessPending(supabase, user.id);
+  }
   const effectiveUserId = effectiveContext?.effectiveUserId ?? user.id;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
