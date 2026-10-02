@@ -1,5 +1,5 @@
 /**
- * Matches contests.offers_count trigger (update_contest_offers_count):
+ * Matches private.update_contest_offers_count (contests.offers_count):
  * counts submitted offers, excluding drafts and withdrawn (cancelled) bids.
  */
 export function countsTowardContestOfferCount(status: string): boolean {
