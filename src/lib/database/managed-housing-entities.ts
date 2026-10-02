@@ -4,7 +4,13 @@ import type {
   ManagedHousingEntity,
   ManagedHousingEntityFormData,
 } from '../../types/managed-housing-entity';
+import { isManagedHousingEntityBlocked } from '../../types/managed-housing-entity';
 import { normalizeNip } from '../gus/nip';
+import {
+  BLOCKED_ENTITY_DELETE_ERROR,
+  BLOCKED_ENTITY_EDIT_ERROR,
+  CLAIMED_ENTITY_ADD_NIP_ERROR,
+} from '../community-claims/constants';
 import {
   PUBLIC_MANAGED_HOUSING_ENTITY_SELECT,
   toPublicManagedHousingEntity,
@@ -60,6 +66,34 @@ export async function isNipRegisteredForManagerCompany(
   return (data ?? []).some((row) => normalizeNip(String(row.nip)) === nip);
 }
 
+export async function findClaimedManagedHousingEntityByNip(
+  supabase: SupabaseClient<Database>,
+  nipInput: string,
+  excludeEntityId?: string,
+): Promise<{ id: string; manager_company_id: string } | null> {
+  const nip = normalizeNip(nipInput);
+  if (!nip) return null;
+
+  const { data, error } = await supabase
+    .from('managed_housing_entities')
+    .select('id, nip, manager_company_id, management_blocked_at')
+    .eq('nip', nip);
+
+  if (error) {
+    console.error('Claimed NIP lookup failed:', error.message);
+    return null;
+  }
+
+  const match = (data ?? []).find((row) => {
+    if (excludeEntityId && row.id === excludeEntityId) {
+      return false;
+    }
+    return normalizeNip(String(row.nip)) === nip && row.management_blocked_at != null;
+  });
+
+  return match ? { id: match.id, manager_company_id: match.manager_company_id } : null;
+}
+
 export async function createManagedHousingEntity(
   supabase: SupabaseClient<Database>,
   managerCompanyId: string,
@@ -86,6 +120,14 @@ export async function createManagedHousingEntity(
       return {
         data: null,
         error: new Error('Ta nieruchomość jest już na liście') as PostgrestError,
+      };
+    }
+
+    const claimed = await findClaimedManagedHousingEntityByNip(supabase, nip);
+    if (claimed) {
+      return {
+        data: null,
+        error: new Error(CLAIMED_ENTITY_ADD_NIP_ERROR) as PostgrestError,
       };
     }
 
@@ -141,6 +183,29 @@ export async function updateManagedHousingEntity(
       };
     }
 
+    const { data: existing, error: existingError } = await supabase
+      .from('managed_housing_entities')
+      .select('id, management_blocked_at')
+      .eq('id', entityId)
+      .eq('manager_company_id', managerCompanyId)
+      .maybeSingle();
+
+    if (existingError) {
+      return { data: null, error: existingError };
+    }
+    if (!existing) {
+      return {
+        data: null,
+        error: new Error('Nie znaleziono wspólnoty') as PostgrestError,
+      };
+    }
+    if (isManagedHousingEntityBlocked(existing)) {
+      return {
+        data: null,
+        error: new Error(BLOCKED_ENTITY_EDIT_ERROR) as PostgrestError,
+      };
+    }
+
     const duplicate = await isNipRegisteredForManagerCompany(
       supabase,
       managerCompanyId,
@@ -151,6 +216,14 @@ export async function updateManagedHousingEntity(
       return {
         data: null,
         error: new Error('Ta nieruchomość jest już na liście') as PostgrestError,
+      };
+    }
+
+    const claimed = await findClaimedManagedHousingEntityByNip(supabase, nip, entityId);
+    if (claimed) {
+      return {
+        data: null,
+        error: new Error(CLAIMED_ENTITY_ADD_NIP_ERROR) as PostgrestError,
       };
     }
 
@@ -192,6 +265,23 @@ export async function deleteManagedHousingEntity(
   managerCompanyId: string,
 ): Promise<{ success: boolean; error: PostgrestError | null }> {
   try {
+    const { data: existing, error: existingError } = await supabase
+      .from('managed_housing_entities')
+      .select('id, management_blocked_at')
+      .eq('id', entityId)
+      .eq('manager_company_id', managerCompanyId)
+      .maybeSingle();
+
+    if (existingError) {
+      return { success: false, error: existingError };
+    }
+    if (existing && isManagedHousingEntityBlocked(existing)) {
+      return {
+        success: false,
+        error: new Error(BLOCKED_ENTITY_DELETE_ERROR) as PostgrestError,
+      };
+    }
+
     const { error } = await supabase
       .from('managed_housing_entities')
       .delete()

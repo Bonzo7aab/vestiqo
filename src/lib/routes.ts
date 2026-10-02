@@ -10,6 +10,7 @@ export const routes = {
   rejestracja: '/rejestracja',
   rejestracjaWyborWeryfikacji: '/rejestracja/wybor-weryfikacji',
   zapomnianeHaslo: '/zapomniane-haslo',
+  odzyskanieWspolnoty: '/odzyskanie-wspolnoty',
   konto: '/konto',
   wiadomosci: '/wiadomosci',
   zapisaneZgloszenia: '/zapisane-zgloszenia',
@@ -72,6 +73,9 @@ export const routes = {
   administracjaWeryfikacja: '/administracja/weryfikacja',
   administracjaWeryfikacjaUzytkownik: (userId: string) =>
     `/administracja/weryfikacja/${userId}` as const,
+  administracjaOdzyskanieWspolnoty: '/administracja/odzyskanie-wspolnoty',
+  administracjaOdzyskanieWspolnotyWniosek: (claimId: string) =>
+    `/administracja/odzyskanie-wspolnoty/${claimId}` as const,
   administracjaUstawienia: '/administracja/ustawienia',
   administracjaFlagi: '/administracja/flagi',
   administracjaOferty: '/administracja/oferty',

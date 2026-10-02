@@ -53,7 +53,7 @@ export function CompanyManagementForm({ user, managedEntitiesOnly = false }: Com
   });
   const housingCopy = getManagedHousingUiCopy(accountRole);
   const housingVariant =
-    accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER ? 'admin' : 'board';
+    accountRole === ACCOUNT_ROLES.CONDO_BOARD ? 'board' : 'admin';
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);

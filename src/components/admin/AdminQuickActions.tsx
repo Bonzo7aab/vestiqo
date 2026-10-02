@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   Building2,
   ClipboardCheck,
+  FileSignature,
   FileWarning,
   Flag,
   Settings,
@@ -22,6 +23,12 @@ const actions: QuickAction[] = [
     label: 'Weryfikacja',
     description: 'Przeglądaj kolejkę weryfikacji kont i dokumentów użytkowników.',
     icon: ClipboardCheck,
+  },
+  {
+    href: '/administracja/odzyskanie-wspolnoty',
+    label: 'Odzyskanie wspólnoty',
+    description: 'Rozpatrz wnioski wspólnot o niezależne konto (SLA 48 h).',
+    icon: FileSignature,
   },
   {
     href: '/administracja/oferty',

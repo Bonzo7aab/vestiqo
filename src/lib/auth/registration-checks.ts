@@ -86,7 +86,7 @@ export async function checkNipRegistrationStatus(
 
   const { data: housingEntities, error: housingError } = await admin
     .from('managed_housing_entities')
-    .select('id, nip, manager_company_id')
+    .select('id, nip, manager_company_id, management_blocked_at')
     .eq('nip', normalized);
 
   if (housingError) {
@@ -95,6 +95,11 @@ export async function checkNipRegistrationStatus(
   } else {
     for (const entity of housingEntities ?? []) {
       if (!matchesNormalizedNip(entity.nip, normalized)) {
+        continue;
+      }
+
+      // Claimed/blocked entities no longer occupy the NIP for a new Wspólnota company.
+      if (entity.management_blocked_at) {
         continue;
       }
 

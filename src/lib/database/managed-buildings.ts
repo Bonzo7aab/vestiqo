@@ -38,6 +38,9 @@ function mapBuildingRow(row: Record<string, unknown>): ManagedBuilding {
     id: String(row.id),
     managed_entity_id: String(row.managed_entity_id),
     name: String(row.name),
+    address: row.address == null ? null : String(row.address),
+    city: row.city == null ? null : String(row.city),
+    postal_code: row.postal_code == null ? null : String(row.postal_code),
     above_ground_floors:
       typeof row.above_ground_floors === 'number' ? row.above_ground_floors : null,
     below_ground_floors:
@@ -98,6 +101,9 @@ function mapInspectionRow(row: Record<string, unknown>): ManagedBuildingInspecti
 function formToBuildingPayload(formData: ManagedBuildingFormData) {
   return {
     name: formData.name.trim(),
+    address: formData.address.trim() || null,
+    city: formData.city.trim() || null,
+    postal_code: formData.postal_code.trim() || null,
     above_ground_floors: parseOptionalInt(formData.above_ground_floors),
     below_ground_floors: parseOptionalInt(formData.below_ground_floors),
     roof_area_m2: parseOptionalNumber(formData.roof_area_m2),

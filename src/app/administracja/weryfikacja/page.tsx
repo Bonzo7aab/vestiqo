@@ -66,17 +66,21 @@ export default async function AdminVerificationQueuePage() {
   const totalActionable = pending.filter(r => r.emailConfirmed).length;
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
       <AdminPageHeader
         icon={ClipboardCheck}
-        title="Weryfikacja użytkowników"
-        description="Wybierz typ konta i status, a następnie kliknij wiersz w tabeli, aby otworzyć szczegóły użytkownika. Nowe konta wspólnot, spółdzielni i zarządców wymagają potwierdzenia email, a potem akceptacji administratora."
+        title="Kolejka weryfikacji"
+        description="Przeglądaj wnioski według typu konta i statusu. Nowe konta wspólnot, spółdzielni i zarządców wymagają potwierdzenia email, a następnie decyzji administratora."
         aside={
-          <div className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-sm">
-            <span className="text-muted-foreground">Wymaga decyzji</span>
-            <span className="text-2xl font-semibold tabular-nums">{totalActionable}</span>
+          <div className="flex min-w-[11rem] flex-col gap-1 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Do decyzji
+            </span>
+            <span className="text-3xl font-semibold tabular-nums tracking-tight text-brand-navy">
+              {totalActionable}
+            </span>
             <span className="text-xs text-muted-foreground">
-              {totalPending} łącznie w toku (z email bez potwierdzenia)
+              z {totalPending} w toku łącznie
             </span>
           </div>
         }

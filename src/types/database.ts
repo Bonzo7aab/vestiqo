@@ -166,9 +166,11 @@ export type Database = {
           address: string | null
           bank_account_iban: string | null
           city: string | null
+          claimed_company_id: string | null
           created_at: string
           entity_type: string
           id: string
+          management_blocked_at: string | null
           manager_company_id: string
           name: string
           nip: string
@@ -181,9 +183,11 @@ export type Database = {
           address?: string | null
           bank_account_iban?: string | null
           city?: string | null
+          claimed_company_id?: string | null
           created_at?: string
           entity_type: string
           id?: string
+          management_blocked_at?: string | null
           manager_company_id: string
           name: string
           nip: string
@@ -196,9 +200,11 @@ export type Database = {
           address?: string | null
           bank_account_iban?: string | null
           city?: string | null
+          claimed_company_id?: string | null
           created_at?: string
           entity_type?: string
           id?: string
+          management_blocked_at?: string | null
           manager_company_id?: string
           name?: string
           nip?: string
@@ -211,6 +217,13 @@ export type Database = {
           {
             foreignKeyName: "managed_housing_entities_manager_company_id_fkey"
             columns: ["manager_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_housing_entities_claimed_company_id_fkey"
+            columns: ["claimed_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
@@ -277,6 +290,82 @@ export type Database = {
           {
             foreignKeyName: "certificates_verified_by_fkey"
             columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_account_claims: {
+        Row: {
+          created_user_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          first_name: string
+          gus_snapshot: Json | null
+          id: string
+          last_name: string
+          managed_entity_id: string
+          nip: string
+          phone: string
+          reject_reason: string | null
+          resolution_path: string
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          created_user_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          first_name: string
+          gus_snapshot?: Json | null
+          id?: string
+          last_name: string
+          managed_entity_id: string
+          nip: string
+          phone: string
+          reject_reason?: string | null
+          resolution_path?: string
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          created_user_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          first_name?: string
+          gus_snapshot?: Json | null
+          id?: string
+          last_name?: string
+          managed_entity_id?: string
+          nip?: string
+          phone?: string
+          reject_reason?: string | null
+          resolution_path?: string
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_account_claims_managed_entity_id_fkey"
+            columns: ["managed_entity_id"]
+            isOneToOne: false
+            referencedRelation: "managed_housing_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_account_claims_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_account_claims_created_user_id_fkey"
+            columns: ["created_user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]

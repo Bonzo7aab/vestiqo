@@ -35,6 +35,33 @@ async function approveVerificationSubjectActionImpl(subjectUserId: string): Prom
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
+  const elevatedClient = createAdminClientOrNull();
+  if (elevatedClient) {
+    const { data: authUser, error: authError } = await elevatedClient.auth.admin.getUserById(
+      subjectUserId,
+    );
+    if (authError) {
+      console.error('[approveVerification] getUserById failed', authError.message);
+    } else {
+      const { isAuthUserEmailConfirmed } = await import('../../lib/auth/email-confirmation');
+      let emailConfirmed = isAuthUserEmailConfirmed(authUser.user);
+      if (!emailConfirmed) {
+        const { data: emailRow } = await sb
+          .from('user_profiles')
+          .select('email_verified_at')
+          .eq('id', subjectUserId)
+          .maybeSingle();
+        emailConfirmed = Boolean(emailRow?.email_verified_at);
+      }
+      if (!emailConfirmed) {
+        return {
+          ok: false,
+          error: 'Użytkownik nie potwierdził jeszcze adresu email. Nie można zaakceptować weryfikacji.',
+        };
+      }
+    }
+  }
+
   const { data: companyRelation } = await sb
     .from('user_companies')
     .select('company_id')

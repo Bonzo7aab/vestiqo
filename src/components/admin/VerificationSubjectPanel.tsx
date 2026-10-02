@@ -53,6 +53,7 @@ interface VerificationSubjectPanelProps {
   adminDisplayStatus: AdminUserStatus;
   rejectionReason: string | null;
   email: string | null;
+  emailConfirmed: boolean;
   phone: string | null;
   companyName: string | null;
   companyNip: string | null;
@@ -181,6 +182,7 @@ export function VerificationSubjectPanel({
   adminDisplayStatus,
   rejectionReason,
   email,
+  emailConfirmed,
   phone,
   companyName,
   companyNip,
@@ -208,7 +210,8 @@ export function VerificationSubjectPanel({
   const allReviewed = unreviewed === 0 && missingCount === 0;
   const isManager = userType === 'manager';
   const hasUploadedDocs = documents.some((doc) => !doc.missing);
-  const canApprove = (isManager && !hasUploadedDocs) || (allReviewed && rejected === 0);
+  const docsAllowApprove = (isManager && !hasUploadedDocs) || (allReviewed && rejected === 0);
+  const canApprove = emailConfirmed && docsAllowApprove;
   const canReject = !hasUploadedDocs || allReviewed;
 
   const documentPrefill = React.useMemo(() => buildPrefilledRejectReason(snapshots), [snapshots]);
@@ -223,6 +226,10 @@ export function VerificationSubjectPanel({
   );
 
   const handleApprove = async (): Promise<void> => {
+    if (!emailConfirmed) {
+      toast.error('Użytkownik nie potwierdził jeszcze adresu email.');
+      return;
+    }
     if (!canApprove) {
       if (missingCount > 0) {
         toast.error('Użytkownik nie przesłał wszystkich wymaganych dokumentów.');
@@ -282,6 +289,22 @@ export function VerificationSubjectPanel({
     <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardContent className="space-y-4 p-5">
+          {!emailConfirmed ? (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-lg border border-sky-300/80 bg-sky-50 px-3 py-2.5 text-sm text-sky-950"
+            >
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+              <div className="min-w-0 space-y-0.5">
+                <p className="font-medium">Adres email niepotwierdzony</p>
+                <p className="text-sky-900/80">
+                  Użytkownik nie potwierdził jeszcze adresu email
+                  {email ? ` (${email})` : ''}. Akceptacja weryfikacji jest zablokowana do czasu
+                  potwierdzenia.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 flex-1 items-start gap-4">
               <div
@@ -332,13 +355,15 @@ export function VerificationSubjectPanel({
                     canApprove ? 'bg-emerald-600 text-white hover:bg-emerald-700' : undefined
                   }
                   title={
-                    missingCount > 0
-                      ? 'Brakuje wymaganych dokumentów w profilu.'
-                      : !allReviewed
-                        ? 'Najpierw oceń wszystkie przesłane dokumenty.'
-                        : rejected > 0
-                          ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
-                          : undefined
+                    !emailConfirmed
+                      ? 'Użytkownik musi najpierw potwierdzić adres email.'
+                      : missingCount > 0
+                        ? 'Brakuje wymaganych dokumentów w profilu.'
+                        : !allReviewed
+                          ? 'Najpierw oceń wszystkie przesłane dokumenty.'
+                          : rejected > 0
+                            ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
+                            : undefined
                   }
                 >
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -373,6 +398,13 @@ export function VerificationSubjectPanel({
               )}
             />
             <MetaItem icon={Mail} label="E-mail (konto)" value={email ?? '—'} />
+            {!emailConfirmed ? (
+              <MetaItem
+                icon={Mail}
+                label="Status email"
+                value="Niepotwierdzony — weryfikacja zablokowana"
+              />
+            ) : null}
             {profileDetails.companyEmail && profileDetails.companyEmail !== email ? (
               <MetaItem icon={Mail} label="E-mail (firma)" value={profileDetails.companyEmail} />
             ) : null}

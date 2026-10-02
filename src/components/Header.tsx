@@ -49,6 +49,7 @@ import { buildAccountMenuSections } from '../lib/account-menu-sections';
 import { routes } from '../lib/routes';
 import { DevQuickLoginButtons } from './dev/DevQuickLoginButtons';
 import { isDevQuickLoginEnabled } from '../lib/auth/dev-quick-login';
+import { isManagerAccessPending } from '../lib/auth/manager-access-pending';
 
 function GuestAuthDropdown({
   onLogin,
@@ -228,6 +229,12 @@ export function Header({
   const showVerificationAttention = needsVerificationAttention(currentUser);
   const verificationAttentionLabel = verificationAttentionAriaLabel(userForVerificationUi);
   const isAdmin = currentUser?.platformRole === 'platform_admin'
+  const managerAccessPending = isManagerAccessPending({
+    userType: currentUser?.userType,
+    platformRole: currentUser?.platformRole,
+    isVerified: currentUser?.isVerified,
+    emailVerifiedAt: currentUser?.emailVerifiedAt,
+  });
   const isAuthRoute =
     pathname === '/logowanie' ||
     pathname === '/rejestracja' ||
@@ -349,6 +356,7 @@ export function Header({
     showVerificationAttention,
     verificationLabel: verificationMenuLabel(userForVerificationUi),
     showProfileCompletion: !currentUser?.profileCompleted,
+    managerAccessPending,
     handlers: accountMenuHandlers,
   });
 
@@ -448,6 +456,7 @@ export function Header({
                   ADMIN
                 </Button>
               ) : (
+                !managerAccessPending &&
                 (!userIsAuthenticated || currentUser?.userType !== 'contractor') && (
                   <Button
                     variant="default"
@@ -461,6 +470,7 @@ export function Header({
               )}
             </div>
             {!isAdmin &&
+              !managerAccessPending &&
               (userIsAuthenticated ? (
                 <Button
                   type="button"

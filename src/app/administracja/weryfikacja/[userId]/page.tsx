@@ -59,6 +59,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
       verification_submitted_at,
       verification_document_paths,
       is_verified,
+      email_verified_at,
       created_at,
       updated_at,
       user_companies (
@@ -122,6 +123,11 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
     } catch (authErr) {
       console.error('[admin/weryfikacja] auth.admin.getUserById threw', authErr);
     }
+  }
+
+  // Managers confirm via app-level email_verified_at; treat that as confirmed too.
+  if (!emailConfirmed && profile.email_verified_at) {
+    emailConfirmed = true;
   }
 
   let ocValidUntil: string | null = null;
@@ -254,6 +260,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
         adminDisplayStatus={adminDisplayStatus}
         rejectionReason={verificationStatus.reason}
         email={email ?? company?.email ?? null}
+        emailConfirmed={emailConfirmed}
         phone={(profile.phone as string | null) ?? company?.phone ?? null}
         companyName={company?.name ?? null}
         companyNip={company?.nip ?? null}

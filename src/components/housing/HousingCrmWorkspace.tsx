@@ -23,6 +23,7 @@ import { HousingDeleteEntityDialog } from './HousingDeleteEntityDialog';
 import { HousingSectionHeader } from './HousingSectionHeader';
 import { InspectionStatusBadge } from './InspectionStatusBadge';
 import type { ManagedHousingWorkspace } from './useManagedHousingWorkspace';
+import { isManagedHousingEntityBlocked } from '../../types/managed-housing-entity';
 
 interface HousingCrmWorkspaceProps {
   copy: ManagedHousingUiCopy;
@@ -123,6 +124,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
   }
 
   if (selectedEntity) {
+    const entityBlocked = isManagedHousingEntityBlocked(selectedEntity);
     return (
       <div className="space-y-5" id="nieruchomosci">
         <HousingAlerts error={error} success={success} />
@@ -140,7 +142,13 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
               NIP {selectedEntity.nip}
               {selectedEntity.city ? ` · ${selectedEntity.city}` : ''}
             </p>
+            {isManagedHousingEntityBlocked(selectedEntity) ? (
+              <p className="text-sm text-amber-700">
+                Wspólnota odzyskała własne konto. Rekord pozostaje do historii konkursów i nie można go edytować.
+              </p>
+            ) : null}
           </div>
+          {isManagedHousingEntityBlocked(selectedEntity) ? null : (
           <Button
             type="button"
             variant="ghost"
@@ -154,6 +162,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
             <Trash2 className="mr-2 h-4 w-4" />
             {copy.deleteEntity}
           </Button>
+          )}
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
@@ -183,6 +192,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                       onChange={(e) =>
                         setBasicsForm((prev) => ({ ...prev, name: e.target.value }))
                       }
+                      disabled={entityBlocked}
                     />
                   </div>
                   <div className="space-y-2">
@@ -192,6 +202,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                       onChange={(e) =>
                         setBasicsForm((prev) => ({ ...prev, regon: e.target.value }))
                       }
+                      disabled={entityBlocked}
                     />
                   </div>
                 </CardContent>
@@ -208,6 +219,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                       onChange={(e) =>
                         setBasicsForm((prev) => ({ ...prev, address: e.target.value }))
                       }
+                      disabled={entityBlocked}
                     />
                   </div>
                   <div className="space-y-2">
@@ -217,6 +229,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                       onChange={(e) =>
                         setBasicsForm((prev) => ({ ...prev, city: e.target.value }))
                       }
+                      disabled={entityBlocked}
                     />
                   </div>
                   <div className="space-y-2">
@@ -226,11 +239,13 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                       onChange={(e) =>
                         setBasicsForm((prev) => ({ ...prev, postal_code: e.target.value }))
                       }
+                      disabled={entityBlocked}
                     />
                   </div>
                 </CardContent>
               </Card>
             </div>
+            {entityBlocked ? null : (
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -241,15 +256,18 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                 {copy.saveBasicsLabel}
               </Button>
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="properties" className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">{copy.childIntro}</p>
+              {entityBlocked ? null : (
               <Button type="button" size="sm" onClick={() => setIsAddBuildingOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 {copy.addChild}
               </Button>
+              )}
             </div>
 
             {isLoadingBuildings ? (
@@ -358,11 +376,19 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                   className="cursor-pointer"
                   onClick={() => selectEntity(entity)}
                 >
-                  <TableCell className="font-medium">{entity.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <span>{entity.name}</span>
+                    {isManagedHousingEntityBlocked(entity) ? (
+                      <span className="mt-0.5 block text-xs font-normal text-amber-700">
+                        Wspólnota odzyskała własne konto
+                      </span>
+                    ) : null}
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">{entity.nip}</TableCell>
                   <TableCell>{entity.city || '—'}</TableCell>
                   <TableCell>{buildingCounts[entity.id] ?? 0}</TableCell>
                   <TableCell className="text-right">
+                    {isManagedHousingEntityBlocked(entity) ? null : (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -375,6 +401,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

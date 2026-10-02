@@ -23,7 +23,10 @@ assert.equal(boardCopy.sectionTitle, 'Nieruchomości');
 assert.equal(boardCopy.overviewTab, 'Przegląd');
 assert.equal(boardCopy.childTab, 'Budynki');
 assert.equal(boardCopy.childCountColumn, 'Budynki');
-assert.equal(boardCopy.addEntity, 'Dodaj nieruchomość');
+assert.equal(boardCopy.addEntity, 'Dodaj budynek');
+assert.match(boardCopy.listIntro, /adres/i);
+assert.doesNotMatch(boardCopy.emptyList, /NIP/);
+assert.equal(boardCopy.listCountOne, 'budynek');
 
 assert.equal(worstInspectionStatus([]), 'unknown');
 assert.equal(

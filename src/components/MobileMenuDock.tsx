@@ -34,6 +34,7 @@ import {
   type MobileNavMenuSection,
 } from './navigation/MobileNavMenuPanel';
 import { getAccountRoleDisplayLabel } from '../lib/profile/account-role-labels';
+import { isManagerAccessPending } from '../lib/auth/manager-access-pending';
 
 interface NavMenuItemConfig {
   title: string;
@@ -65,8 +66,15 @@ export function MobileMenuDock() {
 
   const isHomepage = pathname === '/';
   const isCompactMode = isHomepage;
+  const managerAccessPending = isManagerAccessPending({
+    userType: user?.userType,
+    platformRole: user?.platformRole,
+    isVerified: user?.isVerified,
+    emailVerifiedAt: user?.emailVerifiedAt,
+  });
   const canCreateContest =
-    !user || (user.userType !== 'contractor' && user.platformRole !== 'platform_admin');
+    !managerAccessPending &&
+    (!user || (user.userType !== 'contractor' && user.platformRole !== 'platform_admin'));
   const isAdmin = user?.platformRole === 'platform_admin';
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
@@ -144,26 +152,34 @@ export function MobileMenuDock() {
 
   const accountItems: NavMenuItemConfig[] = isAuthenticated
     ? [
-        {
-          title: 'Wiadomości',
-          icon: MessagesSquare,
-          href: '/wiadomosci',
-          description: 'Rozmowy z wykonawcami i zarządcami',
-          onClick: () => {
-            closeDrawers();
-            router.push('/wiadomosci');
-          },
-        },
-        {
-          title: 'Profil',
-          icon: User,
-          href: '/konto',
-          description: 'Ustawienia konta i firmy',
-          onClick: () => {
-            closeDrawers();
-            router.push('/konto');
-          },
-        },
+        ...(!managerAccessPending
+          ? [
+              {
+                title: 'Wiadomości',
+                icon: MessagesSquare,
+                href: '/wiadomosci',
+                description: 'Rozmowy z wykonawcami i zarządcami',
+                onClick: () => {
+                  closeDrawers();
+                  router.push('/wiadomosci');
+                },
+              } satisfies NavMenuItemConfig,
+            ]
+          : []),
+        ...(!managerAccessPending
+          ? [
+              {
+                title: 'Profil',
+                icon: User,
+                href: '/konto',
+                description: 'Ustawienia konta i firmy',
+                onClick: () => {
+                  closeDrawers();
+                  router.push('/konto');
+                },
+              } satisfies NavMenuItemConfig,
+            ]
+          : []),
       ]
     : [];
 
@@ -231,7 +247,11 @@ export function MobileMenuDock() {
         setTimeout(() => router.push('/'), 150);
       },
     },
-    canCreateContest ? createContestDockItem : messagesDockItem,
+    ...(canCreateContest
+      ? [createContestDockItem]
+      : managerAccessPending
+        ? []
+        : [messagesDockItem]),
     {
       title: 'Szukaj',
       icon: <Search className={ICON_SIZE} strokeWidth={2} />,

@@ -178,7 +178,8 @@ async function submitVerificationDocumentsActionImpl(
   const profileUpdate: { verification_document_paths: Json; verification_submitted_at?: string } = {
     verification_document_paths: merged as Json,
   };
-  if (userType !== 'contractor' && !onlyOptionalUploads) {
+  // Mark as awaiting admin review for both managers and contractors when required docs change.
+  if (!onlyOptionalUploads) {
     profileUpdate.verification_submitted_at = new Date().toISOString();
   }
 
@@ -195,6 +196,31 @@ async function submitVerificationDocumentsActionImpl(
   // settings so /konto?tab=twoje-dane reflects the same state.
   if (userType === 'contractor' && newPaths.insurance) {
     await syncInsuranceToContractorSettings(supabase, user.id, newPaths.insurance);
+  }
+
+  if (profileUpdate.verification_submitted_at) {
+    try {
+      const { data: nameRow } = await supabase
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      const subjectName =
+        [nameRow?.first_name, nameRow?.last_name].filter(Boolean).join(' ').trim() ||
+        user.email ||
+        user.id;
+      const { notifyAdminsOfVerificationSubmission } = await import(
+        '../../lib/database/admin-verification-notifications'
+      );
+      await notifyAdminsOfVerificationSubmission({
+        supabase,
+        subjectUserId: user.id,
+        subjectName,
+        userTypeLabel: userType === 'contractor' ? 'Wykonawca' : 'Zarządca',
+      });
+    } catch (error) {
+      console.error('[submitVerificationDocumentsAction] admin notification failed', error);
+    }
   }
 
   revalidatePath('/konto');

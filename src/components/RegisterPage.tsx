@@ -67,7 +67,13 @@ import {
 } from './auth/AuthPageLayout';
 import { AuthFieldError } from './auth/AuthFieldError';
 import { AuthFormError } from './auth/AuthFormError';
-import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from '../lib/auth/password-policy';
+import { PasswordMismatchHint, PasswordStrengthHints } from './auth/PasswordStrengthHints';
+import {
+  CONFIRM_PASSWORD_DEBOUNCE_MS,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_MISMATCH_MESSAGE,
+  validatePasswordStrength,
+} from '../lib/auth/password-policy';
 import { cn } from './ui/utils';
 
 interface RegisterPageProps {
@@ -335,24 +341,28 @@ function NipLookupField({
   const showCompany = Boolean(companyName && lookupStatus === 'success');
 
   const resultCard = showCompany ? (
-    <div className="flex min-h-11 items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Building2 className="size-4" strokeWidth={2} />
+    <div className="flex h-11 items-center gap-2.5 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 px-3">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Building2 className="size-3.5" strokeWidth={2} />
       </span>
-      <div className="min-w-0">
-        <p className="text-sm font-medium leading-5 text-foreground" data-testid={companyNameTestId}>
+      <div className="min-w-0 flex-1">
+        <p
+          className="truncate text-sm font-medium leading-none text-foreground"
+          data-testid={companyNameTestId}
+          title={locationLine ? `${companyName} · ${locationLine}` : companyName}
+        >
           {companyName}
         </p>
         {locationLine ? (
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1 truncate text-[11px] leading-none text-muted-foreground">
             <MapPin className="size-3 shrink-0" />
-            {locationLine}
+            <span className="truncate">{locationLine}</span>
           </p>
         ) : null}
       </div>
     </div>
   ) : lookupStatus === 'loading' ? (
-    <p className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+    <p className="flex h-11 items-center gap-2 text-sm text-muted-foreground">
       <Loader2 className="size-4 shrink-0 animate-spin" />
       Pobieranie danych z GUS…
     </p>
@@ -364,7 +374,7 @@ function NipLookupField({
       <div
         className={cn(
           'grid gap-3',
-          resultCard && layout === 'split' ? 'sm:grid-cols-2 sm:items-start' : 'grid-cols-1',
+          resultCard && layout === 'split' ? 'sm:grid-cols-2 sm:items-center' : 'grid-cols-1',
         )}
       >
         <div className="flex flex-col gap-2">
@@ -393,8 +403,6 @@ function NipLookupField({
     </div>
   );
 }
-
-const PASSWORD_MISMATCH_MESSAGE = 'Hasła nie są identyczne';
 
 const ENTITY_TILE_DESCRIPTIONS: Record<RegistrationEntityType, string> = {
   [REGISTRATION_ENTITY_TYPES.WSPOLNOTA]: 'Zarząd lub administracja',
@@ -478,7 +486,9 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+  const [debouncedConfirmMismatch, setDebouncedConfirmMismatch] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -530,18 +540,14 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
     return null;
   })();
 
-  const passwordMismatchError = (() => {
-    if (!confirmPasswordTouched) {
-      return null;
-    }
-    if (!confirmPassword.trim()) {
-      return null;
-    }
-    if (password !== confirmPassword) {
-      return PASSWORD_MISMATCH_MESSAGE;
-    }
-    return null;
-  })();
+  const passwordCheck = validatePasswordStrength(password);
+  const passwordError =
+    passwordTouched && !passwordCheck.valid ? (passwordCheck.message ?? 'Nieprawidłowe hasło') : null;
+
+  const confirmMismatch =
+    Boolean(confirmPassword) && password !== confirmPassword;
+  const passwordMismatchHint =
+    confirmMismatch && (confirmPasswordTouched || debouncedConfirmMismatch);
 
   const fieldErrorClass = 'border-destructive focus-visible:ring-destructive/30';
 
@@ -577,6 +583,10 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
     }
   };
 
+  const handlePasswordBlur = () => {
+    setPasswordTouched(true);
+  };
+
   const handleConfirmPasswordChange = (value: string) => {
     setConfirmPassword(value);
     if (formError) {
@@ -587,6 +597,21 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
   const handleConfirmPasswordBlur = () => {
     setConfirmPasswordTouched(true);
   };
+
+  useEffect(() => {
+    if (!confirmPassword || password === confirmPassword) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedConfirmMismatch(true);
+    }, CONFIRM_PASSWORD_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      setDebouncedConfirmMismatch(false);
+    };
+  }, [password, confirmPassword]);
 
   const roleRegistrationClosed =
     (selectedUserType === 'contractor' && !registrationSettings.contractorOpen) ||
@@ -632,6 +657,7 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
 
     setPhoneTouched(true);
     setEmailTouched(true);
+    setPasswordTouched(true);
     setConfirmPasswordTouched(true);
 
     if (!isValidPolishPhone(phone)) {
@@ -1037,12 +1063,25 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => handlePasswordChange(e.target.value)}
+                    onBlur={handlePasswordBlur}
                     placeholder={`Co najmniej ${MIN_PASSWORD_LENGTH} znaków`}
-                    className={cn('pl-10 pr-10', authFieldClassName)}
+                    className={cn(
+                      'pl-10 pr-10',
+                      authFieldClassName,
+                      passwordError && fieldErrorClass,
+                    )}
                     required
                     minLength={MIN_PASSWORD_LENGTH}
                     disabled={isPending}
                     autoComplete="new-password"
+                    aria-invalid={passwordError ? true : undefined}
+                    aria-describedby={
+                      passwordError
+                        ? 'password-error'
+                        : password
+                          ? 'password-strength-hints'
+                          : undefined
+                    }
                   />
                   <button
                     type="button"
@@ -1054,6 +1093,8 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
+                <PasswordStrengthHints password={password} />
+                <AuthFieldError message={passwordError} id="password-error" reserveSpace={false} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="confirmPassword">Potwierdź hasło</Label>
@@ -1070,13 +1111,13 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     className={cn(
                       'pl-10 pr-10',
                       authFieldClassName,
-                      passwordMismatchError && fieldErrorClass,
+                      passwordMismatchHint && fieldErrorClass,
                     )}
                     required
                     disabled={isPending}
                     autoComplete="new-password"
-                    aria-invalid={passwordMismatchError ? true : undefined}
-                    aria-describedby={passwordMismatchError ? 'confirm-password-error' : undefined}
+                    aria-invalid={passwordMismatchHint ? true : undefined}
+                    aria-describedby={passwordMismatchHint ? 'confirm-password-error' : undefined}
                   />
                   <button
                     type="button"
@@ -1092,7 +1133,10 @@ export function RegisterPage({ registrationSettings }: RegisterPageProps) {
                     )}
                   </button>
                 </div>
-                <AuthFieldError message={passwordMismatchError} id="confirm-password-error" reserveSpace={false} />
+                <PasswordMismatchHint
+                  visible={passwordMismatchHint}
+                  id="confirm-password-error"
+                />
               </div>
             </div>
           </AuthFormSection>

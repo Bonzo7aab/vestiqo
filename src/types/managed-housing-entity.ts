@@ -12,8 +12,22 @@ export interface ManagedHousingEntity {
   postal_code: string | null;
   bank_account_iban: string | null;
   vat_status: string | null;
+  management_blocked_at: string | null;
+  claimed_company_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export function isManagedHousingEntityBlocked(
+  entity: Pick<ManagedHousingEntity, 'management_blocked_at'>,
+): boolean {
+  return entity.management_blocked_at != null;
+}
+
+export function filterActiveManagedHousingEntities<
+  T extends Pick<ManagedHousingEntity, 'management_blocked_at'>,
+>(entities: T[]): T[] {
+  return entities.filter((entity) => !isManagedHousingEntityBlocked(entity));
 }
 
 export interface ManagedHousingEntityFormData {

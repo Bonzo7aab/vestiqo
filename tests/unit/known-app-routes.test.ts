@@ -9,6 +9,7 @@ assert.equal(isKnownAppRoute('/co-nowego'), true);
 assert.equal(isKnownAppRoute('/uzytkownik/abc-123'), true);
 assert.equal(isKnownAppRoute('/konkurs/abc-123'), true);
 assert.equal(isKnownAppRoute('/panel-zarzadcy/kalendarz'), true);
+assert.equal(isKnownAppRoute('/odzyskanie-wspolnoty'), true);
 assert.equal(isKnownAppRoute('/foo-bar'), false);
 assert.equal(isKnownAppRoute('/not-a-real-route'), false);
 

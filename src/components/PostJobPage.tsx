@@ -25,7 +25,10 @@ import {
 } from "../lib/config/categoryConfig";
 import { fetchManagerHousingEntities } from "../lib/database/managed-housing-entities";
 import type { ManagedHousingEntity } from "../types/managed-housing-entity";
-import { formatManagedHousingEntitySelectLabel } from "../types/managed-housing-entity";
+import {
+  filterActiveManagedHousingEntities,
+  formatManagedHousingEntitySelectLabel,
+} from "../types/managed-housing-entity";
 import Link from "next/link";
 import type { BudgetInput } from "../types/budget";
 import { uploadJobAttachments, deleteJobAttachments } from "../lib/storage/job-attachments";
@@ -142,7 +145,7 @@ export default function PostJobPage({ onBack, jobId: jobIdProp }: PostJobPagePro
         if (company?.id) {
           const { data: entities } = await fetchManagerHousingEntities(supabase, company.id);
           if (entities?.length) {
-            setManagedEntities(entities);
+            setManagedEntities(filterActiveManagedHousingEntities(entities));
           }
         }
       } catch (error) {

@@ -132,62 +132,73 @@ export function ForgotPasswordPage() {
           Pamiętasz hasło?{' '}
           <Link href="/logowanie" className="font-medium text-primary hover:underline">
             Zaloguj się
-          </Link>
-        </>
-      }
-    >
-      <AuthFormPanel>
-        {error && (
-          <Alert
-            variant="destructive"
-            className="mb-5 border-destructive bg-destructive/15 shadow-sm"
-            data-testid="forgot-password-error"
-          >
-            <CircleAlert className="h-5 w-5" />
-            <AlertTitle className="text-destructive">Nie udało się wysłać linku</AlertTitle>
-            <AlertDescription className="text-sm font-medium text-destructive">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
+            </Link>
+          </>
+        }
+      >
+        <AuthFormPanel>
+          {error && (
+            <Alert
+              variant="destructive"
+              className="mb-5 border-destructive bg-destructive/15 shadow-sm"
+              data-testid="forgot-password-error"
+            >
+              <CircleAlert className="h-5 w-5" />
+              <AlertTitle className="text-destructive">Nie udało się wysłać linku</AlertTitle>
+              <AlertDescription className="text-sm font-medium text-destructive">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="email">Adres email</Label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="twoj@email.pl"
-                className={`pl-10 ${authFieldClassName}`}
-                required
-                disabled={isPending}
-                autoComplete="email"
-              />
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Adres email</Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="twoj@email.pl"
+                  className={`pl-10 ${authFieldClassName}`}
+                  required
+                  disabled={isPending}
+                  autoComplete="email"
+                />
+              </div>
             </div>
-          </div>
 
-          <Button type="submit" className="h-11 w-full" disabled={isPending}>
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Wysyłanie...
-              </>
-            ) : (
-              <>
-                Wyślij nowe hasło
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </form>
-      </AuthFormPanel>
-    </AuthPageLayout>
-  );
+            <Button type="submit" className="h-11 w-full" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Wysyłanie...
+                </>
+              ) : (
+                <>
+                  Wyślij nowe hasło
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Wspólnota bez własnego loginu (konto założył zarządca)?{' '}
+            <Link
+              href="/odzyskanie-wspolnoty"
+              className="font-medium text-primary hover:underline"
+              data-testid="community-claim-link"
+            >
+              Odzyskaj konto uchwałą
+            </Link>
+          </p>
+        </AuthFormPanel>
+      </AuthPageLayout>
+    );
 }
 
 export default ForgotPasswordPage;

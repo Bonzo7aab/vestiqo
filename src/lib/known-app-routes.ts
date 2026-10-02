@@ -46,6 +46,7 @@ export const ALLOWED_FIRST_SEGMENTS = new Set<string>([
   'wykonawcy',
   'zapisane-zgloszenia',
   'zapomniane-haslo',
+  'odzyskanie-wspolnoty',
   'zarzadcy',
   'konkurs',
 ]);

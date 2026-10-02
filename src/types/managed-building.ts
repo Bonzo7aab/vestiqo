@@ -23,6 +23,9 @@ export interface ManagedBuilding {
   id: string;
   managed_entity_id: string;
   name: string;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
   above_ground_floors: number | null;
   below_ground_floors: number | null;
   roof_area_m2: number | null;
@@ -45,6 +48,9 @@ export interface ManagedBuilding {
 
 export interface ManagedBuildingFormData {
   name: string;
+  address: string;
+  city: string;
+  postal_code: string;
   above_ground_floors: string;
   below_ground_floors: string;
   roof_area_m2: string;
@@ -121,6 +127,9 @@ export const BUILDING_INSPECTION_DEFINITIONS: Array<{
 
 export const EMPTY_MANAGED_BUILDING_FORM: ManagedBuildingFormData = {
   name: '',
+  address: '',
+  city: '',
+  postal_code: '',
   above_ground_floors: '',
   below_ground_floors: '',
   roof_area_m2: '',
@@ -142,6 +151,9 @@ export const EMPTY_MANAGED_BUILDING_FORM: ManagedBuildingFormData = {
 export function buildingToForm(building: ManagedBuilding): ManagedBuildingFormData {
   return {
     name: building.name,
+    address: building.address ?? '',
+    city: building.city ?? '',
+    postal_code: building.postal_code ?? '',
     above_ground_floors: building.above_ground_floors?.toString() ?? '',
     below_ground_floors: building.below_ground_floors?.toString() ?? '',
     roof_area_m2: building.roof_area_m2?.toString() ?? '',

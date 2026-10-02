@@ -41,6 +41,7 @@ import {
   type WspolnotaSubRole,
 } from '../profile/account-role-labels'
 import { createManagedHousingEntity } from '../database/managed-housing-entities'
+import { seedCondoBoardHousingFromGus } from '../database/condo-board-housing'
 import {
   isDevQuickLoginAccountKey,
   isDevQuickLoginEnabled,
@@ -569,6 +570,37 @@ async function registerActionImpl(
     }
   }
 
+  if (
+    accountRole === ACCOUNT_ROLES.CONDO_BOARD &&
+    normalizedNip &&
+    resolvedCompanyName
+  ) {
+    const { error: boardSeedError } = await seedCondoBoardHousingFromGus(writer, companyRow.id, {
+      nip: normalizedNip,
+      name: resolvedCompanyName,
+      regon: resolvedRegon,
+      address: resolvedAddress,
+      city: resolvedCity,
+      postalCode: resolvedPostalCode,
+    })
+
+    if (boardSeedError) {
+      await admin.auth.admin.deleteUser(userId)
+      const seedMessage = boardSeedError.message || 'Nie udało się zapisać budynku wspólnoty'
+      if (
+        seedMessage.toLowerCase().includes('już na liście') ||
+        seedMessage.toLowerCase().includes('nip')
+      ) {
+        return {
+          error: nipAlreadyRegisteredMessage(normalizedNip, 'community'),
+        }
+      }
+      return {
+        error: translateRegistrationErrorMessage(seedMessage),
+      }
+    }
+  }
+
   const { persistRegistrationFinanceSettings } = await import('./persist-registration-finance-settings')
   const financeResult = await persistRegistrationFinanceSettings(writer, {
     userId,
@@ -616,6 +648,20 @@ async function registerActionImpl(
       }
     } catch (error) {
       console.error('[registerAction] manager verification email failed', error)
+    }
+
+    try {
+      const { notifyAdminsOfVerificationSubmission } = await import(
+        '../database/admin-verification-notifications'
+      )
+      await notifyAdminsOfVerificationSubmission({
+        supabase: writer,
+        subjectUserId: userId,
+        subjectName: `${firstName} ${lastName}`.trim() || email,
+        userTypeLabel: 'Zarządca',
+      })
+    } catch (error) {
+      console.error('[registerAction] admin verification notification failed', error)
     }
   }
 

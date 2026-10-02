@@ -32,6 +32,8 @@ interface BuildAccountMenuSectionsOptions {
   showVerificationAttention: boolean;
   verificationLabel: string;
   showProfileCompletion: boolean;
+  /** Hide Konto / Konkursy while a manager waits for email + admin approval. */
+  managerAccessPending?: boolean;
   handlers: AccountMenuHandlers;
 }
 
@@ -51,6 +53,7 @@ export function buildAccountMenuSections({
   showVerificationAttention,
   verificationLabel,
   showProfileCompletion,
+  managerAccessPending = false,
   handlers,
 }: BuildAccountMenuSectionsOptions): AccountMenuSection[] {
   if (isAdmin) {
@@ -79,12 +82,14 @@ export function buildAccountMenuSections({
   }
 
   if (userType === 'manager') {
-    const items = [item('Konto', User, handlers.onAccount)];
+    const items = managerAccessPending ? [] : [item('Konto', User, handlers.onAccount)];
     if (showOrders) {
       items.push(item('Zamówienia', Package, handlers.onZamowienia));
     }
-    items.push(item('Konkursy', ClipboardList, handlers.onZgloszenia));
-    return [{ items }];
+    if (!managerAccessPending) {
+      items.push(item('Konkursy', ClipboardList, handlers.onZgloszenia));
+    }
+    return items.length > 0 ? [{ items }] : [];
   }
 
   const mainItems = [

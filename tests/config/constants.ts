@@ -43,6 +43,7 @@ export const ROUTES = {
   login: '/logowanie',
   register: '/rejestracja',
   forgotPassword: '/zapomniane-haslo',
+  communityClaim: '/odzyskanie-wspolnoty',
   contractorDashboard: '/panel-wykonawcy',
   managerDashboard: '/panel-zarzadcy',
   managerOrders: '/panel-zarzadcy/zamowienia',

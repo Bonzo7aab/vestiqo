@@ -256,6 +256,33 @@ test.describe('Registration Page', () => {
     await expect(passwordInput).toHaveAttribute('required');
   });
 
+  test('shows password strength hints, blur errors, and confirm mismatch', async ({ page }) => {
+    await page.goto(ROUTES.register);
+    await expect(page.locator('input[name="password"]')).toBeVisible({ timeout: 10000 });
+
+    const passwordInput = page.locator('input[name="password"]');
+    const confirmInput = page.locator('input[name="confirmPassword"]');
+
+    await passwordInput.fill('abc');
+    const hints = page.getByTestId('password-strength-hints');
+    await expect(hints).toBeVisible();
+    await expect(hints.locator('[data-met="true"]')).toHaveCount(1);
+    await expect(hints.locator('[data-met="false"]')).toHaveCount(2);
+
+    await passwordInput.blur();
+    await expect(page.locator('#password-error')).toContainText(/co najmniej 8 znaków/i);
+
+    await passwordInput.fill('haslo123');
+    await expect(hints.locator('[data-met="true"]')).toHaveCount(3);
+    await expect(page.locator('#password-error')).toHaveCount(0);
+
+    await confirmInput.fill('haslo12');
+    await expect(page.getByTestId('password-mismatch-hint')).toBeVisible({ timeout: 2000 });
+
+    await confirmInput.fill('haslo123');
+    await expect(page.getByTestId('password-mismatch-hint')).toHaveCount(0);
+  });
+
   test('should validate password length', async ({ page }) => {
     await page.goto(ROUTES.register);
     

@@ -20,7 +20,7 @@ import type { CategoryWithSubcategories } from '../../lib/database/categories';
 import { fetchManagerHousingEntities } from '../../lib/database/managed-housing-entities';
 import { fetchManagedBuildingsForEntity } from '../../lib/database/managed-buildings';
 import type { ManagedHousingEntity } from '../../types/managed-housing-entity';
-import { formatManagedHousingEntitySelectLabel } from '../../types/managed-housing-entity';
+import { formatManagedHousingEntitySelectLabel, filterActiveManagedHousingEntities } from '../../types/managed-housing-entity';
 import type { ManagedBuilding } from '../../types/managed-building';
 import type {
   FormalRequirements,
@@ -323,7 +323,7 @@ export function TenderContestForm({
         const { data: company } = await fetchUserPrimaryCompany(supabase, user.id);
         if (company?.id) {
           const { data: entities } = await fetchManagerHousingEntities(supabase, company.id);
-          if (entities?.length) setManagedEntities(entities);
+          if (entities?.length) setManagedEntities(filterActiveManagedHousingEntities(entities));
         }
         const { data: cats } = await fetchAllCategoriesWithSubcategories(supabase);
         if (cats) setCategoriesFromDb(cats);

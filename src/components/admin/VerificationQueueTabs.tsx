@@ -13,7 +13,7 @@ import {
   Mail,
   XCircle,
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import { DataTable } from '../ui/data-table';
 import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import { cn } from '../ui/utils';
@@ -29,7 +29,6 @@ import {
 } from '../../lib/admin/resolve-admin-user-status';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 import { AdminEmptyState } from './AdminEmptyState';
-import { AdminFilterChip } from './AdminFilterChip';
 import { AdminPanelCard } from './AdminPanelCard';
 import {
   filterVerificationRowsBySegment,
@@ -103,28 +102,56 @@ type StatusFilter = 'pending' | 'email' | 'rejected' | 'approved';
 
 const STATUS_META: Record<
   StatusFilter,
-  { label: string; icon: typeof Clock3; accent: string }
+  {
+    label: string;
+    hint: string;
+    icon: typeof Clock3;
+    iconClass: string;
+    iconWrapClass: string;
+    activeClass: string;
+  }
 > = {
   pending: {
-    label: 'W toku',
+    label: 'Do decyzji',
+    hint: 'Email potwierdzony, czeka na akceptację',
     icon: Clock3,
-    accent: 'text-amber-600 dark:text-amber-400',
+    iconClass: 'text-amber-800',
+    iconWrapClass: 'bg-amber-100',
+    activeClass: 'border-amber-300/80 bg-amber-50/70',
   },
   email: {
     label: 'Email',
+    hint: 'Oczekuje na potwierdzenie adresu',
     icon: Mail,
-    accent: 'text-sky-600 dark:text-sky-400',
+    iconClass: 'text-sky-800',
+    iconWrapClass: 'bg-sky-100',
+    activeClass: 'border-sky-300/80 bg-sky-50/70',
   },
   rejected: {
     label: 'Odrzucone',
+    hint: 'Wniosek zakończony negatywnie',
     icon: XCircle,
-    accent: 'text-red-600 dark:text-red-400',
+    iconClass: 'text-red-800',
+    iconWrapClass: 'bg-red-100',
+    activeClass: 'border-red-300/80 bg-red-50/60',
   },
   approved: {
     label: 'Zaakceptowane',
+    hint: 'Konto zweryfikowane',
     icon: CheckCircle2,
-    accent: 'text-emerald-600 dark:text-emerald-400',
+    iconClass: 'text-emerald-800',
+    iconWrapClass: 'bg-emerald-100',
+    activeClass: 'border-emerald-300/80 bg-emerald-50/70',
   },
+};
+
+const ROLE_META: Record<
+  RoleFilter,
+  { label: string; shortLabel: string; icon: typeof HardHat }
+> = {
+  contractor: { label: 'Wykonawcy', shortLabel: 'wykonawców', icon: HardHat },
+  manager: { label: 'Zarządcy', shortLabel: 'zarządców', icon: Building2 },
+  cooperative: { label: 'Spółdzielnie', shortLabel: 'spółdzielni', icon: Landmark },
 };
 
 function formatDate(value: string | null | undefined): string {
@@ -134,6 +161,65 @@ function formatDate(value: string | null | undefined): string {
   } catch {
     return value;
   }
+}
+
+function formatRelativeTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+
+  const diffInSeconds = Math.floor((Date.now() - parsed) / 1000);
+  if (diffInSeconds < 60) return 'przed chwilą';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min temu`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} godz. temu`;
+  if (diffInSeconds < 604800) {
+    const days = Math.floor(diffInSeconds / 86400);
+    return days === 1 ? '1 dzień temu' : `${days} dni temu`;
+  }
+
+  return new Date(parsed).toLocaleDateString('pl-PL', { dateStyle: 'medium' });
+}
+
+function userInitials(firstName: string, lastName: string): string {
+  const first = firstName.trim().charAt(0);
+  const last = lastName.trim().charAt(0);
+  const initials = `${first}${last}`.toUpperCase();
+  return initials || '?';
+}
+
+function UserIdentityCell({ row }: { row: QueueRow }) {
+  const name = `${row.firstName} ${row.lastName}`.trim() || 'Bez nazwy';
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar className="size-9 rounded-lg">
+        <AvatarFallback className="rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+          {userInitials(row.firstName, row.lastName)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <p className="truncate font-medium text-foreground">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">{row.email ?? 'Brak adresu email'}</p>
+      </div>
+    </div>
+  );
+}
+
+function CompanyCell({ row }: { row: QueueRow }) {
+  return (
+    <div className="min-w-[10rem] max-w-[18rem]">
+      <p className="truncate font-medium text-foreground">{row.companyName ?? '—'}</p>
+      <p className="truncate text-xs text-muted-foreground">{resolveUserTypeLabel(row)}</p>
+    </div>
+  );
+}
+
+function TimestampCell({ value }: { value: string | null | undefined }) {
+  return (
+    <span className="whitespace-nowrap text-muted-foreground" title={formatDate(value)}>
+      {formatRelativeTime(value)}
+    </span>
+  );
 }
 
 function filterByRole<T extends VerificationQueueRowBase>(rows: T[], role: RoleFilter): T[] {
@@ -177,17 +263,17 @@ function DocumentsProgress({ submitted, expected }: { submitted: number; expecte
   const ratio = expected > 0 ? Math.min(100, Math.round((submitted / expected) * 100)) : 0;
 
   return (
-    <div className="flex min-w-[7rem] items-center gap-2">
+    <div className="flex min-w-[7.5rem] items-center gap-2.5">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
         <div
           className={cn(
             'h-full rounded-full transition-all',
-            ratio === 100 ? 'bg-emerald-500' : ratio > 0 ? 'bg-primary' : 'bg-muted-foreground/30',
+            ratio === 100 ? 'bg-emerald-500' : ratio > 0 ? 'bg-primary' : 'bg-muted-foreground/25',
           )}
           style={{ width: `${ratio}%` }}
         />
       </div>
-      <span className="text-xs tabular-nums text-muted-foreground">
+      <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
         {submitted}/{expected}
       </span>
     </div>
@@ -195,7 +281,8 @@ function DocumentsProgress({ submitted, expected }: { submitted: number; expecte
 }
 
 const VERIFICATION_DEFAULT_COLUMN_VISIBILITY = {
-  documents: false,
+  userType: false,
+  email: false,
 } as const;
 
 function navColumn<T extends QueueRow>(): ColumnDef<T> {
@@ -244,28 +331,23 @@ function useBaseColumns<T extends QueueRow>(): ColumnDef<T>[] {
       {
         id: 'user',
         meta: { label: 'Użytkownik' },
-        accessorFn: (row) => `${row.lastName} ${row.firstName}`,
+        accessorFn: (row) =>
+          `${row.lastName} ${row.firstName} ${row.firstName} ${row.lastName} ${row.email ?? ''} ${row.companyName ?? ''}`,
         header: ({ column }) => <DataTableColumnHeader column={column} title="Użytkownik" />,
-        cell: ({ row }) => (
-          <div className="font-medium">
-            {row.original.firstName} {row.original.lastName}
-          </div>
-        ),
+        cell: ({ row }) => <UserIdentityCell row={row.original} />,
       },
       {
         accessorKey: 'companyName',
         meta: { label: 'Firma' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Firma" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.companyName ?? '—'}</span>
-        ),
+        cell: ({ row }) => <CompanyCell row={row.original} />,
       },
       {
         accessorKey: 'userType',
         meta: { label: 'Typ konta' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Typ konta" />,
         cell: ({ row }) => (
-          <Badge variant="outline">{resolveUserTypeLabel(row.original)}</Badge>
+          <span className="text-sm text-muted-foreground">{resolveUserTypeLabel(row.original)}</span>
         ),
       },
       emailColumn<T>(),
@@ -290,9 +372,7 @@ function EmailUnconfirmedTable({
         accessorKey: 'createdAt',
         meta: { label: 'Utworzono' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Utworzono" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>
-        ),
+        cell: ({ row }) => <TimestampCell value={row.original.createdAt} />,
       },
       navColumn<QueueRow>(),
     ],
@@ -309,10 +389,11 @@ function EmailUnconfirmedTable({
       data={rows}
       getRowId={(row) => row.userId}
       onRowClick={(row) => onNavigate(row.userId)}
-      rowClassName="group"
+      rowClassName="group hover:bg-muted/40"
       filterColumnId="user"
-      filterPlaceholder="Filtruj użytkowników…"
+      filterPlaceholder="Szukaj po nazwisku, firmie lub emailu…"
       showViewOptions
+      initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
       initialSorting={[{ id: 'createdAt', desc: true }]}
     />
   );
@@ -356,17 +437,13 @@ function PendingTable({
         accessorKey: 'createdAt',
         meta: { label: 'Rozpoczęta' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Rozpoczęta" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>
-        ),
+        cell: ({ row }) => <TimestampCell value={row.original.createdAt} />,
       },
       {
         accessorKey: 'updatedAt',
         meta: { label: 'Zaktualizowana' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Zaktualizowana" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
-        ),
+        cell: ({ row }) => <TimestampCell value={row.original.updatedAt} />,
       },
       navColumn<PendingRow>(),
     ],
@@ -383,11 +460,11 @@ function PendingTable({
       data={rows}
       getRowId={(row) => row.userId}
       onRowClick={(row) => onNavigate(row.userId)}
-      rowClassName="group"
+      rowClassName="group hover:bg-muted/40"
       filterColumnId="user"
-      filterPlaceholder="Filtruj użytkowników…"
+      filterPlaceholder="Szukaj po nazwisku, firmie lub emailu…"
       showViewOptions
-      initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
+      initialColumnVisibility={{ ...VERIFICATION_DEFAULT_COLUMN_VISIBILITY, createdAt: false }}
       initialSorting={[{ id: 'updatedAt', desc: true }]}
     />
   );
@@ -423,9 +500,7 @@ function RejectedTable({
         accessorKey: 'decidedAt',
         meta: { label: 'Odrzucono' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Odrzucono" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.decidedAt)}</span>
-        ),
+        cell: ({ row }) => <TimestampCell value={row.original.decidedAt} />,
       },
       {
         accessorKey: 'reason',
@@ -455,9 +530,9 @@ function RejectedTable({
       data={rows}
       getRowId={(row) => row.userId}
       onRowClick={(row) => onNavigate(row.userId)}
-      rowClassName="group"
+      rowClassName="group hover:bg-muted/40"
       filterColumnId="user"
-      filterPlaceholder="Filtruj użytkowników…"
+      filterPlaceholder="Szukaj po nazwisku, firmie lub emailu…"
       showViewOptions
       initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
       initialSorting={[{ id: 'decidedAt', desc: true }]}
@@ -495,9 +570,7 @@ function ApprovedTable({
         accessorKey: 'decidedAt',
         meta: { label: 'Zaakceptowano' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Zaakceptowano" />,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDate(row.original.decidedAt)}</span>
-        ),
+        cell: ({ row }) => <TimestampCell value={row.original.decidedAt} />,
       },
       navColumn<ApprovedRow>(),
     ],
@@ -514,9 +587,9 @@ function ApprovedTable({
       data={rows}
       getRowId={(row) => row.userId}
       onRowClick={(row) => onNavigate(row.userId)}
-      rowClassName="group"
+      rowClassName="group hover:bg-muted/40"
       filterColumnId="user"
-      filterPlaceholder="Filtruj użytkowników…"
+      filterPlaceholder="Szukaj po nazwisku, firmie lub emailu…"
       showViewOptions
       initialColumnVisibility={VERIFICATION_DEFAULT_COLUMN_VISIBILITY}
       initialSorting={[{ id: 'decidedAt', desc: true }]}
@@ -553,12 +626,7 @@ function VerificationQueuePanel({
   };
 
   const activeMeta = STATUS_META[status];
-  const roleLabel =
-    role === 'contractor'
-      ? 'wykonawców'
-      : role === 'cooperative'
-        ? 'spółdzielni'
-        : 'zarządców';
+  const roleMeta = ROLE_META[role];
 
   const activeRowsEmpty =
     (status === 'email' && emailUnconfirmed.length === 0) ||
@@ -567,32 +635,59 @@ function VerificationQueuePanel({
     (status === 'approved' && approved.length === 0);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {(Object.keys(STATUS_META) as StatusFilter[]).map((key) => {
           const meta = STATUS_META[key];
+          const Icon = meta.icon;
+          const active = status === key;
+
           return (
-            <AdminFilterChip
+            <button
               key={key}
-              label={meta.label}
-              count={counts[key]}
-              icon={meta.icon}
-              active={status === key}
+              type="button"
               onClick={() => onStatusChange(key)}
-            />
+              aria-pressed={active}
+              className={cn(
+                'flex flex-col gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition-all',
+                'hover:border-primary/25 hover:shadow',
+                active ? meta.activeClass : 'border-border/70',
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span
+                  className={cn(
+                    'flex size-9 items-center justify-center rounded-lg',
+                    meta.iconWrapClass,
+                    meta.iconClass,
+                  )}
+                >
+                  <Icon className="size-4" />
+                </span>
+                <span className="text-2xl font-semibold tabular-nums tracking-tight text-brand-navy">
+                  {counts[key]}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{meta.label}</p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{meta.hint}</p>
+              </div>
+            </button>
           );
         })}
       </div>
 
       <AdminPanelCard
         title={
-          <>
-            {activeMeta.label}
-            <span className="font-normal text-muted-foreground"> · {roleLabel}</span>
-            <span className="ml-1 font-normal tabular-nums text-muted-foreground">
+          <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>{activeMeta.label}</span>
+            <span className="font-normal text-muted-foreground">
+              · {roleMeta.shortLabel}
+            </span>
+            <span className="font-normal tabular-nums text-muted-foreground">
               ({counts[status]})
             </span>
-          </>
+          </span>
         }
       >
         {activeRowsEmpty && emptyHint ? (
@@ -733,41 +828,57 @@ export function VerificationQueueTabs({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-5">
       {!emailLookupAvailable ? (
         <Alert>
           <AlertTitle>Status email niedostępny</AlertTitle>
           <AlertDescription>
             Brak klucza administracyjnego Supabase — nie da się sprawdzić potwierdzenia email.
-            Użytkownicy są pokazani w statusach weryfikacji (W toku / Odrzucone / Zaakceptowane),
-            bez osobnej zakładki Email.
+            Użytkownicy są pokazani w statusach weryfikacji (Do decyzji / Odrzucone / Zaakceptowane),
+            bez osobnej karty Email.
           </AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-1">
-        <AdminFilterChip
-          label="Wykonawcy"
-          count={contractorTotal}
-          icon={HardHat}
-          active={role === 'contractor'}
-          onClick={() => selectRole('contractor')}
-        />
-        <AdminFilterChip
-          label="Zarządcy"
-          count={managerTotal}
-          icon={Building2}
-          active={role === 'manager'}
-          onClick={() => selectRole('manager')}
-        />
-        <AdminFilterChip
-          label="Spółdzielnie"
-          count={cooperativeTotal}
-          icon={Landmark}
-          active={role === 'cooperative'}
-          onClick={() => selectRole('cooperative')}
-        />
-      </div>
+      <div className="inline-flex w-full self-start rounded-lg border border-border/70 bg-card p-1 shadow-sm sm:w-auto">
+          {(['contractor', 'manager', 'cooperative'] as const).map((key) => {
+            const meta = ROLE_META[key];
+            const Icon = meta.icon;
+            const count =
+              key === 'contractor'
+                ? contractorTotal
+                : key === 'manager'
+                  ? managerTotal
+                  : cooperativeTotal;
+            const active = role === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => selectRole(key)}
+                aria-pressed={active}
+                className={cn(
+                  'inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors sm:flex-none',
+                  active
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                )}
+              >
+                <Icon className="size-4" />
+                {meta.label}
+                <span
+                  className={cn(
+                    'tabular-nums text-xs',
+                    active ? 'text-primary-foreground/80' : 'text-muted-foreground',
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
       <VerificationQueuePanel
         role={role}
@@ -780,7 +891,7 @@ export function VerificationQueueTabs({
         onNavigate={navigateToUser}
         emptyHint={
           usersExistElsewhere
-            ? 'W tej zakładce nic nie ma, ale są użytkownicy w innych filtrach (np. Zarządcy → Zaakceptowane lub Email). Sprawdź liczniki na przyciskach powyżej.'
+            ? 'W tym widoku nic nie ma, ale są użytkownicy w innych filtrach. Zmień typ konta lub kartę statusu powyżej.'
             : undefined
         }
       />

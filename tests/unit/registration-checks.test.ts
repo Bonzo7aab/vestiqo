@@ -155,6 +155,27 @@ async function main(): Promise<void> {
     assert.equal(status, 'taken');
   }
 
+  {
+    const status = await checkNipRegistrationStatus(
+      createAdmin({
+        user_profiles: { data: [], error: null },
+        companies: { data: [], error: null },
+        managed_housing_entities: {
+          data: [{
+            id: 'entity-1',
+            nip: TAKEN_NIP,
+            manager_company_id: COMPANY_ID,
+            management_blocked_at: '2026-09-23T00:00:00.000Z',
+          }],
+          error: null,
+        },
+        user_companies: { data: [], error: null, count: 1 },
+      }),
+      TAKEN_NIP,
+    );
+    assert.equal(status, 'available');
+  }
+
   console.log('registration-checks.test.ts: ok');
 }
 

@@ -19,6 +19,9 @@ function building(overrides: Partial<ManagedBuilding> & { name: string }): Manag
     id: overrides.id ?? 'b1',
     managed_entity_id: 'e1',
     name: overrides.name,
+    address: overrides.address !== undefined ? overrides.address : null,
+    city: overrides.city !== undefined ? overrides.city : null,
+    postal_code: overrides.postal_code !== undefined ? overrides.postal_code : null,
     above_ground_floors:
       overrides.above_ground_floors !== undefined ? overrides.above_ground_floors : 5,
     below_ground_floors:

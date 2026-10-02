@@ -26,7 +26,7 @@ export async function HeaderWithSession() {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select(
-        'first_name, last_name, user_type, phone, is_verified, verification_submitted_at, profile_completed, onboarding_completed, avatar_url, platform_role, account_role, organization_type'
+        'first_name, last_name, user_type, phone, is_verified, verification_submitted_at, profile_completed, onboarding_completed, avatar_url, platform_role, account_role, organization_type, email_verified_at'
       )
       .eq('id', profileUserId)
       .maybeSingle();
@@ -53,6 +53,7 @@ export async function HeaderWithSession() {
         platformRole: effectiveContext?.isImpersonating ? 'user' : (profile.platform_role ?? 'user'),
         accountRole: profile.account_role ?? null,
         organizationType: profile.organization_type ?? null,
+        emailVerifiedAt: profile.email_verified_at ?? null,
       };
     } else {
       initialUser = null;

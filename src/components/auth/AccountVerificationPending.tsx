@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Mail, ShieldCheck, Clock } from 'lucide-react';
+import { Mail, ShieldCheck, Clock, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import {
@@ -56,6 +56,7 @@ export function AccountVerificationPending({
     <AuthPageLayout
       testId="account-verification-pending"
       headingTestId="account-verification-heading"
+      centerSplit
       title="Konto w trakcie weryfikacji"
       subtitle="Możesz się logować, ale pełny dostęp pojawi się po potwierdzeniu email i akceptacji administratora."
       trustNote="Dane chronione zgodnie z RODO. Weryfikacja kont wspólnot i spółdzielni przez zespół Vestiqo."
@@ -114,8 +115,16 @@ export function AccountVerificationPending({
                 1
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
                   {emailVerified ? 'Adres email potwierdzony' : 'Potwierdź adres email'}
+                  {emailVerified ? (
+                    <Check
+                      className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                      strokeWidth={2.5}
+                      aria-label="Potwierdzone"
+                      data-testid="email-verified-check"
+                    />
+                  ) : null}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                   {emailVerified

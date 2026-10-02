@@ -212,7 +212,9 @@ export function ManagedBuildingEditor({
         <div>
           <h3 className="text-base font-semibold">{building.name}</h3>
           <p className="text-sm text-muted-foreground">
-            Dane techniczne i kalendarz przeglądów budynku
+            {[building.address, [building.postal_code, building.city].filter(Boolean).join(' ')]
+              .filter(Boolean)
+              .join(', ') || 'Dane techniczne i kalendarz przeglądów budynku'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -246,15 +248,47 @@ export function ManagedBuildingEditor({
         </TabsList>
 
         <TabsContent value="technical" className="space-y-4">
-          <EditorSection grouped={grouped} title="Identyfikator">
-            <div className="space-y-2">
-              <Label htmlFor="building-name">Nazwa / Identyfikator budynku</Label>
-              <Input
-                id="building-name"
-                value={formData.name}
-                onChange={(e) => updateField('name', e.target.value)}
-                placeholder='Np. „Budynek A”, „ul. Królewska 4A”'
-              />
+          <EditorSection grouped={grouped} title="Adres i identyfikator">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="building-address">Ulica i numer</Label>
+                <Input
+                  id="building-address"
+                  value={formData.address}
+                  onChange={(e) => updateField('address', e.target.value)}
+                  placeholder="np. ul. Królewska 12"
+                  autoComplete="street-address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="building-postal">Kod pocztowy</Label>
+                <Input
+                  id="building-postal"
+                  value={formData.postal_code}
+                  onChange={(e) => updateField('postal_code', e.target.value)}
+                  placeholder="00-000"
+                  autoComplete="postal-code"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="building-city">Miasto</Label>
+                <Input
+                  id="building-city"
+                  value={formData.city}
+                  onChange={(e) => updateField('city', e.target.value)}
+                  placeholder="np. Warszawa"
+                  autoComplete="address-level2"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="building-name">Nazwa / Identyfikator budynku</Label>
+                <Input
+                  id="building-name"
+                  value={formData.name}
+                  onChange={(e) => updateField('name', e.target.value)}
+                  placeholder='Np. „Budynek A”, „ul. Królewska 4A”'
+                />
+              </div>
             </div>
           </EditorSection>
 

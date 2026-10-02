@@ -40,6 +40,8 @@ interface AuthPageLayoutProps {
   trustNote?: string;
   /** Hide mobile header logo above the form title. */
   showMobileLogo?: boolean;
+  /** Vertically center both columns and pull their content toward the page midline. */
+  centerSplit?: boolean;
   side: {
     heading: string;
     body: string;
@@ -50,13 +52,25 @@ interface AuthPageLayoutProps {
 function AuthSidePanel({
   side,
   trustNote = 'Dane chronione zgodnie z RODO. Weryfikacja dokumentów dla wykonawców.',
+  centerSplit = false,
 }: {
   side: AuthPageLayoutProps['side'];
   trustNote?: string;
+  centerSplit?: boolean;
 }) {
   return (
-    <aside className="relative hidden lg:sticky lg:top-16 lg:flex lg:flex-col lg:self-start">
-      <div className="relative flex flex-1 flex-col justify-center gap-7 px-10 py-10 xl:gap-8 xl:px-14 xl:py-12">
+    <aside
+      className={cn(
+        'relative hidden lg:flex lg:flex-col',
+        centerSplit ? 'lg:h-full lg:items-end lg:justify-center' : 'lg:sticky lg:top-16 lg:self-start',
+      )}
+    >
+      <div
+        className={cn(
+          'relative flex flex-1 flex-col justify-center gap-7 px-10 py-10 xl:gap-8 xl:px-14 xl:py-12',
+          centerSplit && 'ml-auto w-full max-w-md',
+        )}
+      >
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
@@ -111,6 +125,7 @@ export function AuthPageLayout({
   contentMaxWidth = 'md',
   trustNote,
   showMobileLogo = true,
+  centerSplit = false,
   side,
 }: AuthPageLayoutProps) {
   // Fill space between site header and footer (root main is ~100vh - 12rem), not the full viewport.
@@ -133,14 +148,21 @@ export function AuthPageLayout({
           contentMaxWidth === '2xl'
             ? 'lg:grid lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.4fr)]'
             : 'lg:grid lg:grid-cols-2',
+          centerSplit && 'lg:items-stretch',
         )}
       >
-        <AuthSidePanel side={side} trustNote={trustNote} />
+        <AuthSidePanel side={side} trustNote={trustNote} centerSplit={centerSplit} />
 
-        <div className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-12">
+        <div
+          className={cn(
+            'flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-12',
+            centerSplit && 'lg:items-start',
+          )}
+        >
           <div
             className={cn(
               'mx-auto w-full',
+              centerSplit && 'lg:mx-0',
               contentMaxWidth === '2xl'
                 ? 'max-w-4xl'
                 : contentMaxWidth === 'xl'
