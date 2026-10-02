@@ -1094,9 +1094,69 @@ async function broadcastSystemAnnouncementActionImpl(params: {
   return { ok: true, sentCount };
 }
 
+async function setVerificationSubjectSuspendedActionImpl(
+  subjectUserId: string,
+  suspended: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmedId = subjectUserId.trim();
+  if (!trimmedId) {
+    return { ok: false, error: 'Nieprawidłowy identyfikator użytkownika' };
+  }
+
+  const { supabase, userId: actorId } = await requirePlatformAdmin('/administracja');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: profile, error: profileError } = await sb
+    .from('user_profiles')
+    .select('id, is_verified')
+    .eq('id', trimmedId)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return { ok: false, error: 'Nie znaleziono użytkownika' };
+  }
+
+  if (!profile.is_verified) {
+    return { ok: false, error: 'Zawieszenie dotyczy tylko zweryfikowanych kont.' };
+  }
+
+  const admin = createAdminClientOrNull();
+  if (!admin) {
+    return { ok: false, error: 'Brak uprawnień serwera do zmiany zawieszenia konta.' };
+  }
+
+  const { error: updateError } = await admin
+    .from('user_profiles')
+    .update({ actions_suspended: suspended })
+    .eq('id', trimmedId);
+
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  await logAdminAction(
+    sb,
+    actorId,
+    suspended ? 'account_suspend' : 'account_restore',
+    'user_profiles',
+    trimmedId,
+    { actions_suspended: suspended },
+  );
+
+  revalidatePath('/administracja/weryfikacja');
+  revalidatePath(`/administracja/weryfikacja/${trimmedId}`);
+  revalidatePath('/konto', 'layout');
+  return { ok: true };
+}
+
 export const approveVerificationSubjectAction = instrumentServerAction(
   'approveVerificationSubjectAction',
   approveVerificationSubjectActionImpl
+);
+export const setVerificationSubjectSuspendedAction = instrumentServerAction(
+  'setVerificationSubjectSuspendedAction',
+  setVerificationSubjectSuspendedActionImpl
 );
 export const rejectVerificationSubjectAction = instrumentServerAction(
   'rejectVerificationSubjectAction',

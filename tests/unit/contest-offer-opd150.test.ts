@@ -85,4 +85,9 @@ assert.equal(
   CONTEST_OFFER_ERRORS.abandonFailed,
 );
 
+assert.equal(
+  translateContestOfferError('Twoje konto jest zawieszone. Nie możesz złożyć oferty.'),
+  'Twoje konto jest zawieszone. Nie możesz złożyć oferty.',
+);
+
 console.log('contest-offer-opd150.test.ts: ok');

@@ -123,6 +123,7 @@ export default function AuthProvider({
         accountRole: profile.account_role ?? null,
         organizationType: profile.organization_type ?? null,
         emailVerifiedAt: profile.email_verified_at ?? null,
+        actionsSuspended: profile.actions_suspended === true,
       }
     } catch (err) {
       console.error('Error fetching profile:', err)

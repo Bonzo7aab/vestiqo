@@ -1009,11 +1009,13 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
-              <Button onClick={handleTenderCreate} className="flex-1 md:flex-initial">
-                Utwórz konkurs
-              </Button>
-            </div>
+            {user?.actionsSuspended ? null : (
+              <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
+                <Button onClick={handleTenderCreate} className="flex-1 md:flex-initial">
+                  Utwórz konkurs
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1175,11 +1177,13 @@ export default function ManagerPage({ onBack: _onBack, onPostJob, shouldOpenTend
           <TabsContent value="jobs" className="space-y-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <h2 className="text-xl md:text-2xl font-bold">Zarządzanie zgłoszeniami</h2>
-              <div className="flex flex-wrap gap-2 md:gap-3">
-                <Button onClick={handleTenderCreate} className="flex-1 md:flex-initial">
-                  Utwórz konkurs
-                </Button>
-              </div>
+              {user?.actionsSuspended ? null : (
+                <div className="flex flex-wrap gap-2 md:gap-3">
+                  <Button onClick={handleTenderCreate} className="flex-1 md:flex-initial">
+                    Utwórz konkurs
+                  </Button>
+                </div>
+              )}
             </div>
 
             {loadingJobs ? (

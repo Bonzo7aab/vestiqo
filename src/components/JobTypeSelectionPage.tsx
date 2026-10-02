@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { Button } from './ui/button';
+import { useUserProfile } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ArrowLeft, FileText, Gavel, Clock, Users, Star, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -16,6 +19,9 @@ interface JobTypeSelectionPageProps {
 }
 
 export default function JobTypeSelectionPage({ onBack, onSelectJob, onSelectTender, isAuthenticated, userType, hasCompany, isCheckingCompany }: JobTypeSelectionPageProps) {
+  const { user } = useUserProfile();
+  const canCreateContest = !user?.actionsSuspended;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -222,7 +228,7 @@ export default function JobTypeSelectionPage({ onBack, onSelectJob, onSelectTend
                     Ładowanie...
                   </Button>
                 </div>
-              ) : hasCompany === false ? (
+              ) : !canCreateContest ? null : hasCompany === false ? (
                 <Button disabled className="w-full" size="lg" variant="outline">
                   Utwórz konkurs
                 </Button>

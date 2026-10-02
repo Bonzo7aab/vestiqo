@@ -457,6 +457,7 @@ export function Header({
                 </Button>
               ) : (
                 !managerAccessPending &&
+                !currentUser?.actionsSuspended &&
                 (!userIsAuthenticated || currentUser?.userType !== 'contractor') && (
                   <Button
                     variant="default"
@@ -599,6 +600,16 @@ export function Header({
           </div>
         </div>
       </div>
+      {currentUser?.actionsSuspended ? (
+        <div
+          role="status"
+          className="border-t border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center text-sm font-medium text-destructive"
+        >
+          {currentUser.userType === 'contractor'
+            ? 'Twoje konto jest zawieszone. Nie możesz składać ofert.'
+            : 'Twoje konto jest zawieszone. Nie możesz tworzyć konkursów.'}
+        </div>
+      ) : null}
       {showNearestEventsStrip ? nearestEventsSlot : null}
     </header>
   );

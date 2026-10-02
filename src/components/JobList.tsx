@@ -316,7 +316,7 @@ export default function JobList({
           title="Brak konkursów"
           description="Nie ma obecnie aktywnych konkursów ofert. Nowe ogłoszenia pojawią się tutaj, gdy zarządcy je opublikują."
           action={
-            isManager ? (
+            isManager && !user?.actionsSuspended ? (
               <Button asChild>
                 <Link href={routes.dodajKonkurs}>
                   <Plus className="h-4 w-4" />

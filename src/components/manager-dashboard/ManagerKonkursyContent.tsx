@@ -32,6 +32,7 @@ import {
   cancelContestAction,
 } from '../../app/panel-zarzadcy/konkursy/actions';
 import { useImpersonation } from '../../contexts/ImpersonationContext';
+import { useUserProfile } from '../../contexts/AuthContext';
 import { ManagerContestOffersDialog } from './ManagerContestOffersDialog';
 import { ManagerContestQuestionsDialog } from './ManagerContestQuestionsDialog';
 import { ManagerContestWinnerDialog } from './ManagerContestWinnerDialog';
@@ -131,6 +132,7 @@ export function ManagerKonkursyContent({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isImpersonating } = useImpersonation();
+  const { user } = useUserProfile();
   const [contests, setContests] = useState(initialContests);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -401,7 +403,7 @@ export function ManagerKonkursyContent({
   };
 
   const renderRepeatContestButton = (row: ManagerContest): ReactElement | null => {
-    if (row.status !== 'no_offers') {
+    if (row.status !== 'no_offers' || user?.actionsSuspended) {
       return null;
     }
 

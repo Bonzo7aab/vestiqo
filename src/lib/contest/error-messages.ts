@@ -35,6 +35,10 @@ export function translateContestError(message: string): string {
     return CONTEST_ERRORS.prepareFailed;
   }
 
+  if (lower.includes('zawieszone')) {
+    return trimmed;
+  }
+
   return CONTEST_ERRORS.saveFailed;
 }
 

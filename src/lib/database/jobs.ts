@@ -1873,6 +1873,16 @@ export async function createTender(
   },
 ): Promise<{ data: TenderWithCompany | null; error: PostgrestError | null }> {
   try {
+    const { isAccountActionsSuspended, SUSPENDED_CONTEST_MESSAGE } = await import(
+      '../verification/actions-suspended'
+    );
+    if (await isAccountActionsSuspended(supabase, tenderData.managerId)) {
+      return {
+        data: null,
+        error: new Error(SUSPENDED_CONTEST_MESSAGE) as PostgrestError,
+      };
+    }
+
     const resolved = await resolveTenderCategoryIds(
       supabase,
       tenderData.category,
@@ -1949,7 +1959,7 @@ export async function updateTender(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingTender, error: fetchError } = await (supabase as any)
       .from(contestsTable())
-      .select('id, status')
+      .select('id, status, manager_id')
       .eq('id', tenderId)
       .single();
 
@@ -1958,6 +1968,19 @@ export async function updateTender(
         data: null,
         error: new Error('Konkurs nie został znaleziony') as PostgrestError,
       };
+    }
+
+    const existingManagerId = (existingTender as { manager_id?: string | null }).manager_id;
+    if (existingManagerId) {
+      const { isAccountActionsSuspended, SUSPENDED_CONTEST_MESSAGE } = await import(
+        '../verification/actions-suspended'
+      );
+      if (await isAccountActionsSuspended(supabase, existingManagerId)) {
+        return {
+          data: null,
+          error: new Error(SUSPENDED_CONTEST_MESSAGE) as PostgrestError,
+        };
+      }
     }
 
     if ((existingTender as unknown as { status?: string })?.status !== 'draft') {
@@ -2673,6 +2696,16 @@ export async function createTenderBid(
       return {
         data: null,
         error: new Error(access.message ?? 'Konto wykonawcy nie jest zweryfikowane.') as PostgrestError,
+      };
+    }
+
+    const { isAccountActionsSuspended, SUSPENDED_OFFER_MESSAGE } = await import(
+      '../verification/actions-suspended'
+    );
+    if (await isAccountActionsSuspended(supabase, contractorId)) {
+      return {
+        data: null,
+        error: new Error(SUSPENDED_OFFER_MESSAGE) as PostgrestError,
       };
     }
 

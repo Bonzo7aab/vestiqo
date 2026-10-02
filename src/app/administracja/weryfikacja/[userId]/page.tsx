@@ -59,6 +59,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
       verification_submitted_at,
       verification_document_paths,
       is_verified,
+      actions_suspended,
       email_verified_at,
       created_at,
       updated_at,
@@ -280,6 +281,7 @@ export default async function AdminVerificationSubjectPage({ params }: PageProps
         lastDecisionAt={lastDecisionAt}
         ocValidUntil={ocValidUntil}
         profileDetails={subjectProfile}
+        actionsSuspended={profile.actions_suspended === true}
       />
 
       <AdminNotesCollapsibleSection subjectUserId={userId} notes={notes} />

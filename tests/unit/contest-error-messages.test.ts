@@ -33,6 +33,10 @@ assert.equal(
   CONTEST_ERRORS.saveFailed,
 );
 
+assert.equal(
+  translateContestError('Twoje konto jest zawieszone. Nie możesz utworzyć konkursu.'),
+  'Twoje konto jest zawieszone. Nie możesz utworzyć konkursu.',
+);
 assert.equal(translateContestError(CONTEST_ERRORS.notLoggedIn), CONTEST_ERRORS.notLoggedIn);
 assert.equal(translateContestError(CONTEST_ERRORS.missingCompany), CONTEST_ERRORS.missingCompany);
 assert.equal(translateContestError(CONTEST_ERRORS.prepareFailed), CONTEST_ERRORS.prepareFailed);

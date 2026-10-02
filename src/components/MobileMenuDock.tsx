@@ -74,6 +74,7 @@ export function MobileMenuDock() {
   });
   const canCreateContest =
     !managerAccessPending &&
+    !user?.actionsSuspended &&
     (!user || (user.userType !== 'contractor' && user.platformRole !== 'platform_admin'));
   const isAdmin = user?.platformRole === 'platform_admin';
 

@@ -30,11 +30,8 @@ async function logImpersonationAction(
   });
 }
 
-export type ImpersonationView = 'konto' | 'konkursy';
-
 export async function startImpersonationAction(
   subjectUserId: string,
-  view: ImpersonationView = 'konto',
 ): Promise<{ error?: string }> {
   const trimmedId = subjectUserId?.trim();
   if (!trimmedId) {
@@ -67,10 +64,6 @@ export async function startImpersonationAction(
 
   const subjectUserType = subjectProfile.user_type as ImpersonationSubjectUserType;
 
-  if (view === 'konkursy' && subjectUserType !== 'manager') {
-    return { error: 'Konkursy są dostępne tylko dla zarządców' };
-  }
-
   const payload: ImpersonationPayload = {
     v: 1,
     actorId,
@@ -86,15 +79,7 @@ export async function startImpersonationAction(
     getImpersonationCookieOptions(),
   );
 
-  await logImpersonationAction(sb, actorId, 'impersonation_start', trimmedId, { view });
-
-  if (view === 'konkursy') {
-    redirect(routes.panelZarzadcyKonkursy);
-  }
-
-  if (subjectUserType === 'contractor') {
-    redirect(routes.panelWykonawcyAplikacje);
-  }
+  await logImpersonationAction(sb, actorId, 'impersonation_start', trimmedId, { view: 'konto' });
 
   redirect(routes.konto);
 }

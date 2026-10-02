@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { Clock, MapPin } from 'lucide-react';
 import {
   CALENDAR_KIND_LABEL,
+  isCreateContestCalendarCta,
   type ManagerCalendarEvent,
 } from '../../lib/calendar/manager-calendar-events';
+import { useUserProfile } from '../../contexts/AuthContext';
 import { formatHourLabel, formatPolishDate } from '../../lib/calendar/dates';
 import { inspectionStatusLabel } from '../../types/managed-building';
 import { Button } from '../ui/button';
@@ -34,6 +36,7 @@ export function ManagerKalendarzEventPreviewDialog({
   open,
   onOpenChange,
 }: ManagerKalendarzEventPreviewDialogProps): ReactElement {
+  const { user } = useUserProfile();
   const hourLabel =
     event?.startHour != null ? formatHourLabel(event.startHour) : 'Cały dzień';
   const place = event
@@ -42,7 +45,12 @@ export function ManagerKalendarzEventPreviewDialog({
       : event.entityName
     : '';
   const hasDetails = Boolean(event?.href && event.href !== event.ctaHref);
-  const hasActions = Boolean((event?.ctaHref && event.ctaLabel) || hasDetails);
+  const showCta = Boolean(
+    event?.ctaHref &&
+      event.ctaLabel &&
+      !(user?.actionsSuspended && isCreateContestCalendarCta(event)),
+  );
+  const hasActions = showCta || hasDetails;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,7 +122,7 @@ export function ManagerKalendarzEventPreviewDialog({
               ) : null}
               {hasActions ? (
                 <div className="flex flex-wrap gap-2">
-                  {event.ctaHref && event.ctaLabel ? (
+                  {showCta && event.ctaHref && event.ctaLabel ? (
                     <Button asChild size="sm">
                       <Link href={event.ctaHref}>{event.ctaLabel}</Link>
                     </Button>

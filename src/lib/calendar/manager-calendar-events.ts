@@ -34,6 +34,15 @@ export interface CalendarDateGroup {
   events: ManagerCalendarEvent[];
 }
 
+export function isCreateContestCalendarCta(
+  event: Pick<ManagerCalendarEvent, 'ctaHref' | 'ctaLabel'>,
+): boolean {
+  return (
+    event.ctaLabel === 'Nowy konkurs' ||
+    (event.ctaHref?.startsWith('/dodaj-konkurs') ?? false)
+  );
+}
+
 export interface ManagerCalendarEvent {
   id: string;
   kind: ManagerCalendarEventKind;
