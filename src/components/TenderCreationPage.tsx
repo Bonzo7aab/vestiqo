@@ -22,6 +22,7 @@ import {
 } from '../lib/contest/build-tender-payload';
 import { contestUploadFailureMessage } from '../lib/contest/contest-form-documents';
 import { CONTEST_ERRORS, contestErrorFromUnknown } from '../lib/contest/error-messages';
+import { SUSPENDED_CONTEST_MESSAGE } from '../lib/verification/actions-suspended';
 import type { TenderContestDocumentMeta, TenderContestFormData } from '../types/tender-contest';
 import { createEmptyTenderContestForm } from '../types/tender-contest';
 import { toast } from 'sonner';
@@ -222,6 +223,11 @@ export default function TenderCreationPage({
   ): Promise<void> => {
     if (!user?.id) {
       toast.error(CONTEST_ERRORS.notLoggedIn);
+      return;
+    }
+
+    if (user.actionsSuspended) {
+      toast.error(SUSPENDED_CONTEST_MESSAGE);
       return;
     }
 
@@ -429,6 +435,15 @@ export default function TenderCreationPage({
           </div>
         </div>
       )}
+
+      {user?.actionsSuspended ? (
+        <div
+          role="status"
+          className="mx-auto mt-4 max-w-4xl rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+        >
+          {SUSPENDED_CONTEST_MESSAGE}
+        </div>
+      ) : null}
 
       <div
         className={cn(

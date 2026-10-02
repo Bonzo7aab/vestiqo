@@ -6,9 +6,11 @@ import { Clock, MapPin } from 'lucide-react';
 import {
   CALENDAR_KIND_LABEL,
   groupEventsByDate,
+  isCreateContestCalendarCta,
   type ManagerCalendarEvent,
   type ManagerCalendarEventKind,
 } from '../../lib/calendar/manager-calendar-events';
+import { useUserProfile } from '../../contexts/AuthContext';
 import { daysUntilIsoDate, formatHourLabel, toIsoDate } from '../../lib/calendar/dates';
 import { inspectionStatusLabel, type BuildingInspectionStatus } from '../../types/managed-building';
 import { Badge } from '../ui/badge';
@@ -76,14 +78,22 @@ function parseListDate(isoDate: string): Date | null {
 }
 
 function EventActions({ event }: { event: ManagerCalendarEvent }): ReactElement | null {
+  const { user } = useUserProfile();
   const hasDetails = Boolean(event.href && event.href !== event.ctaHref);
-  if (!event.ctaHref && !hasDetails) return null;
+  const ctaHref = event.ctaHref;
+  const ctaLabel = event.ctaLabel;
+  const showCta = Boolean(
+    ctaHref &&
+      ctaLabel &&
+      !(user?.actionsSuspended && isCreateContestCalendarCta(event)),
+  );
+  if (!showCta && !hasDetails) return null;
 
   return (
     <div className="flex shrink-0 flex-wrap justify-end gap-2">
-      {event.ctaHref && event.ctaLabel ? (
+      {showCta && ctaHref && ctaLabel ? (
         <Button asChild size="sm">
-          <Link href={event.ctaHref}>{event.ctaLabel}</Link>
+          <Link href={ctaHref}>{ctaLabel}</Link>
         </Button>
       ) : null}
       {hasDetails ? (

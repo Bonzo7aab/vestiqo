@@ -51,6 +51,15 @@ async function ensureContractorCanBid(
     };
   }
 
+  const { isAccountActionsSuspended, SUSPENDED_OFFER_MESSAGE } = await import(
+    '../verification/actions-suspended'
+  );
+  if (await isAccountActionsSuspended(supabase, contractorId)) {
+    return {
+      error: new Error(SUSPENDED_OFFER_MESSAGE) as PostgrestError,
+    };
+  }
+
   const { fetchUserPrimaryCompany } = await import('./companies');
   const { data: company, error: companyError } = await fetchUserPrimaryCompany(
     supabase,

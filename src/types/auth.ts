@@ -35,6 +35,8 @@ export interface AuthUser {
   registryVerified?: boolean
   /** App-level email confirmation (managers). */
   emailVerifiedAt?: string | null
+  /** Verified account blocked from creating contests and submitting offers. */
+  actionsSuspended?: boolean
 }
 
 // User with profile interface (used by useUser hook)

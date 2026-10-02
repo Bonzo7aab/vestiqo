@@ -11,6 +11,8 @@ import {
 import type { AuthUser } from '../../types/auth';
 import { cn } from '../ui/utils';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { SUSPENDED_OFFER_MESSAGE } from '../../lib/verification/actions-suspended';
 
 export const CONTRACTOR_OFFERS_PAGE_HREF = '/panel-wykonawcy/aplikacje';
 
@@ -40,6 +42,10 @@ export function ContestApplyOfferButton({
 
   const handleApplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (user?.actionsSuspended) {
+      toast.error(SUSPENDED_OFFER_MESSAGE);
+      return;
+    }
     if (blockApply) {
       setVerificationDialogOpen(true);
       return;

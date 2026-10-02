@@ -12,6 +12,7 @@ import {
   Hash,
   Mail,
   MapPin,
+  Pause,
   Phone,
   RefreshCw,
   ShieldCheck,
@@ -22,6 +23,16 @@ import {
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 import { VerificationDocumentList } from './VerificationDocumentList';
@@ -34,6 +45,7 @@ import type { AdminUserStatus } from '../../lib/verification/types';
 import {
   approveVerificationSubjectAction,
   rejectVerificationSubjectAction,
+  setVerificationSubjectSuspendedAction,
 } from '../../app/administracja/actions';
 import type {
   AdminVerificationSubjectProfile,
@@ -69,6 +81,7 @@ interface VerificationSubjectPanelProps {
   lastDecisionAt: string | null;
   ocValidUntil: string | null;
   profileDetails: AdminVerificationSubjectProfile;
+  actionsSuspended: boolean;
 }
 
 type DocReviewState = 'approved' | 'rejected' | 'unreviewed' | 'missing';
@@ -198,7 +211,9 @@ export function VerificationSubjectPanel({
   lastDecisionAt,
   ocValidUntil,
   profileDetails,
+  actionsSuspended,
 }: VerificationSubjectPanelProps): React.ReactElement {
+  const isApproved = adminDisplayStatus === 'approved';
   const isContractor = userType === 'contractor';
   const ibanDisplay = profileDetails.bankAccountIban
     ? formatIbanDisplay(profileDetails.bankAccountIban)
@@ -216,6 +231,7 @@ export function VerificationSubjectPanel({
 
   const documentPrefill = React.useMemo(() => buildPrefilledRejectReason(snapshots), [snapshots]);
   const [rejectOpen, setRejectOpen] = React.useState(false);
+  const [suspendConfirmOpen, setSuspendConfirmOpen] = React.useState(false);
   const [rejectReasonId, setRejectReasonId] = React.useState<VerificationRejectionReasonId | ''>('');
   const [rejectCustomReason, setRejectCustomReason] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -275,6 +291,22 @@ export function VerificationSubjectPanel({
     }
   };
 
+  const handleSetSuspended = async (suspended: boolean): Promise<void> => {
+    setBusy(true);
+    try {
+      const res = await setVerificationSubjectSuspendedAction(subjectUserId, suspended);
+      if (!res.ok) {
+        toast.error(res.error ?? 'Nie udało się zmienić zawieszenia');
+        return;
+      }
+      toast.success(suspended ? 'Zawieszono konto' : 'Przywrócono konto');
+      setSuspendConfirmOpen(false);
+      window.location.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const updatedCount =
     lastDecisionAt != null
       ? documents.filter(
@@ -320,7 +352,6 @@ export function VerificationSubjectPanel({
                   </h2>
                   <AdminImpersonateButtons
                     subjectUserId={subjectUserId}
-                    userType={userType}
                     disabled={busy}
                     compact
                   />
@@ -328,6 +359,11 @@ export function VerificationSubjectPanel({
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{userTypeLabel(userType)}</Badge>
                   <VerificationStatusBadge state={adminDisplayStatus} />
+                  {actionsSuspended ? (
+                    <Badge className="border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
+                      Zawieszone
+                    </Badge>
+                  ) : null}
                   <Link
                     href="#admin-notes"
                     className="inline-flex items-center gap-1 rounded-md border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
@@ -346,39 +382,54 @@ export function VerificationSubjectPanel({
             <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
               <p className="text-sm font-medium text-muted-foreground sm:text-right">Weryfikacja</p>
               <div className="flex flex-wrap gap-2 sm:justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={busy || !canApprove}
-                  onClick={() => void handleApprove()}
-                  className={
-                    canApprove ? 'bg-emerald-600 text-white hover:bg-emerald-700' : undefined
-                  }
-                  title={
-                    !emailConfirmed
-                      ? 'Użytkownik musi najpierw potwierdzić adres email.'
-                      : missingCount > 0
-                        ? 'Brakuje wymaganych dokumentów w profilu.'
-                        : !allReviewed
-                          ? 'Najpierw oceń wszystkie przesłane dokumenty.'
-                          : rejected > 0
-                            ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
-                            : undefined
-                  }
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Akceptuj
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => setRejectOpen((prev) => !prev)}
-                >
-                  <ShieldX className="h-3.5 w-3.5" />
-                  Odrzuć
-                </Button>
+                {isApproved ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={actionsSuspended ? 'outline' : 'destructive'}
+                    disabled={busy}
+                    onClick={() => setSuspendConfirmOpen(true)}
+                  >
+                    <Pause className="h-3.5 w-3.5" />
+                    {actionsSuspended ? 'Przywróć' : 'Zawieś'}
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy || !canApprove}
+                      onClick={() => void handleApprove()}
+                      className={
+                        canApprove ? 'bg-emerald-600 text-white hover:bg-emerald-700' : undefined
+                      }
+                      title={
+                        !emailConfirmed
+                          ? 'Użytkownik musi najpierw potwierdzić adres email.'
+                          : missingCount > 0
+                            ? 'Brakuje wymaganych dokumentów w profilu.'
+                            : !allReviewed
+                              ? 'Najpierw oceń wszystkie przesłane dokumenty.'
+                              : rejected > 0
+                                ? 'Nie można zaakceptować, gdy są odrzucone dokumenty.'
+                                : undefined
+                      }
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Akceptuj
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      disabled={busy}
+                      onClick={() => setRejectOpen((prev) => !prev)}
+                    >
+                      <ShieldX className="h-3.5 w-3.5" />
+                      Odrzuć
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -387,7 +438,9 @@ export function VerificationSubjectPanel({
             <MetaItem icon={Building2} label="Firma" value={companyName ?? '—'} />
             <MetaItem icon={Hash} label="NIP" value={companyNip ?? '—'} />
             <MetaItem icon={Hash} label="REGON" value={profileDetails.companyRegon ?? '—'} />
-            <MetaItem icon={Hash} label="KRS" value={profileDetails.companyKrs ?? '—'} />
+            {profileDetails.companyKrs ? (
+              <MetaItem icon={Hash} label="KRS" value={profileDetails.companyKrs} />
+            ) : null}
             <MetaItem
               icon={MapPin}
               label="Adres"
@@ -453,7 +506,7 @@ export function VerificationSubjectPanel({
           </div>
         </CardContent>
 
-        {rejectOpen ? (
+        {!isApproved && rejectOpen ? (
           <div className="border-t border-destructive/20 bg-destructive/[0.04] px-5 py-3 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-destructive">Powód odrzucenia</p>
@@ -515,6 +568,7 @@ export function VerificationSubjectPanel({
         ) : null}
       </Card>
 
+      {documentsExpected > 0 ? (
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -550,6 +604,34 @@ export function VerificationSubjectPanel({
           />
         </CardContent>
       </Card>
+      ) : null}
+
+      <AlertDialog open={suspendConfirmOpen} onOpenChange={setSuspendConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {actionsSuspended ? 'Przywrócić konto?' : 'Zawiesić konto?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {actionsSuspended
+                ? 'Użytkownik znów będzie mógł tworzyć konkursy i składać oferty. Konto pozostanie zweryfikowane.'
+                : 'Użytkownik nie będzie mógł utworzyć konkursu ani złożyć oferty. Konto pozostanie zweryfikowane.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleSetSuspended(!actionsSuspended);
+              }}
+            >
+              {actionsSuspended ? 'Przywróć' : 'Zawieś'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

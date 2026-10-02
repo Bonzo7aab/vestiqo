@@ -25,6 +25,7 @@ import { canAbandonManagerContestDraft } from '../../lib/tender-workflow-status'
 import { abandonContestDraftAction } from '../../app/panel-zarzadcy/konkursy/actions';
 import { fetchAcceptedContractorCompanyForTender } from '../../lib/database/offer-selection';
 import { createClient } from '../../lib/supabase/client';
+import { useUserProfile } from '../../contexts/AuthContext';
 import { CooperationReviewDialog } from '../reviews/CooperationReviewDialog';
 import { ManagerSubmissionPodgladDialog } from './ManagerSubmissionPodgladDialog';
 import { ManagerWorkflowAdvanceButton } from './ManagerWorkflowAdvanceButton';
@@ -115,6 +116,7 @@ export function ManagerMojeZgloszeniaContent({
 }: ManagerMojeZgloszeniaContentProps): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useUserProfile();
   const [submissions, setSubmissions] = useState(initialSubmissions);
 
   useEffect(() => {
@@ -337,9 +339,11 @@ export function ManagerMojeZgloszeniaContent({
                 ))}
               </SelectContent>
             </Select>
-            <Button asChild className="lg:ml-auto">
-              <Link href="/dodaj-konkurs">Utwórz konkurs</Link>
-            </Button>
+            {user?.actionsSuspended ? null : (
+              <Button asChild className="lg:ml-auto">
+                <Link href="/dodaj-konkurs">Utwórz konkurs</Link>
+              </Button>
+            )}
           </div>
 
           <div className="rounded-md border overflow-x-auto">

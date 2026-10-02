@@ -85,6 +85,10 @@ export function translateContestOfferError(message: string): string {
     return CONTEST_OFFER_ERRORS.notLoggedIn;
   }
 
+  if (lower.includes('zawieszone')) {
+    return trimmed;
+  }
+
   return CONTEST_OFFER_ERRORS.generic;
 }
 

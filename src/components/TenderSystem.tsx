@@ -202,7 +202,7 @@ export const TenderSystem: React.FC<TenderSystemProps> = ({
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {userRole === 'manager' && (
+          {userRole === 'manager' && !user?.actionsSuspended && (
             <Button onClick={onTenderCreate} className="flex items-center gap-2 flex-1 md:flex-initial">
               <Plus className="h-4 w-4" />
               Nowy przetarg
