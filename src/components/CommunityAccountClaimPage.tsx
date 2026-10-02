@@ -40,7 +40,7 @@ const authSide = {
     {
       icon: ClipboardList,
       title: 'Decyzja w 48 godzin',
-      description: 'Administrator sprawdzi dokumenty i utworzy konto Zarządu Wspólnoty.',
+      description: 'Administrator sprawdzi dokumenty i włączy logowanie do konta wspólnoty.',
     },
     {
       icon: MessagesSquare,
@@ -50,8 +50,22 @@ const authSide = {
   ],
 };
 
-export function CommunityAccountClaimPage() {
-  const [nip, setNip] = useState('');
+export type CommunityClaimPurpose = 'community_login' | 'email_recovery';
+
+interface CommunityAccountClaimFormProps {
+  initialNip?: string;
+  lockNip?: boolean;
+  claimPurpose?: CommunityClaimPurpose;
+  embedded?: boolean;
+}
+
+export function CommunityAccountClaimForm({
+  initialNip = '',
+  lockNip = false,
+  claimPurpose = 'community_login',
+  embedded = false,
+}: CommunityAccountClaimFormProps) {
+  const [nip, setNip] = useState(initialNip);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -83,6 +97,8 @@ export function CommunityAccountClaimPage() {
     setError(null);
     const form = e.currentTarget;
     const formData = new FormData(form);
+    formData.set('nip', nip);
+    formData.set('claimPurpose', claimPurpose);
 
     startTransition(async () => {
       const result = await submitCommunityAccountClaimAction(formData);
@@ -95,22 +111,7 @@ export function CommunityAccountClaimPage() {
   };
 
   if (success) {
-    return (
-      <AuthPageLayout
-        testId="community-claim-success"
-        title="Wniosek złożony"
-        subtitle={COMMUNITY_CLAIM_HOLDING_COPY}
-        trustNote="Dane chronione zgodnie z RODO."
-        side={authSide}
-        footer={
-          <>
-            Masz już konto?{' '}
-            <Link href="/logowanie" className="font-medium text-primary hover:underline">
-              Zaloguj się
-            </Link>
-          </>
-        }
-      >
+    const successPanel = (
         <AuthFormPanel>
           <div className="mb-6 flex justify-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
@@ -130,6 +131,29 @@ export function CommunityAccountClaimPage() {
             </Link>
           </Button>
         </AuthFormPanel>
+    );
+
+    if (embedded) {
+      return successPanel;
+    }
+
+    return (
+      <AuthPageLayout
+        testId="community-claim-success"
+        title="Wniosek złożony"
+        subtitle={COMMUNITY_CLAIM_HOLDING_COPY}
+        trustNote="Dane chronione zgodnie z RODO."
+        side={authSide}
+        footer={
+          <>
+            Masz już konto?{' '}
+            <Link href="/logowanie" className="font-medium text-primary hover:underline">
+              Zaloguj się
+            </Link>
+          </>
+        }
+      >
+        {successPanel}
       </AuthPageLayout>
     );
   }
@@ -137,23 +161,7 @@ export function CommunityAccountClaimPage() {
   const lookupError =
     gusLookup.validationError ?? (gusLookup.status === 'error' ? gusLookup.message : null);
 
-  return (
-    <AuthPageLayout
-      testId="community-claim-page"
-      title="Odzyskanie konta wspólnoty"
-      subtitle="Dla wspólnot, które zarządca dodał do swojego profilu i które nie mają własnego loginu."
-      trustNote="Dane chronione zgodnie z RODO."
-      contentMaxWidth="lg"
-      side={authSide}
-      footer={
-        <>
-          Masz już konto?{' '}
-          <Link href="/zapomniane-haslo" className="font-medium text-primary hover:underline">
-            Reset hasła e-mailem
-          </Link>
-        </>
-      }
-    >
+  const formPanel = (
       <AuthFormPanel>
         {error && (
           <Alert
@@ -183,6 +191,7 @@ export function CommunityAccountClaimPage() {
               required
               inputMode="numeric"
               autoComplete="off"
+              readOnly={lockNip}
               disabled={isPending}
             />
             {lookupError ? (
@@ -248,7 +257,9 @@ export function CommunityAccountClaimPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email do logowania</Label>
+            <Label htmlFor="email">
+              {claimPurpose === 'email_recovery' ? 'Nowy email do logowania' : 'Email do logowania'}
+            </Label>
             <Input
               id="email"
               name="email"
@@ -309,6 +320,34 @@ export function CommunityAccountClaimPage() {
           </Button>
         </form>
       </AuthFormPanel>
-    </AuthPageLayout>
-  );
+    );
+
+    if (embedded) {
+      return formPanel;
+    }
+
+    return (
+      <AuthPageLayout
+        testId="community-claim-page"
+        title="Odzyskanie konta wspólnoty"
+        subtitle="Dla wspólnot, które zarządca dodał do swojego profilu i które nie mają własnego loginu."
+        trustNote="Dane chronione zgodnie z RODO."
+        contentMaxWidth="lg"
+        side={authSide}
+        footer={
+          <>
+            Masz już konto?{' '}
+            <Link href="/zapomniane-haslo" className="font-medium text-primary hover:underline">
+              Odzyskaj konto
+            </Link>
+          </>
+        }
+      >
+        {formPanel}
+      </AuthPageLayout>
+    );
+}
+
+export function CommunityAccountClaimPage() {
+  return <CommunityAccountClaimForm />;
 }

@@ -298,6 +298,7 @@ export type Database = {
       }
       community_account_claims: {
         Row: {
+          claim_purpose: string
           created_user_id: string | null
           decided_at: string | null
           decided_by: string | null
@@ -306,7 +307,7 @@ export type Database = {
           gus_snapshot: Json | null
           id: string
           last_name: string
-          managed_entity_id: string
+          managed_entity_id: string | null
           nip: string
           phone: string
           reject_reason: string | null
@@ -315,6 +316,7 @@ export type Database = {
           submitted_at: string
         }
         Insert: {
+          claim_purpose?: string
           created_user_id?: string | null
           decided_at?: string | null
           decided_by?: string | null
@@ -323,7 +325,7 @@ export type Database = {
           gus_snapshot?: Json | null
           id?: string
           last_name: string
-          managed_entity_id: string
+          managed_entity_id?: string | null
           nip: string
           phone: string
           reject_reason?: string | null
@@ -332,6 +334,7 @@ export type Database = {
           submitted_at?: string
         }
         Update: {
+          claim_purpose?: string
           created_user_id?: string | null
           decided_at?: string | null
           decided_by?: string | null
@@ -340,7 +343,7 @@ export type Database = {
           gus_snapshot?: Json | null
           id?: string
           last_name?: string
-          managed_entity_id?: string
+          managed_entity_id?: string | null
           nip?: string
           phone?: string
           reject_reason?: string | null

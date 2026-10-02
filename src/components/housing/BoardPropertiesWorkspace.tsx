@@ -12,19 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
 import { ManagedBuildingEditor } from '../ManagedBuildingEditor';
 import type { ManagedHousingUiCopy } from '../../lib/profile/account-role-labels';
 import { formatBuildingAddressLine } from '../../lib/database/condo-board-housing';
+import { countBuildingsNeedingAttention } from '../../lib/housing/inspection-summary';
 import { HousingAlerts } from './HousingAlerts';
+import { HousingDirectoryRow } from './HousingDirectoryRow';
 import { HousingSectionHeader } from './HousingSectionHeader';
+import { HousingSummaryStrip } from './HousingSummaryStrip';
 import { InspectionStatusBadge } from './InspectionStatusBadge';
 import type { BoardBuildingsWorkspace } from './useBoardBuildingsWorkspace';
 
@@ -222,47 +217,45 @@ export function BoardPropertiesWorkspace({ copy, workspace }: BoardPropertiesWor
             {copy.addEntity}
           </Button>
         </div>
-      ) : filteredBuildings.length === 0 ? (
-        <div className="rounded-xl border border-dashed px-6 py-10 text-center">
-          <p className="text-sm text-muted-foreground">Brak wyników dla podanego wyszukiwania.</p>
-        </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Adres</TableHead>
-                <TableHead>Nazwa</TableHead>
-                <TableHead>Lokale / kondygnacje</TableHead>
-                <TableHead>Przeglądy</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBuildings.map((building) => (
-                <TableRow
-                  key={building.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedBuilding(building)}
-                >
-                  <TableCell className="font-medium">
-                    {formatBuildingAddressLine(building)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {building.name}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {buildingMeta(building)}
-                  </TableCell>
-                  <TableCell>
-                    <InspectionStatusBadge
-                      inspections={inspectionsByBuildingId[building.id]}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <HousingSummaryStrip
+            items={[
+              { label: copy.listRootLabel, value: buildings.length },
+              {
+                label: 'Wymagają uwagi',
+                value: countBuildingsNeedingAttention(
+                  buildings.map((building) => building.id),
+                  inspectionsByBuildingId,
+                ),
+              },
+            ]}
+          />
+          {filteredBuildings.length === 0 ? (
+            <div className="rounded-xl border border-dashed px-6 py-10 text-center">
+              <p className="text-sm text-muted-foreground">Brak wyników dla podanego wyszukiwania.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredBuildings.map((building) => {
+                const address = formatBuildingAddressLine(building);
+                const showName = building.name.trim() !== '' && building.name !== building.address;
+                return (
+                  <HousingDirectoryRow
+                    key={building.id}
+                    title={address}
+                    subtitle={showName ? building.name : undefined}
+                    meta={buildingMeta(building)}
+                    badge={
+                      <InspectionStatusBadge inspections={inspectionsByBuildingId[building.id]} />
+                    }
+                    onClick={() => setSelectedBuilding(building)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       <BoardAddBuildingDialog copy={copy} workspace={workspace} />

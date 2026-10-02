@@ -24,6 +24,10 @@ import type {
 } from '../../types/managed-housing-entity';
 import type { ManagedBuilding, ManagedBuildingInspection } from '../../types/managed-building';
 import { EMPTY_MANAGED_BUILDING_FORM } from '../../types/managed-building';
+import {
+  deleteCommunityShellAfterEntityRemoved,
+  syncCommunityShellAfterEntityUpdate,
+} from '../../lib/community-claims/community-shell-actions';
 
 export const EMPTY_HOUSING_ENTITY_FORM: ManagedHousingEntityFormData = {
   entity_type: 'wspólnota',
@@ -54,6 +58,10 @@ export function entityToForm(entity: ManagedHousingEntity): ManagedHousingEntity
 export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousingUiCopy) {
   const [entities, setEntities] = useState<ManagedHousingEntity[]>([]);
   const [buildingCounts, setBuildingCounts] = useState<Record<string, number>>({});
+  const [buildingIdsByEntityId, setBuildingIdsByEntityId] = useState<Record<string, string[]>>({});
+  const [portfolioInspectionsByBuildingId, setPortfolioInspectionsByBuildingId] = useState<
+    Record<string, ManagedBuildingInspection[]>
+  >({});
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -83,13 +91,17 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
       return (
         entity.name.toLowerCase().includes(query) ||
         entity.nip.toLowerCase().includes(query) ||
-        (entity.city ?? '').toLowerCase().includes(query)
+        (entity.address ?? '').toLowerCase().includes(query) ||
+        (entity.city ?? '').toLowerCase().includes(query) ||
+        (entity.postal_code ?? '').toLowerCase().includes(query)
       );
     });
   }, [entities, searchQuery]);
 
-  const loadEntities = useCallback(async () => {
-    setIsLoading(true);
+  const loadEntities = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setIsLoading(true);
+    }
     setError('');
     const supabase = createClient();
     const { data, error: fetchError } = await fetchManagerHousingEntities(supabase, companyId);
@@ -97,6 +109,8 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
       setError(formatPostgrestError(fetchError) || copy.loadEntitiesError);
       setEntities([]);
       setBuildingCounts({});
+      setBuildingIdsByEntityId({});
+      setPortfolioInspectionsByBuildingId({});
       setIsLoading(false);
       return;
     }
@@ -107,13 +121,31 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
     const entityIds = nextEntities.map((entity) => entity.id);
     const { data: allBuildings } = await fetchManagedBuildingsForEntities(supabase, entityIds);
     const counts: Record<string, number> = {};
+    const idsByEntity: Record<string, string[]> = {};
     for (const entity of nextEntities) {
       counts[entity.id] = 0;
+      idsByEntity[entity.id] = [];
     }
     for (const building of allBuildings ?? []) {
       counts[building.managed_entity_id] = (counts[building.managed_entity_id] ?? 0) + 1;
+      const ids = idsByEntity[building.managed_entity_id] ?? [];
+      ids.push(building.id);
+      idsByEntity[building.managed_entity_id] = ids;
     }
     setBuildingCounts(counts);
+    setBuildingIdsByEntityId(idsByEntity);
+
+    const { data: inspections } = await fetchBuildingInspectionsForBuildings(
+      supabase,
+      (allBuildings ?? []).map((building) => building.id),
+    );
+    const grouped: Record<string, ManagedBuildingInspection[]> = {};
+    for (const inspection of inspections ?? []) {
+      const list = grouped[inspection.building_id] ?? [];
+      list.push(inspection);
+      grouped[inspection.building_id] = list;
+    }
+    setPortfolioInspectionsByBuildingId(grouped);
     setIsLoading(false);
   }, [companyId, copy.loadEntitiesError]);
 
@@ -215,6 +247,9 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
     setSelectedBuilding(null);
     setSuccess('');
     setError('');
+    if (!entity) {
+      void loadEntities({ silent: true });
+    }
   };
 
   const handleCreate = async () => {
@@ -265,6 +300,7 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
 
     try {
       const supabase = createClient();
+      const previousNip = selectedEntity.nip;
       const result = await updateManagedHousingEntity(supabase, selectedEntity.id, companyId, {
         ...basicsForm,
         entity_type: selectedEntity.entity_type || 'wspólnota',
@@ -275,6 +311,12 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
         setError(result.error?.message || 'Nie udało się zapisać danych');
         return;
       }
+
+      await syncCommunityShellAfterEntityUpdate({
+        managerCompanyId: companyId,
+        entityId: result.data.id,
+        previousNip,
+      });
 
       setSelectedEntity(result.data);
       setEntities((prev) =>
@@ -303,6 +345,10 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
         setError(deleteError?.message || copy.deleteEntityError);
         return;
       }
+      await deleteCommunityShellAfterEntityRemoved({
+        managerCompanyId: companyId,
+        nip: deletingEntity.nip,
+      });
       setSuccess(copy.deleteEntitySuccess);
       setIsDeleteDialogOpen(false);
       if (selectedEntity?.id === deletingEntity.id) {
@@ -384,6 +430,8 @@ export function useManagedHousingWorkspace(companyId: string, copy: ManagedHousi
     entities,
     filteredEntities,
     buildingCounts,
+    buildingIdsByEntityId,
+    portfolioInspectionsByBuildingId,
     searchQuery,
     setSearchQuery,
     isLoading,

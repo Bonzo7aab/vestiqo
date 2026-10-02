@@ -20,10 +20,8 @@ import { checkNipRegistrationStatus } from './registration-checks'
 import { provisionRegistrationAuthUser } from './provision-registration-auth-user'
 import { getPublicAppOrigin } from './app-origin'
 import { deleteUserAccountData } from './delete-user-account-data'
-import { findAuthUserByEmail } from './find-user-by-email'
-import { generateSecurePassword } from './generate-password'
+import { issueTemporaryPassword } from './issue-temporary-password'
 import { validatePasswordStrength } from './password-policy'
-import { sendPasswordResetEmail } from '../email/send-password-reset-email'
 import { sendManagerEmailVerification } from '../email/send-manager-email-verification'
 import { createAdminClientOrNull } from '../supabase/admin'
 import { isManagerAccessPending, MANAGER_VERIFICATION_PATH } from './manager-access-pending'
@@ -41,6 +39,7 @@ import {
   type WspolnotaSubRole,
 } from '../profile/account-role-labels'
 import { createManagedHousingEntity } from '../database/managed-housing-entities'
+import { ensureUnclaimedCommunityShell } from '../community-claims/community-shell'
 import { seedCondoBoardHousingFromGus } from '../database/condo-board-housing'
 import {
   isDevQuickLoginAccountKey,
@@ -568,6 +567,19 @@ async function registerActionImpl(
         error: translateRegistrationErrorMessage(managedMessage),
       }
     }
+
+    const communityShell = await ensureUnclaimedCommunityShell(admin, {
+      nip: managedEntityNip,
+      name: managedEntityName,
+      regon: managedEntityRegon,
+      address: managedEntityAddress,
+      city: managedEntityCity,
+      postal_code: managedEntityPostalCode,
+    })
+    if ('error' in communityShell) {
+      await admin.auth.admin.deleteUser(userId)
+      return { error: translateRegistrationErrorMessage(communityShell.error) }
+    }
   }
 
   if (
@@ -787,38 +799,7 @@ async function requestPasswordResetEmailActionImpl(
       return { success: true }
     }
 
-    const user = await findAuthUserByEmail(admin, trimmed)
-    if (!user) {
-      return { success: true }
-    }
-
-    const newPassword = generateSecurePassword()
-    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
-      password: newPassword,
-    })
-
-    if (updateError) {
-      console.error('requestPasswordResetEmailAction: updateUserById failed', updateError.message)
-      Sentry.captureException(updateError, { extra: { email: trimmed } })
-      return { success: true }
-    }
-
-    const origin = getPublicAppOrigin()
-    const sendResult = await sendPasswordResetEmail({
-      toEmail: trimmed,
-      password: newPassword,
-      loginUrl: `${origin}/logowanie`,
-    })
-
-    if (!sendResult.sent) {
-      console.error(
-        'requestPasswordResetEmailAction: Resend failed',
-        sendResult.skippedReason ?? 'unknown',
-      )
-      Sentry.captureMessage('Password reset email not sent', {
-        extra: { email: trimmed, reason: sendResult.skippedReason },
-      })
-    }
+    await issueTemporaryPassword(admin, trimmed)
   } catch (error) {
     console.error('requestPasswordResetEmailAction:', error)
     Sentry.captureException(error, { extra: { email: trimmed } })

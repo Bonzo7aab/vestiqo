@@ -1,7 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import {
+  Building2,
+  Droplets,
+  Flame,
+  Loader2,
+  MapPin,
+  Trash2,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -14,8 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table';
+import { formatBuildingAddressLine } from '../lib/database/condo-board-housing';
+import { InspectionStatusBadge } from './housing/InspectionStatusBadge';
 import { createClient } from '../lib/supabase/client';
 import {
   deleteManagedBuilding,
@@ -64,30 +83,44 @@ function statusBadgeClass(status: ReturnType<typeof computeInspectionStatus>): s
 function EditorSection({
   grouped,
   title,
+  icon: Icon,
   children,
 }: {
   grouped: boolean;
   title: string;
+  icon: LucideIcon;
   children: ReactNode;
 }): ReactElement {
+  const heading = (
+    <span className="flex items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-brand-navy">
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      {title}
+    </span>
+  );
+
   if (!grouped) {
     return (
       <section className="space-y-3">
-        <h4 className="text-sm font-semibold">{title}</h4>
+        <h4 className="text-sm font-semibold">{heading}</h4>
         {children}
       </section>
     );
   }
 
   return (
-    <Card>
+    <Card className="h-full bg-white">
       <CardHeader className="border-b pb-4">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium">{heading}</CardTitle>
       </CardHeader>
       <CardContent className="pt-5">{children}</CardContent>
     </Card>
   );
 }
+
+const visibleFieldClass =
+  'h-10 border-border bg-white text-sm font-medium text-foreground shadow-sm disabled:bg-white disabled:text-foreground disabled:opacity-100';
 
 export function ManagedBuildingEditor({
   building,
@@ -206,15 +239,28 @@ export function ManagedBuildingEditor({
     onDeleted(building.id);
   };
 
+  const addressLine = formatBuildingAddressLine(building);
+  const summaryAddress = formatBuildingAddressLine({
+    address: formData.address,
+    city: formData.city,
+    postal_code: formData.postal_code,
+  });
+  const summaryFacts: Array<{ label: string; value: string }> = [
+    { label: 'Adres', value: summaryAddress === '—' ? 'Brak adresu' : summaryAddress },
+    { label: 'Lokale', value: formData.total_residential_units.trim() || '—' },
+    { label: 'Kondygnacje', value: formData.above_ground_floors.trim() || '—' },
+    { label: 'Klatki', value: formData.staircases_count.trim() || '—' },
+  ];
+
   return (
-    <div className={cn('space-y-4', !grouped && 'rounded-lg border bg-card p-4')}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-base font-semibold">{building.name}</h3>
+    <div className={cn('space-y-5', !grouped && 'rounded-lg border bg-card p-4')}>
+      <div className="flex flex-col gap-3 border-b border-border/70 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h2 className="truncate text-2xl font-semibold tracking-tight text-brand-navy">
+            {building.name || addressLine}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            {[building.address, [building.postal_code, building.city].filter(Boolean).join(' ')]
-              .filter(Boolean)
-              .join(', ') || 'Dane techniczne i kalendarz przeglądów budynku'}
+            Dane techniczne i kalendarz przeglądów
           </p>
         </div>
         <div className="flex gap-2">
@@ -238,17 +284,93 @@ export function ManagedBuildingEditor({
         </div>
       </div>
 
+      <dl className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-white p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-5">
+        {summaryFacts.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <dt className="text-xs font-medium text-muted-foreground">{item.label}</dt>
+            <dd className="mt-1 truncate text-base font-semibold text-brand-navy">{item.value}</dd>
+          </div>
+        ))}
+        <div className="min-w-0">
+          <dt className="text-xs font-medium text-muted-foreground">Przeglądy</dt>
+          <dd className="mt-1.5">
+            {isLoadingInspections ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <InspectionStatusBadge inspections={inspections} />
+            )}
+          </dd>
+        </div>
+      </dl>
+
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
 
-      <Tabs defaultValue="technical" className="space-y-4">
-        <TabsList className="w-full max-w-md">
-          <TabsTrigger value="technical">Dane Techniczne</TabsTrigger>
-          <TabsTrigger value="inspections">Kalendarz Przeglądów</TabsTrigger>
-        </TabsList>
+      <section className="space-y-3">
+        <h4 className="text-sm font-semibold">Kalendarz przeglądów</h4>
+        {isLoadingInspections ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+            <Table className="bg-white">
+              <TableHeader className="bg-white [&_tr]:border-b [&_tr]:bg-white [&_tr]:hover:bg-white">
+                <TableRow className="bg-white hover:bg-white">
+                  <TableHead className="bg-white">Przegląd</TableHead>
+                  <TableHead className="bg-white">Status</TableHead>
+                  <TableHead className="bg-white">Ostatni</TableHead>
+                  <TableHead className="bg-white">Kolejny</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="bg-white">
+                {BUILDING_INSPECTION_DEFINITIONS.map((def) => {
+                  const row = inspections.find((item) => item.inspection_type === def.type);
+                  const status = computeInspectionStatus(row?.next_inspected_at ?? null);
+                  return (
+                    <TableRow key={def.type} className="bg-white hover:bg-slate-50">
+                      <TableCell className="min-w-48 bg-white font-medium">{def.label}</TableCell>
+                      <TableCell className="bg-white">
+                        <Badge
+                          variant="outline"
+                          className={cn('font-normal', statusBadgeClass(status))}
+                        >
+                          {inspectionStatusLabel(status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="bg-white">
+                        <Input
+                          type="date"
+                          aria-label={`Data ostatniego przeglądu: ${def.label}`}
+                          value={row?.last_inspected_at ?? ''}
+                          onChange={(e) =>
+                            void handleInspectionDateChange(def.type, e.target.value)
+                          }
+                          className={visibleFieldClass}
+                        />
+                      </TableCell>
+                      <TableCell className="bg-white">
+                        <Input
+                          type="date"
+                          aria-label={`Data kolejnego przeglądu: ${def.label}`}
+                          value={row?.next_inspected_at ?? ''}
+                          disabled
+                          className={visibleFieldClass}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
 
-        <TabsContent value="technical" className="space-y-4">
-          <EditorSection grouped={grouped} title="Adres i identyfikator">
+      <section className="space-y-3">
+        <h4 className="text-sm font-semibold">Dane techniczne</h4>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <EditorSection grouped={grouped} title="Adres i identyfikator" icon={MapPin}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="building-address">Ulica i numer</Label>
@@ -292,7 +414,7 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <EditorSection grouped={grouped} title="Gabaryty i konstrukcja budynku">
+          <EditorSection grouped={grouped} title="Gabaryty i konstrukcja budynku" icon={Building2}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba kondygnacji nadziemnych</Label>
@@ -349,7 +471,7 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <EditorSection grouped={grouped} title="Instalacja gazowa budynku">
+          <EditorSection grouped={grouped} title="Instalacja gazowa budynku" icon={Flame}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba lokali z podłączeniem gazowym</Label>
@@ -379,7 +501,7 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <EditorSection grouped={grouped} title="Przewody kominowe budynku">
+          <EditorSection grouped={grouped} title="Przewody kominowe budynku" icon={Wind}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba punktów / otworów kominowych w lokalach</Label>
@@ -414,7 +536,7 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <EditorSection grouped={grouped} title="Instalacja elektryczna i odgromowa">
+          <EditorSection grouped={grouped} title="Instalacja elektryczna i odgromowa" icon={Zap}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba lokali mieszkalnych / użytkowych ogółem</Label>
@@ -443,7 +565,7 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <EditorSection grouped={grouped} title="Instalacje sanitarne i ppoż.">
+          <EditorSection grouped={grouped} title="Instalacje sanitarne i ppoż." icon={Droplets}>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Liczba węzłów cieplnych / kotłowni</Label>
@@ -465,66 +587,14 @@ export function ManagedBuildingEditor({
             </div>
           </EditorSection>
 
-          <div className={cn(grouped && 'flex justify-end')}>
+          <div className={cn('lg:col-span-2', grouped && 'flex justify-end')}>
             <Button type="button" onClick={() => void handleSaveTechnical()} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Zapisz dane techniczne
             </Button>
           </div>
-        </TabsContent>
-
-        <TabsContent value="inspections" className="space-y-3">
-          {isLoadingInspections ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {BUILDING_INSPECTION_DEFINITIONS.map((def) => {
-                const row = inspections.find((item) => item.inspection_type === def.type);
-                const status = computeInspectionStatus(row?.next_inspected_at ?? null);
-                return (
-                  <div
-                    key={def.type}
-                    className={cn(
-                      'grid gap-3 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-end',
-                      grouped ? 'rounded-xl border bg-card' : 'rounded-lg border',
-                    )}
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{def.label}</p>
-                      <Badge
-                        variant="outline"
-                        className={cn('mt-2 font-normal', statusBadgeClass(status))}
-                      >
-                        {inspectionStatusLabel(status)}
-                      </Badge>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Data ostatniego przeglądu
-                      </Label>
-                      <Input
-                        type="date"
-                        value={row?.last_inspected_at ?? ''}
-                        onChange={(e) =>
-                          void handleInspectionDateChange(def.type, e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Data kolejnego przeglądu
-                      </Label>
-                      <Input type="date" value={row?.next_inspected_at ?? ''} disabled />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </section>
     </div>
   );
 }

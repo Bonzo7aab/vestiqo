@@ -5,7 +5,14 @@ import { generateSecurePassword } from '../auth/generate-password';
 import { getPublicAppOrigin } from '../auth/app-origin';
 import { createNotificationWithPush } from '../database/notifications-server';
 import { sendCommunityClaimApprovedEmail } from '../email/community-claim-emails';
+import { sendPasswordResetEmail } from '../email/send-password-reset-email';
+import { findNipLogin } from '../auth/nip-recovery';
 import { findManagedHousingEntityByNip } from './eligibility';
+import {
+  activateCommunityShell,
+  findUnclaimedCommunityShell,
+  revertCommunityShellActivation,
+} from './community-shell';
 
 export interface ApproveCommunityClaimResult {
   ok: boolean;
@@ -32,6 +39,81 @@ async function findManagerUserIds(
   return [...new Set((data ?? []).map((row) => row.user_id).filter(Boolean))];
 }
 
+async function approveEmailRecoveryClaim(options: {
+  admin: SupabaseClient<Database>;
+  actorId: string;
+  claimId: string;
+  claim: {
+    nip: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+  };
+}): Promise<ApproveCommunityClaimResult> {
+  const { admin, actorId, claimId, claim } = options;
+  const login = await findNipLogin(admin, claim.nip);
+  if ('error' in login) {
+    return { ok: false, error: login.error };
+  }
+  if (!login.login) {
+    return { ok: false, error: 'Nie znaleziono konta powiązanego z tym NIP.' };
+  }
+
+  const password = generateSecurePassword();
+  const { error: updateUserError } = await admin.auth.admin.updateUserById(login.login.userId, {
+    email: claim.email,
+    email_confirm: true,
+    password,
+    user_metadata: {
+      first_name: claim.first_name,
+      last_name: claim.last_name,
+      phone: claim.phone,
+    },
+  });
+
+  if (updateUserError) {
+    return { ok: false, error: updateUserError.message };
+  }
+
+  if (login.login.companyIds.length > 0) {
+    const { error: companyError } = await admin
+      .from('companies')
+      .update({ email: claim.email, phone: claim.phone })
+      .in('id', login.login.companyIds);
+    if (companyError) {
+      console.error('approveEmailRecoveryClaim company update failed:', companyError.message);
+    }
+  }
+
+  const now = new Date().toISOString();
+  const { error: claimUpdateError } = await admin
+    .from('community_account_claims')
+    .update({
+      status: 'approved',
+      decided_at: now,
+      decided_by: actorId,
+      created_user_id: login.login.userId,
+    })
+    .eq('id', claimId)
+    .eq('status', 'pending');
+
+  if (claimUpdateError) {
+    return { ok: false, error: claimUpdateError.message };
+  }
+
+  const emailed = await sendPasswordResetEmail({
+    toEmail: claim.email,
+    password,
+    loginUrl: `${getPublicAppOrigin()}/logowanie`,
+  });
+  if (!emailed.sent) {
+    console.warn('approveEmailRecoveryClaim email skipped:', emailed.skippedReason);
+  }
+
+  return { ok: true, createdUserId: login.login.userId };
+}
+
 export async function approveCommunityAccountClaim(options: {
   admin: SupabaseClient<Database>;
   actorId: string;
@@ -53,6 +135,15 @@ export async function approveCommunityAccountClaim(options: {
   }
   if (claim.status !== 'pending') {
     return { ok: false, error: 'Ten wniosek został już rozpatrzony.' };
+  }
+
+  if (claim.claim_purpose === 'email_recovery') {
+    return approveEmailRecoveryClaim({
+      admin,
+      actorId,
+      claimId,
+      claim,
+    });
   }
 
   const entity = await findManagedHousingEntityByNip(admin, claim.nip);
@@ -119,33 +210,44 @@ export async function approveCommunityAccountClaim(options: {
     return { ok: false, error: profileError.message };
   }
 
-  const { data: companyRow, error: companyError } = await admin
-    .from('companies')
-    .insert({
-      name: entityRow.name,
-      type: companyType,
-      nip: claim.nip,
-      regon: entityRow.regon,
-      address: entityRow.address,
-      city: entityRow.city,
-      postal_code: entityRow.postal_code,
-      country: 'PL',
-      email: claim.email,
-      phone: claim.phone,
-      is_verified: true,
-      verification_level: 'verified',
-    })
-    .select('id')
-    .single();
-
-  if (companyError || !companyRow?.id) {
+  const shellLookup = await findUnclaimedCommunityShell(admin, claim.nip);
+  if ('error' in shellLookup) {
     await admin.auth.admin.deleteUser(userId);
-    return { ok: false, error: companyError?.message ?? 'Nie udało się utworzyć firmy wspólnoty.' };
+    return { ok: false, error: shellLookup.error };
+  }
+  const shell = shellLookup.shell;
+  let companyId = shell?.id ?? null;
+
+  if (!companyId) {
+    const { data: companyRow, error: companyError } = await admin
+      .from('companies')
+      .insert({
+        name: entityRow.name,
+        type: companyType,
+        nip: claim.nip,
+        regon: entityRow.regon,
+        address: entityRow.address,
+        city: entityRow.city,
+        postal_code: entityRow.postal_code,
+        country: 'PL',
+        email: claim.email,
+        phone: claim.phone,
+        is_verified: true,
+        verification_level: 'verified',
+      })
+      .select('id')
+      .single();
+
+    if (companyError || !companyRow?.id) {
+      await admin.auth.admin.deleteUser(userId);
+      return { ok: false, error: companyError?.message ?? 'Nie udało się utworzyć firmy wspólnoty.' };
+    }
+    companyId = companyRow.id;
   }
 
   const { error: linkError } = await admin.from('user_companies').insert({
     user_id: userId,
-    company_id: companyRow.id,
+    company_id: companyId,
     role: 'owner',
     is_primary: true,
     is_active: true,
@@ -156,17 +258,38 @@ export async function approveCommunityAccountClaim(options: {
     return { ok: false, error: linkError.message };
   }
 
+  if (shell) {
+    const activated = await activateCommunityShell(admin, companyId, {
+      nip: claim.nip,
+      name: entityRow.name,
+      regon: entityRow.regon,
+      address: entityRow.address,
+      city: entityRow.city,
+      postal_code: entityRow.postal_code,
+      email: claim.email,
+      phone: claim.phone,
+    });
+    if (activated.error) {
+      await admin.auth.admin.deleteUser(userId);
+      await revertCommunityShellActivation(admin, companyId);
+      return { ok: false, error: activated.error };
+    }
+  }
+
   const { error: blockError } = await admin
     .from('managed_housing_entities')
     .update({
       management_blocked_at: now,
-      claimed_company_id: companyRow.id,
+      claimed_company_id: companyId,
       updated_at: now,
     })
     .eq('id', entity.id);
 
   if (blockError) {
     await admin.auth.admin.deleteUser(userId);
+    if (shell) {
+      await revertCommunityShellActivation(admin, companyId);
+    }
     return { ok: false, error: blockError.message };
   }
 
@@ -211,5 +334,5 @@ export async function approveCommunityAccountClaim(options: {
     ),
   );
 
-  return { ok: true, createdUserId: userId, createdCompanyId: companyRow.id };
+  return { ok: true, createdUserId: userId, createdCompanyId: companyId };
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { createClient } from '../../lib/supabase/client';
 import {
   ensureCondoBoardDefaultEntity,
@@ -212,7 +213,6 @@ export function useBoardBuildingsWorkspace(companyId: string, copy: ManagedHousi
   };
 
   const handleDeleteBuilding = async (building: ManagedBuilding) => {
-    if (!window.confirm(`Usunąć budynek „${building.name}"?`)) return;
     setIsSubmitting(true);
     setError('');
     const supabase = createClient();
@@ -222,7 +222,7 @@ export function useBoardBuildingsWorkspace(companyId: string, copy: ManagedHousi
       building.managed_entity_id,
     );
     if (!deleted || deleteError) {
-      setError(deleteError?.message || copy.deleteEntityError);
+      toast.error(deleteError?.message || copy.deleteEntityError);
       setIsSubmitting(false);
       return;
     }
@@ -235,7 +235,7 @@ export function useBoardBuildingsWorkspace(companyId: string, copy: ManagedHousi
     if (selectedBuilding?.id === building.id) {
       setSelectedBuilding(null);
     }
-    setSuccess(copy.deleteChildSuccess);
+    toast.success(copy.deleteChildSuccess);
     setIsSubmitting(false);
   };
 
@@ -245,6 +245,7 @@ export function useBoardBuildingsWorkspace(companyId: string, copy: ManagedHousi
   };
 
   const onBuildingDeleted = (buildingId: string) => {
+    setSuccess('');
     setBuildings((prev) => prev.filter((item) => item.id !== buildingId));
     setInspectionsByBuildingId((prev) => {
       const next = { ...prev };
@@ -252,7 +253,6 @@ export function useBoardBuildingsWorkspace(companyId: string, copy: ManagedHousi
       return next;
     });
     setSelectedBuilding(null);
-    setSuccess(copy.deleteChildSuccess);
   };
 
   return {

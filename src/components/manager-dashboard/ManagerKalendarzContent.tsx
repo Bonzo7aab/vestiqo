@@ -16,7 +16,12 @@ import {
   startOfLocalDay,
   startOfMonth,
 } from '../../lib/calendar/dates';
-import { KONTO_NIERUCHOMOSCI_HREF } from '../../lib/konto-tabs';
+import { useUserProfile } from '../../contexts/AuthContext';
+import { housingKontoHref } from '../../lib/konto-tabs';
+import {
+  getManagedHousingUiCopy,
+  resolveAccountRole,
+} from '../../lib/profile/account-role-labels';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
@@ -66,6 +71,16 @@ export function ManagerKalendarzContent({
   events,
   initialDay,
 }: ManagerKalendarzContentProps): ReactElement {
+  const { user } = useUserProfile();
+  const accountRole = user
+    ? resolveAccountRole({
+        userType: user.userType,
+        accountRole: user.accountRole,
+        organizationType: user.organizationType,
+      })
+    : null;
+  const housingHref = housingKontoHref(accountRole);
+  const housingLabel = getManagedHousingUiCopy(accountRole).tab;
   const focusedDay = parseIsoDateLocal(initialDay);
   const [kind, setKind] = useState<ManagerCalendarEventKind | 'all'>('all');
   const [entityId, setEntityId] = useState<string>('all');
@@ -269,7 +284,7 @@ export function ManagerKalendarzContent({
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button asChild>
-                  <Link href={KONTO_NIERUCHOMOSCI_HREF}>Przejdź do Nieruchomości</Link>
+                  <Link href={housingHref}>Przejdź do {housingLabel}</Link>
                 </Button>
                 <Button type="button" variant="outline" onClick={() => openCreateDialog()}>
                   Nowe wydarzenie

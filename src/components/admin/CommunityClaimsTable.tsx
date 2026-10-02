@@ -57,6 +57,9 @@ export function CommunityClaimsTable({ items, emptyLabel }: CommunityClaimsTable
                   {item.first_name} {item.last_name}
                 </div>
                 <div className="text-xs text-muted-foreground">{item.email}</div>
+                <div className="text-xs text-muted-foreground">
+                  {item.claim_purpose === 'email_recovery' ? 'Zmiana emaila' : 'Nowy login'}
+                </div>
               </TableCell>
               <TableCell>
                 {item.status === 'pending' && item.isOverdue ? (

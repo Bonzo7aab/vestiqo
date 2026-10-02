@@ -20,7 +20,8 @@ import {
   communityClaimResolutionPath,
   describeCommunityClaimEligibility,
 } from './constants';
-import { resolveCommunityClaimEligibility } from './eligibility';
+import { resolveCommunityClaimEligibility, findManagedHousingEntityByNip } from './eligibility';
+import { findNipLogin } from '../auth/nip-recovery';
 
 export type SubmitCommunityAccountClaimResult =
   | { ok: true; message: string }
@@ -80,20 +81,41 @@ async function submitCommunityAccountClaimActionImpl(formData: FormData): Promis
     return { error: GENERIC_SUBMIT_ERROR };
   }
 
-  let eligibility;
-  try {
-    eligibility = await resolveCommunityClaimEligibility(admin, nip);
-  } catch (error) {
-    console.error('submitCommunityAccountClaim eligibility failed:', error);
-    return { error: GENERIC_SUBMIT_ERROR };
-  }
+  const claimPurpose =
+    String(formData.get('claimPurpose') ?? '') === 'email_recovery'
+      ? 'email_recovery'
+      : 'community_login';
 
-  const described = describeCommunityClaimEligibility(eligibility.reason);
-  if (!described.eligible || !eligibility.entity) {
-    return { error: described.message ?? COMMUNITY_CLAIM_INELIGIBLE_MESSAGE };
-  }
+  let managedEntityId: string | null = null;
+  if (claimPurpose === 'email_recovery') {
+    const login = await findNipLogin(admin, nip);
+    if ('error' in login) {
+      return { error: login.error };
+    }
+    if (!login.login) {
+      return { error: 'Nie znaleziono konta dla tego NIP.' };
+    }
+    try {
+      const entity = await findManagedHousingEntityByNip(admin, nip);
+      managedEntityId = entity?.id ?? null;
+    } catch (error) {
+      console.warn('submitCommunityAccountClaim entity lookup failed:', error);
+    }
+  } else {
+    let eligibility;
+    try {
+      eligibility = await resolveCommunityClaimEligibility(admin, nip);
+    } catch (error) {
+      console.error('submitCommunityAccountClaim eligibility failed:', error);
+      return { error: GENERIC_SUBMIT_ERROR };
+    }
 
-  const entity = eligibility.entity;
+    const described = describeCommunityClaimEligibility(eligibility.reason);
+    if (!described.eligible || !eligibility.entity) {
+      return { error: described.message ?? COMMUNITY_CLAIM_INELIGIBLE_MESSAGE };
+    }
+    managedEntityId = eligibility.entity.id;
+  }
   let gusSnapshot: Json | null = null;
   try {
     const gus = await lookupByNip(nip);
@@ -107,7 +129,8 @@ async function submitCommunityAccountClaimActionImpl(formData: FormData): Promis
   const { data: inserted, error: insertError } = await admin
     .from('community_account_claims')
     .insert({
-      managed_entity_id: entity.id,
+      claim_purpose: claimPurpose,
+      managed_entity_id: managedEntityId,
       nip,
       first_name: firstName,
       last_name: lastName,
@@ -122,7 +145,7 @@ async function submitCommunityAccountClaimActionImpl(formData: FormData): Promis
 
   if (insertError || !inserted?.id) {
     if (insertError?.message?.toLowerCase().includes('idx_community_account_claims_one_pending')) {
-      return { error: described.message ?? COMMUNITY_CLAIM_INELIGIBLE_MESSAGE };
+      return { error: COMMUNITY_CLAIM_INELIGIBLE_MESSAGE };
     }
     console.error('submitCommunityAccountClaim insert failed:', insertError?.message);
     return { error: GENERIC_SUBMIT_ERROR };

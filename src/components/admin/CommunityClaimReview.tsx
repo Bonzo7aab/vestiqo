@@ -75,6 +75,8 @@ export function CommunityClaimReview({ claim }: CommunityClaimReviewProps) {
           <p className="text-sm text-muted-foreground">
             NIP {claim.nip}
             {claim.managerCompanyName ? ` · Zarządca: ${claim.managerCompanyName}` : ''}
+            {' · '}
+            {claim.claim_purpose === 'email_recovery' ? 'Zmiana emaila' : 'Nowy login'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -133,7 +135,9 @@ export function CommunityClaimReview({ claim }: CommunityClaimReviewProps) {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" onClick={approve} disabled={isPending}>
-              Akceptuj i utwórz konto
+              {claim.claim_purpose === 'email_recovery'
+                ? 'Akceptuj i zmień email'
+                : 'Akceptuj i utwórz konto'}
             </Button>
             <Button type="button" variant="destructive" onClick={reject} disabled={isPending}>
               Odrzuć

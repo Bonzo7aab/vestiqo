@@ -1,3 +1,5 @@
+import { ACCOUNT_ROLES } from './profile/account-role-labels';
+
 /** Polish `?tab=` slugs for `/konto`. */
 export const KONTO_TABS = {
   profil: 'profil',
@@ -5,6 +7,8 @@ export const KONTO_TABS = {
   dokumenty: 'dokumenty',
   uslugi: 'uslugi',
   nieruchomosci: 'nieruchomosci',
+  /** Administracja Wspólnoty housing tab. */
+  wspolnota: 'wspólnota',
   bezpieczenstwo: 'bezpieczenstwo',
   powiadomienia: 'powiadomienia',
 } as const;
@@ -25,7 +29,32 @@ const LEGACY_KONTO_TAB_ALIASES: Record<string, KontoTab> = {
   notifications: KONTO_TABS.powiadomienia,
   'contractor-notifications': KONTO_TABS.powiadomienia,
   services: KONTO_TABS.uslugi,
+  /** ASCII form of the Administracja Wspólnoty housing tab. */
+  wspolnota: KONTO_TABS.wspolnota,
 };
+
+const HOUSING_KONTO_SLUGS = new Set<string>([
+  KONTO_TABS.nieruchomosci,
+  KONTO_TABS.wspolnota,
+  'wspolnota',
+]);
+
+export function isHousingKontoSlug(raw: string | null | undefined): boolean {
+  return typeof raw === 'string' && HOUSING_KONTO_SLUGS.has(raw);
+}
+
+/** Canonical housing tab for the account role. Other manager roles stay on Nieruchomości. */
+export function housingKontoTabForRole(
+  accountRole: string | null | undefined,
+): typeof KONTO_TABS.nieruchomosci | typeof KONTO_TABS.wspolnota {
+  return accountRole === ACCOUNT_ROLES.PROPERTY_MANAGER
+    ? KONTO_TABS.wspolnota
+    : KONTO_TABS.nieruchomosci;
+}
+
+export function housingKontoHref(accountRole?: string | null): string {
+  return kontoHref(housingKontoTabForRole(accountRole), { userType: 'manager' });
+}
 
 export function normalizeKontoTabSlug(raw: string | null | undefined): KontoTab | null {
   if (!raw) return null;
@@ -42,6 +71,7 @@ export function getDefaultKontoTab(userType: string | undefined): KontoTab {
 export function resolveKontoTabFromUrl(
   tabFromUrl: string | null,
   userType: string | undefined,
+  accountRole?: string | null,
 ): KontoTab | null {
   const normalized = normalizeKontoTabSlug(tabFromUrl);
   if (!normalized) return null;
@@ -61,8 +91,11 @@ export function resolveKontoTabFromUrl(
     return KONTO_TABS.profil;
   }
 
-  if (normalized === KONTO_TABS.nieruchomosci && userType !== 'manager') {
-    return KONTO_TABS.profil;
+  if (isHousingKontoTab(normalized)) {
+    if (userType !== 'manager') {
+      return KONTO_TABS.profil;
+    }
+    return housingKontoTabForRole(accountRole);
   }
 
   if (normalized === KONTO_TABS.uslugi && userType !== 'contractor') {
@@ -95,10 +128,12 @@ export function kontoHref(
   return `${base}?${params.toString()}${hash}`;
 }
 
-/** Manager Nieruchomości tab. */
-export const KONTO_NIERUCHOMOSCI_HREF = kontoHref(KONTO_TABS.nieruchomosci, {
-  userType: 'manager',
-});
+/** Zarząd Wspólnoty housing tab. Administracja Wspólnoty rewrites this to `wspólnota` on /konto. */
+export const KONTO_NIERUCHOMOSCI_HREF = housingKontoHref();
+
+function isHousingKontoTab(tab: KontoTab): boolean {
+  return tab === KONTO_TABS.nieruchomosci || tab === KONTO_TABS.wspolnota;
+}
 
 /** Contractor verification documents tab. */
 export const KONTO_DOKUMENTY_PATH = kontoHref(KONTO_TABS.dokumenty, { userType: 'contractor' });

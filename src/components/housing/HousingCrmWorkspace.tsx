@@ -5,22 +5,20 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
 import { ManagedBuildingEditor } from '../ManagedBuildingEditor';
 import type { ManagedHousingUiCopy } from '../../lib/profile/account-role-labels';
+import { formatBuildingAddressLine } from '../../lib/database/condo-board-housing';
+import {
+  countBuildingsNeedingAttention,
+  worstStatusForBuildings,
+} from '../../lib/housing/inspection-summary';
 import { HousingAlerts } from './HousingAlerts';
 import { HousingAddChildDialog } from './HousingAddChildDialog';
 import { HousingAddEntityDialog } from './HousingAddEntityDialog';
 import { HousingDeleteEntityDialog } from './HousingDeleteEntityDialog';
+import { HousingDirectoryRow } from './HousingDirectoryRow';
 import { HousingSectionHeader } from './HousingSectionHeader';
+import { HousingSummaryStrip } from './HousingSummaryStrip';
 import { InspectionStatusBadge } from './InspectionStatusBadge';
 import type { ManagedHousingWorkspace } from './useManagedHousingWorkspace';
 import { isManagedHousingEntityBlocked } from '../../types/managed-housing-entity';
@@ -32,7 +30,10 @@ interface HousingCrmWorkspaceProps {
 
 function Breadcrumb({ items }: { items: Array<{ label: string; onClick?: () => void }> }) {
   return (
-    <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+    <nav
+      aria-label="Ścieżka"
+      className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
+    >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (
@@ -47,7 +48,7 @@ function Breadcrumb({ items }: { items: Array<{ label: string; onClick?: () => v
                 {item.label}
               </button>
             ) : (
-              <span className={isLast ? 'font-medium text-foreground' : undefined}>{item.label}</span>
+              <span>{item.label}</span>
             )}
           </span>
         );
@@ -77,6 +78,8 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
     filteredEntities,
     entities,
     buildingCounts,
+    buildingIdsByEntityId,
+    portfolioInspectionsByBuildingId,
     searchQuery,
     setSearchQuery,
     isLoading,
@@ -103,7 +106,7 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
 
   if (selectedEntity && selectedBuilding) {
     return (
-      <div className="space-y-4" id="nieruchomosci">
+      <div className="space-y-6" id="nieruchomosci">
         <HousingAlerts error={error} success={success} />
         <Breadcrumb
           items={[
@@ -140,7 +143,8 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
             <h2 className="truncate text-2xl font-semibold tracking-tight">{selectedEntity.name}</h2>
             <p className="text-sm text-muted-foreground">
               NIP {selectedEntity.nip}
-              {selectedEntity.city ? ` · ${selectedEntity.city}` : ''}
+              {' · '}
+              {formatBuildingAddressLine(selectedEntity)}
             </p>
             {isManagedHousingEntityBlocked(selectedEntity) ? (
               <p className="text-sm text-amber-700">
@@ -165,156 +169,130 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
           )}
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="w-full max-w-md">
-            <TabsTrigger value="overview">{copy.overviewTab}</TabsTrigger>
-            <TabsTrigger value="properties">
-              {copy.childTab} ({buildings.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
+        <Card>
+          <CardHeader className="border-b pb-4">
+            <CardTitle className="text-sm font-medium">Dane wspólnoty</CardTitle>
             <p className="text-sm text-muted-foreground">{copy.basicsHint}</p>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-sm font-medium">Dane z GUS</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-5">
-                  <div className="space-y-2">
-                    <Label>NIP</Label>
-                    <Input value={basicsForm.nip} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nazwa</Label>
-                    <Input
-                      value={basicsForm.name}
-                      onChange={(e) =>
-                        setBasicsForm((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      disabled={entityBlocked}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>REGON</Label>
-                    <Input
-                      value={basicsForm.regon}
-                      onChange={(e) =>
-                        setBasicsForm((prev) => ({ ...prev, regon: e.target.value }))
-                      }
-                      disabled={entityBlocked}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-sm font-medium">Adres</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-5">
-                  <div className="space-y-2">
-                    <Label>Adres</Label>
-                    <Input
-                      value={basicsForm.address}
-                      onChange={(e) =>
-                        setBasicsForm((prev) => ({ ...prev, address: e.target.value }))
-                      }
-                      disabled={entityBlocked}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Miasto</Label>
-                    <Input
-                      value={basicsForm.city}
-                      onChange={(e) =>
-                        setBasicsForm((prev) => ({ ...prev, city: e.target.value }))
-                      }
-                      disabled={entityBlocked}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Kod pocztowy</Label>
-                    <Input
-                      value={basicsForm.postal_code}
-                      onChange={(e) =>
-                        setBasicsForm((prev) => ({ ...prev, postal_code: e.target.value }))
-                      }
-                      disabled={entityBlocked}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2">
+                <Label>NIP</Label>
+                <Input value={basicsForm.nip} disabled />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Nazwa</Label>
+                <Input
+                  value={basicsForm.name}
+                  onChange={(e) =>
+                    setBasicsForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  disabled={entityBlocked}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>REGON</Label>
+                <Input
+                  value={basicsForm.regon}
+                  onChange={(e) =>
+                    setBasicsForm((prev) => ({ ...prev, regon: e.target.value }))
+                  }
+                  disabled={entityBlocked}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Adres</Label>
+                <Input
+                  value={basicsForm.address}
+                  onChange={(e) =>
+                    setBasicsForm((prev) => ({ ...prev, address: e.target.value }))
+                  }
+                  disabled={entityBlocked}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Miasto</Label>
+                <Input
+                  value={basicsForm.city}
+                  onChange={(e) =>
+                    setBasicsForm((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  disabled={entityBlocked}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kod pocztowy</Label>
+                <Input
+                  value={basicsForm.postal_code}
+                  onChange={(e) =>
+                    setBasicsForm((prev) => ({ ...prev, postal_code: e.target.value }))
+                  }
+                  disabled={entityBlocked}
+                />
+              </div>
             </div>
             {entityBlocked ? null : (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                onClick={() => void handleSaveBasics()}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {copy.saveBasicsLabel}
-              </Button>
-            </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={() => void handleSaveBasics()}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {copy.saveBasicsLabel}
+                </Button>
+              </div>
             )}
-          </TabsContent>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="properties" className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold">
+                {copy.childTab}
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  {buildings.length}
+                </span>
+              </h3>
               <p className="text-sm text-muted-foreground">{copy.childIntro}</p>
-              {entityBlocked ? null : (
+            </div>
+            {entityBlocked ? null : (
               <Button type="button" size="sm" onClick={() => setIsAddBuildingOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 {copy.addChild}
               </Button>
-              )}
-            </div>
-
-            {isLoadingBuildings ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : buildings.length === 0 ? (
-              <div className="rounded-xl border border-dashed px-6 py-12 text-center">
-                <p className="text-sm font-medium">{copy.emptyChildrenTitle}</p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                  {copy.emptyChildren}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nazwa</TableHead>
-                      <TableHead>Lokale / kondygnacje</TableHead>
-                      <TableHead>Przeglądy</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {buildings.map((building) => (
-                      <TableRow
-                        key={building.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedBuilding(building)}
-                      >
-                        <TableCell className="font-medium">{building.name}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {buildingMeta(building)}
-                        </TableCell>
-                        <TableCell>
-                          <InspectionStatusBadge
-                            inspections={inspectionsByBuildingId[building.id]}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+
+          {isLoadingBuildings ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : buildings.length === 0 ? (
+            <div className="rounded-xl border border-dashed px-6 py-12 text-center">
+              <p className="text-sm font-medium">{copy.emptyChildrenTitle}</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                {copy.emptyChildren}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {buildings.map((building) => (
+                <HousingDirectoryRow
+                  key={building.id}
+                  title={formatBuildingAddressLine(building)}
+                  subtitle={building.name}
+                  meta={buildingMeta(building)}
+                  badge={
+                    <InspectionStatusBadge inspections={inspectionsByBuildingId[building.id]} />
+                  }
+                  onClick={() => setSelectedBuilding(building)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         <HousingAddChildDialog copy={copy} workspace={workspace} />
         <HousingDeleteEntityDialog copy={copy} workspace={workspace} includeChildren />
@@ -358,56 +336,74 @@ export function HousingCrmWorkspace({ copy, workspace }: HousingCrmWorkspaceProp
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nazwa</TableHead>
-                <TableHead>NIP</TableHead>
-                <TableHead>Miasto</TableHead>
-                <TableHead>{copy.childCountColumn}</TableHead>
-                <TableHead className="w-[80px] text-right">Akcje</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEntities.map((entity) => (
-                <TableRow
-                  key={entity.id}
-                  className="cursor-pointer"
-                  onClick={() => selectEntity(entity)}
-                >
-                  <TableCell className="font-medium">
-                    <span>{entity.name}</span>
-                    {isManagedHousingEntityBlocked(entity) ? (
-                      <span className="mt-0.5 block text-xs font-normal text-amber-700">
-                        Wspólnota odzyskała własne konto
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">{entity.nip}</TableCell>
-                  <TableCell>{entity.city || '—'}</TableCell>
-                  <TableCell>{buildingCounts[entity.id] ?? 0}</TableCell>
-                  <TableCell className="text-right">
-                    {isManagedHousingEntityBlocked(entity) ? null : (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={copy.deleteEntity}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeletingEntity(entity);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <HousingSummaryStrip
+            items={[
+              { label: copy.listRootLabel, value: entities.length },
+              {
+                label: copy.childCountColumn,
+                value: Object.values(buildingCounts).reduce((sum, count) => sum + count, 0),
+              },
+              {
+                label: 'Wymagają uwagi',
+                value: countBuildingsNeedingAttention(
+                  Object.values(buildingIdsByEntityId).flat(),
+                  portfolioInspectionsByBuildingId,
+                ),
+              },
+            ]}
+          />
+          {filteredEntities.length === 0 ? (
+            <div className="rounded-xl border border-dashed px-6 py-10 text-center">
+              <p className="text-sm text-muted-foreground">Brak wyników dla podanego wyszukiwania.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredEntities.map((entity) => {
+                const buildingIds = buildingIdsByEntityId[entity.id] ?? [];
+                const propertyCount = buildingCounts[entity.id] ?? 0;
+                return (
+                  <HousingDirectoryRow
+                    key={entity.id}
+                    title={entity.name}
+                    subtitle={`NIP ${entity.nip} · ${formatBuildingAddressLine(entity)}`}
+                    meta={
+                      isManagedHousingEntityBlocked(entity)
+                        ? 'Wspólnota odzyskała własne konto'
+                        : `${propertyCount} ${propertyCount === 1 ? 'nieruchomość' : 'nieruchomości'}`
+                    }
+                    badge={
+                      propertyCount > 0 ? (
+                        <InspectionStatusBadge
+                          status={worstStatusForBuildings(
+                            buildingIds,
+                            portfolioInspectionsByBuildingId,
+                          )}
+                        />
+                      ) : undefined
+                    }
+                    action={
+                      isManagedHousingEntityBlocked(entity) ? null : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={copy.deleteEntity}
+                          onClick={() => {
+                            setDeletingEntity(entity);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      )
+                    }
+                    onClick={() => selectEntity(entity)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       <HousingAddEntityDialog

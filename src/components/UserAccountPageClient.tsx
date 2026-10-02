@@ -24,7 +24,9 @@ import { VerificationAttentionIcon } from './VerificationAttentionIcon';
 import {
   KONTO_TABS,
   getDefaultKontoTab,
+  housingKontoTabForRole,
   isDefaultKontoTab,
+  isHousingKontoSlug,
   resolveKontoTabFromUrl,
   type KontoTab,
 } from '../lib/konto-tabs';
@@ -58,9 +60,19 @@ export function UserAccountPageClient({
   // Priority 1 & 5: Controlled tabs with URL persistence
   const [activeTab, setActiveTab] = React.useState<KontoTab>(KONTO_TABS.profil);
 
+  const accountRole = user
+    ? resolveAccountRole({
+        userType: user.userType,
+        accountRole: user.accountRole,
+        organizationType: user.organizationType,
+      })
+    : null;
+  const housingTab = housingKontoTabForRole(accountRole);
+
   const resolveTabFromUrl = React.useCallback(
-    (tabFromUrl: string | null): KontoTab | null => resolveKontoTabFromUrl(tabFromUrl, user?.userType),
-    [user?.userType],
+    (tabFromUrl: string | null): KontoTab | null =>
+      resolveKontoTabFromUrl(tabFromUrl, user?.userType, accountRole),
+    [accountRole, user?.userType],
   );
 
   // Track client-side mount to prevent hydration mismatch
@@ -96,13 +108,15 @@ export function UserAccountPageClient({
 
   const handleTabChange = React.useCallback(
     (tab: string) => {
-      const resolved = resolveKontoTabFromUrl(tab, user?.userType) ?? getDefaultKontoTab(user?.userType);
+      const resolved =
+        resolveKontoTabFromUrl(tab, user?.userType, accountRole) ??
+        getDefaultKontoTab(user?.userType);
       setActiveTab(resolved);
       if (user) {
         applyTabToUrl(resolved);
       }
     },
-    [applyTabToUrl, user],
+    [accountRole, applyTabToUrl, user],
   );
 
   const lockToServices =
@@ -129,12 +143,19 @@ export function UserAccountPageClient({
     const resolved = resolveTabFromUrl(tabParam);
     if (resolved) {
       setActiveTab(resolved);
+      if (
+        isHousingKontoSlug(tabParam) &&
+        tabParam !== resolved &&
+        (resolved === KONTO_TABS.nieruchomosci || resolved === KONTO_TABS.wspolnota)
+      ) {
+        applyTabToUrl(resolved);
+      }
       return;
     }
     if (!tabParam) {
       setActiveTab(getDefaultKontoTab(user.userType));
     }
-  }, [isMounted, user, searchParams, resolveTabFromUrl, initialServiceSubcategorySlugs]);
+  }, [isMounted, user, searchParams, resolveTabFromUrl, applyTabToUrl, initialServiceSubcategorySlugs]);
 
   // Scroll to the target anchor (e.g. `#oc-policy`) once the active tab's
   // content has had a chance to render. Runs whenever the active tab changes
@@ -179,11 +200,6 @@ export function UserAccountPageClient({
   }
 
   const showDocumentsTabAttention = needsVerificationAttention(user);
-  const accountRole = resolveAccountRole({
-    userType: user.userType,
-    accountRole: user.accountRole,
-    organizationType: user.organizationType,
-  });
   const showManagedHousingEntities = shouldShowManagedHousingEntitiesOnAccount(accountRole);
   const managedHousingCopy = getManagedHousingUiCopy(accountRole);
   const isOnboarding = searchParams.get('onboarding') === '1';
@@ -268,10 +284,10 @@ export function UserAccountPageClient({
                 </button>
                 {showManagedHousingEntities ? (
                   <button
-                    onClick={() => handleTabChange(KONTO_TABS.nieruchomosci)}
+                    onClick={() => handleTabChange(housingTab)}
                     className={cn(
                       "px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0",
-                      activeTab === KONTO_TABS.nieruchomosci
+                      activeTab === housingTab
                         ? "border-primary text-primary"
                         : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                     )}
@@ -320,7 +336,7 @@ export function UserAccountPageClient({
           </TabsContent>
 
           {showManagedHousingEntities ? (
-            <TabsContent value={KONTO_TABS.nieruchomosci} className="space-y-6">
+            <TabsContent value={housingTab} className="space-y-6">
               <CompanyManagementForm user={user} managedEntitiesOnly />
             </TabsContent>
           ) : null}

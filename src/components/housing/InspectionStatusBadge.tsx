@@ -23,13 +23,20 @@ export function inspectionBadgeClass(status: BuildingInspectionStatus): string {
 
 interface InspectionStatusBadgeProps {
   inspections?: ManagedBuildingInspection[];
+  status?: BuildingInspectionStatus;
   className?: string;
 }
 
-export function InspectionStatusBadge({ inspections, className }: InspectionStatusBadgeProps) {
-  const status = worstInspectionStatus(
-    (inspections ?? []).map((item) => computeInspectionStatus(item.next_inspected_at)),
-  );
+export function InspectionStatusBadge({
+  inspections,
+  status: statusOverride,
+  className,
+}: InspectionStatusBadgeProps) {
+  const status =
+    statusOverride ??
+    worstInspectionStatus(
+      (inspections ?? []).map((item) => computeInspectionStatus(item.next_inspected_at)),
+    );
 
   return (
     <Badge variant="outline" className={cn('font-normal', inspectionBadgeClass(status), className)}>

@@ -4,7 +4,8 @@ import { COMMUNITY_CLAIM_SLA_HOURS, isCommunityClaimOverdue } from '../community
 
 export interface CommunityAccountClaimRow {
   id: string;
-  managed_entity_id: string;
+  claim_purpose: string;
+  managed_entity_id: string | null;
   nip: string;
   first_name: string;
   last_name: string;
@@ -34,6 +35,7 @@ function toClaimRow(
 ): CommunityAccountClaimRow {
   return {
     id: row.id,
+    claim_purpose: row.claim_purpose,
     managed_entity_id: row.managed_entity_id,
     nip: row.nip,
     first_name: row.first_name,
@@ -71,15 +73,26 @@ export async function fetchCommunityAccountClaims(
     return [];
   }
 
-  const entityIds = [...new Set(rows.map((row) => row.managed_entity_id))];
-  const { data: entities, error: entitiesError } = await supabase
-    .from('managed_housing_entities')
-    .select('id, name, entity_type, manager_company_id')
-    .in('id', entityIds);
-
-  if (entitiesError) {
-    throw entitiesError;
-  }
+  const entityIds = [
+    ...new Set(
+      rows
+        .map((row) => row.managed_entity_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const entities =
+    entityIds.length === 0
+      ? []
+      : await supabase
+          .from('managed_housing_entities')
+          .select('id, name, entity_type, manager_company_id')
+          .in('id', entityIds)
+          .then(({ data, error: entitiesError }) => {
+            if (entitiesError) {
+              throw entitiesError;
+            }
+            return data ?? [];
+          });
 
   const entityById = new Map((entities ?? []).map((entity) => [entity.id, entity]));
   const companyIds = [
@@ -100,12 +113,35 @@ export async function fetchCommunityAccountClaims(
     }
   }
 
+  const nipsWithoutEntity = [
+    ...new Set(rows.filter((row) => !row.managed_entity_id).map((row) => row.nip)),
+  ];
+  const companyNameByNip = new Map<string, string>();
+  if (nipsWithoutEntity.length > 0) {
+    const { data: nipCompanies, error: nipCompaniesError } = await supabase
+      .from('companies')
+      .select('nip, name')
+      .in('nip', nipsWithoutEntity);
+    if (nipCompaniesError) {
+      throw nipCompaniesError;
+    }
+    for (const company of nipCompanies ?? []) {
+      if (company.nip) {
+        companyNameByNip.set(company.nip, company.name);
+      }
+    }
+  }
+
   return rows.map((row) => {
-    const entity = entityById.get(row.managed_entity_id);
+    const entity = row.managed_entity_id ? entityById.get(row.managed_entity_id) : undefined;
     const hoursPending = (nowMs - new Date(row.submitted_at).getTime()) / (1000 * 60 * 60);
+    const fallbackName =
+      row.claim_purpose === 'email_recovery'
+        ? (companyNameByNip.get(row.nip) ?? 'Zmiana emaila')
+        : 'Nieznana wspólnota';
     return {
       ...row,
-      entityName: entity?.name ?? 'Nieznana wspólnota',
+      entityName: entity?.name ?? fallbackName,
       entityType: entity?.entity_type ?? 'wspólnota',
       managerCompanyId: entity?.manager_company_id ?? '',
       managerCompanyName: entity ? (companyNameById.get(entity.manager_company_id) ?? null) : null,

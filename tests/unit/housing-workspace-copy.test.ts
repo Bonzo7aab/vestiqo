@@ -3,9 +3,11 @@ import {
   ACCOUNT_ROLES,
   getManagedHousingUiCopy,
 } from '../../src/lib/profile/account-role-labels';
+import { countBuildingsNeedingAttention } from '../../src/lib/housing/inspection-summary';
 import {
   worstInspectionStatus,
   type BuildingInspectionStatus,
+  type ManagedBuildingInspection,
 } from '../../src/types/managed-building';
 
 const adminCopy = getManagedHousingUiCopy(ACCOUNT_ROLES.PROPERTY_MANAGER);
@@ -36,6 +38,16 @@ assert.equal(
 assert.equal(
   worstInspectionStatus(['current', 'overdue', 'upcoming'] as BuildingInspectionStatus[]),
   'overdue',
+);
+
+const overdue = { next_inspected_at: '2000-01-01' } as ManagedBuildingInspection;
+const current = { next_inspected_at: '2099-01-01' } as ManagedBuildingInspection;
+assert.equal(
+  countBuildingsNeedingAttention(['overdue', 'current', 'missing'], {
+    overdue: [overdue],
+    current: [current],
+  }),
+  1,
 );
 
 console.log('housing workspace copy and inspection status tests passed');

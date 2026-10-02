@@ -16,8 +16,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { requestPasswordResetEmailAction } from '../lib/auth/actions';
-import { translateAuthErrorMessage } from '../lib/auth/errorMessages';
+import { startAccountRecoveryByNipAction } from '../lib/auth/nip-recovery-actions';
+import { CommunityAccountClaimForm } from './CommunityAccountClaimPage';
 import {
   AuthFormPanel,
   AuthPageLayout,
@@ -46,10 +46,15 @@ const authSide = {
   ],
 };
 
+type RecoveryStep =
+  | { kind: 'nip' }
+  | { kind: 'community_claim'; nip: string; claimPurpose: 'community_login' | 'email_recovery' }
+  | { kind: 'email_sent'; nip: string; maskedEmail: string };
+
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const [nip, setNip] = useState('');
+  const [step, setStep] = useState<RecoveryStep>({ kind: 'nip' });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,31 +62,62 @@ export function ForgotPasswordPage() {
     setError(null);
 
     startTransition(async () => {
-      const result = await requestPasswordResetEmailAction(email);
+      const result = await startAccountRecoveryByNipAction(nip);
       if ('error' in result) {
-        setError(translateAuthErrorMessage(result.error));
+        setError(result.error);
         return;
       }
-      setSuccess(true);
+      if (result.kind === 'not_found') {
+        setError('Nie znaleziono konta dla tego NIP.');
+        return;
+      }
+      if (result.kind === 'community_claim') {
+        setStep({ kind: 'community_claim', nip, claimPurpose: 'community_login' });
+        return;
+      }
+      setStep({ kind: 'email_sent', nip, maskedEmail: result.maskedEmail });
     });
   };
 
-  if (success) {
+  const footer = (
+    <>
+      Pamiętasz hasło?{' '}
+      <Link href="/logowanie" className="font-medium text-primary hover:underline">
+        Zaloguj się
+      </Link>
+    </>
+  );
+
+  if (step.kind === 'community_claim') {
+    return (
+      <AuthPageLayout
+        testId="forgot-password-page"
+        title="Odzyskaj konto"
+        subtitle="Dołącz uchwałę z podpisem cyfrowym. Administrator rozpatrzy wniosek w ciągu 48 godzin."
+        trustNote="Dane chronione zgodnie z RODO."
+        contentMaxWidth="lg"
+        side={authSide}
+        footer={footer}
+      >
+        <CommunityAccountClaimForm
+          initialNip={step.nip}
+          lockNip
+          claimPurpose={step.claimPurpose}
+          embedded
+        />
+      </AuthPageLayout>
+    );
+  }
+
+  if (step.kind === 'email_sent') {
     return (
       <AuthPageLayout
         testId="forgot-password-page"
         title="Email wysłany!"
-        subtitle="Jeśli konto o podanym adresie email istnieje, wyślemy nowe, tymczasowe hasło."
+        subtitle={`Nowe, tymczasowe hasło wyślemy na adres ${step.maskedEmail}.`}
         trustNote="Dane chronione zgodnie z RODO."
         side={authSide}
-        footer={
-          <>
-            Pamiętasz hasło?{' '}
-            <Link href="/logowanie" className="font-medium text-primary hover:underline">
-              Zaloguj się
-            </Link>
-          </>
-        }
+        footer={footer}
       >
         <AuthFormPanel>
           <div className="mb-6 flex justify-center">
@@ -95,7 +131,7 @@ export function ForgotPasswordPage() {
             <AlertDescription className="text-sm">
               <strong>Sprawdź swoją skrzynkę email</strong>
               <br />
-              Nowe hasło zostało wysłane na adres: <strong>{email}</strong>
+              Nowe hasło zostało wysłane na adres: <strong>{step.maskedEmail}</strong>
             </AlertDescription>
           </Alert>
 
@@ -103,18 +139,34 @@ export function ForgotPasswordPage() {
             <p>Jeśli nie widzisz wiadomości:</p>
             <ul className="ml-4 list-inside list-disc space-y-1">
               <li>Sprawdź folder spam/junk</li>
-              <li>Upewnij się, że adres email jest prawidłowy</li>
               <li>Zaloguj się nowym hasłem i zmień je w ustawieniach konta</li>
               <li>Spróbuj ponownie za kilka minut</li>
             </ul>
           </div>
 
-          <Button asChild className="h-11 w-full">
+          <Button asChild className="mb-4 h-11 w-full">
             <Link href="/logowanie">
               Powrót do logowania
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            <button
+              type="button"
+              className="font-medium text-primary hover:underline"
+              data-testid="no-email-access"
+              onClick={() =>
+                setStep({
+                  kind: 'community_claim',
+                  nip: step.nip,
+                  claimPurpose: 'email_recovery',
+                })
+              }
+            >
+              Nie mam dostępu do tego emaila
+            </button>
+          </p>
         </AuthFormPanel>
       </AuthPageLayout>
     );
@@ -123,82 +175,62 @@ export function ForgotPasswordPage() {
   return (
     <AuthPageLayout
       testId="forgot-password-page"
-      title="Zapomniałeś hasła?"
-      subtitle="Podaj adres email powiązany z kontem — wyślemy nowe, tymczasowe hasło."
+      title="Odzyskaj konto"
+      subtitle="Podaj NIP powiązany z kontem."
       trustNote="Dane chronione zgodnie z RODO."
       side={authSide}
-      footer={
-        <>
-          Pamiętasz hasło?{' '}
-          <Link href="/logowanie" className="font-medium text-primary hover:underline">
-            Zaloguj się
-            </Link>
-          </>
-        }
-      >
-        <AuthFormPanel>
-          {error && (
-            <Alert
-              variant="destructive"
-              className="mb-5 border-destructive bg-destructive/15 shadow-sm"
-              data-testid="forgot-password-error"
-            >
-              <CircleAlert className="h-5 w-5" />
-              <AlertTitle className="text-destructive">Nie udało się wysłać linku</AlertTitle>
-              <AlertDescription className="text-sm font-medium text-destructive">
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
+      footer={footer}
+    >
+      <AuthFormPanel>
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mb-5 border-destructive bg-destructive/15 shadow-sm"
+            data-testid="forgot-password-error"
+          >
+            <CircleAlert className="h-5 w-5" />
+            <AlertTitle className="text-destructive">Nie udało się odzyskać konta</AlertTitle>
+            <AlertDescription className="text-sm font-medium text-destructive">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="email">Adres email</Label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="twoj@email.pl"
-                  className={`pl-10 ${authFieldClassName}`}
-                  required
-                  disabled={isPending}
-                  autoComplete="email"
-                />
-              </div>
-            </div>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="nip">NIP</Label>
+            <Input
+              id="nip"
+              name="nip"
+              value={nip}
+              onChange={(e) => setNip(e.target.value)}
+              placeholder="0000000000"
+              className={authFieldClassName}
+              required
+              inputMode="numeric"
+              autoComplete="off"
+              disabled={isPending}
+              data-testid="recovery-nip"
+            />
+          </div>
 
-            <Button type="submit" className="h-11 w-full" disabled={isPending}>
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Wysyłanie...
-                </>
-              ) : (
-                <>
-                  Wyślij nowe hasło
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Wspólnota bez własnego loginu (konto założył zarządca)?{' '}
-            <Link
-              href="/odzyskanie-wspolnoty"
-              className="font-medium text-primary hover:underline"
-              data-testid="community-claim-link"
-            >
-              Odzyskaj konto uchwałą
-            </Link>
-          </p>
-        </AuthFormPanel>
-      </AuthPageLayout>
-    );
+          <Button type="submit" className="h-11 w-full" disabled={isPending} data-testid="recover-account">
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sprawdzanie...
+              </>
+            ) : (
+              <>
+                Odzyskaj konto
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </form>
+      </AuthFormPanel>
+    </AuthPageLayout>
+  );
 }
 
 export default ForgotPasswordPage;
